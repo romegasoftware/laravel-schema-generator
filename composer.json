@@ -1,0 +1,66 @@
+{
+  "name": "romegasoftware/laravel-zod-generator",
+  "description": "Generate TypeScript Zod validation schemas from Laravel validation rules",
+  "keywords": [
+    "laravel",
+    "zod",
+    "typescript",
+    "validation",
+    "schema",
+    "generator"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Braden Keith",
+      "email": "bkeith@romegasoftware.com"
+    }
+  ],
+  "require": {
+    "php": "^8.1",
+    "illuminate/support": "^9.0|^10.0|^11.0|^12.0",
+    "illuminate/console": "^9.0|^10.0|^11.0|^12.0",
+    "spatie/laravel-data": "^3.0|^4.0"
+  },
+  "require-dev": {
+    "friendsofphp/php-cs-fixer": "^3.87",
+    "orchestra/testbench": "^7.0|^8.0|^9.0",
+    "phpunit/phpunit": "^9.5|^10.0|^11.0",
+    "spatie/laravel-typescript-transformer": "^2.0",
+    "larastan/larastan": "^3.6",
+    "spatie/typescript-transformer": "^2.0"
+  },
+  "suggest": {
+    "spatie/laravel-data": "Required for Data class schema generation (^3.0|^4.0)",
+    "spatie/typescript-transformer": "Required for TypeScript type generation integration (^2.0)",
+    "spatie/laravel-typescript-transformer": "For automatic hook integration with typescript:transform command (^2.0)"
+  },
+  "autoload": {
+    "psr-4": {
+      "RomegaSoftware\\LaravelZodGenerator\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "RomegaSoftware\\LaravelZodGenerator\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "RomegaSoftware\\LaravelZodGenerator\\LaravelZodGeneratorServiceProvider"
+      ]
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit",
+    "test-coverage": "vendor/bin/phpunit --coverage-html coverage",
+    "format": "vendor/bin/php-cs-fixer fix src --allow-risky=yes",
+    "analyse": "vendor/bin/phpstan analyse --memory-limit=2G"
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}

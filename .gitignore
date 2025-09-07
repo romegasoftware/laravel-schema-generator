@@ -1,0 +1,17 @@
+/vendor/
+/node_modules/
+/tests/temp/
+composer.lock
+.phpunit.result.cache
+.php-cs-fixer.cache
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.env
+.env.local
+.phpunit.cache/
