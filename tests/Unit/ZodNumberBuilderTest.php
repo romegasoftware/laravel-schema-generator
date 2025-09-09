@@ -1,8 +1,9 @@
 <?php
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
+use PHPUnit\Framework\Attributes\Test;
 
-use PHPUnit\Framework\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodNumberBuilder;
 
 class ZodNumberBuilderTest extends TestCase
@@ -15,12 +16,14 @@ class ZodNumberBuilderTest extends TestCase
         $this->builder = new ZodNumberBuilder;
     }
 
+    #[Test]
     public function test_basic_number_validation()
     {
         $schema = $this->builder->build();
         $this->assertEquals('z.number()', $schema);
     }
 
+    #[Test]
     public function test_integer_validation()
     {
         $schema = $this->builder->integer('Must be an integer')->build();
@@ -28,6 +31,7 @@ class ZodNumberBuilderTest extends TestCase
         $this->assertStringContainsString('Must be an integer', $schema);
     }
 
+    #[Test]
     public function test_min_max_validation()
     {
         $schema = $this->builder->min(5)->max(10)->build();
@@ -35,6 +39,7 @@ class ZodNumberBuilderTest extends TestCase
         $this->assertStringContainsString('.max(10)', $schema);
     }
 
+    #[Test]
     public function test_comparison_validations()
     {
         $schema = $this->builder
@@ -50,12 +55,14 @@ class ZodNumberBuilderTest extends TestCase
         $this->assertStringContainsString('.lte(99)', $schema);
     }
 
+    #[Test]
     public function test_multiple_of_validation()
     {
         $schema = $this->builder->multipleOf(5)->build();
         $this->assertStringContainsString('.multipleOf(5)', $schema);
     }
 
+    #[Test]
     public function test_decimal_exact_places()
     {
         $schema = $this->builder->decimal(2)->build();
@@ -63,6 +70,7 @@ class ZodNumberBuilderTest extends TestCase
         $this->assertStringContainsString('parts[1].length === 2', $schema);
     }
 
+    #[Test]
     public function test_decimal_range()
     {
         $schema = $this->builder->decimal(2, 4)->build();
@@ -70,6 +78,7 @@ class ZodNumberBuilderTest extends TestCase
         $this->assertStringContainsString('decimals >= 2 && decimals <= 4', $schema);
     }
 
+    #[Test]
     public function test_digits_exact()
     {
         $schema = $this->builder->digits(5)->build();
@@ -77,6 +86,7 @@ class ZodNumberBuilderTest extends TestCase
         $this->assertStringContainsString('str.length === 5', $schema);
     }
 
+    #[Test]
     public function test_digits_between()
     {
         $schema = $this->builder->digitsBetween(3, 6)->build();
@@ -84,6 +94,7 @@ class ZodNumberBuilderTest extends TestCase
         $this->assertStringContainsString('len >= 3 && len <= 6', $schema);
     }
 
+    #[Test]
     public function test_max_digits()
     {
         $schema = $this->builder->maxDigits(4)->build();
@@ -91,6 +102,7 @@ class ZodNumberBuilderTest extends TestCase
         $this->assertStringContainsString('str.length <= 4', $schema);
     }
 
+    #[Test]
     public function test_min_digits()
     {
         $schema = $this->builder->minDigits(2)->build();
@@ -98,6 +110,7 @@ class ZodNumberBuilderTest extends TestCase
         $this->assertStringContainsString('str.length >= 2', $schema);
     }
 
+    #[Test]
     public function test_positive_negative_validations()
     {
         $positive = $this->builder->positive()->build();
@@ -111,12 +124,14 @@ class ZodNumberBuilderTest extends TestCase
         $this->assertStringContainsString('.nonpositive()', $nonPositive);
     }
 
+    #[Test]
     public function test_finite_validation()
     {
         $schema = $this->builder->finite()->build();
         $this->assertStringContainsString('.finite()', $schema);
     }
 
+    #[Test]
     public function test_combined_validations()
     {
         $schema = $this->builder
@@ -132,6 +147,7 @@ class ZodNumberBuilderTest extends TestCase
         $this->assertStringContainsString('.multipleOf(5)', $schema);
     }
 
+    #[Test]
     public function test_custom_messages()
     {
         $schema = $this->builder

@@ -92,7 +92,7 @@ class CustomExtractorTest extends TestCase
             {
                 $property = new SchemaPropertyData(
                     name: 'api_key',
-                    type: 'string',
+                    validator: null,
                     isOptional: false,
                     validations: ResolvedValidationSet::make('api_key', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -155,7 +155,8 @@ class CustomExtractorTest extends TestCase
         $this->assertEquals('CustomValidationSchema', $result->name);
         $this->assertCount(1, $result->properties);
         $this->assertEquals('api_key', $result->properties[0]->name);
-        $this->assertEquals('string', $result->properties[0]->type);
+        // Type is now inferred from validations, not stored directly
+        $this->assertEquals('string', $result->properties[0]->validations->inferredType);
         $this->assertTrue($result->properties[0]->validations->isFieldRequired());
         $this->assertEquals(32, $result->properties[0]->validations->getValidationParameter('min'));
         $this->assertEquals(64, $result->properties[0]->validations->getValidationParameter('max'));

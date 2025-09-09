@@ -221,7 +221,7 @@ class ExtractorManagerTest extends TestCase
                     properties: new DataCollection(SchemaPropertyData::class, [
                         new SchemaPropertyData(
                             name: 'email',
-                            type: 'string',
+                            validator: null,
                             isOptional: false,
                             validations: ResolvedValidationSet::make('email', [
                                 new ResolvedValidation('required', [], null, true, false),

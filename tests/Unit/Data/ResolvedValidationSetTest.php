@@ -1,14 +1,15 @@
 <?php
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit\Data;
+use PHPUnit\Framework\Attributes\Test;
 
-use PHPUnit\Framework\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 
 class ResolvedValidationSetTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function it_creates_validation_set_from_validations_array()
     {
         $validations = [
@@ -26,7 +27,7 @@ class ResolvedValidationSetTest extends TestCase
         $this->assertCount(3, $validationSet->validations);
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_required_field_from_validations()
     {
         $validations = [
@@ -40,7 +41,7 @@ class ResolvedValidationSetTest extends TestCase
         $this->assertTrue($validationSet->isFieldRequired());
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_nullable_field_from_validations()
     {
         $validations = [
@@ -54,7 +55,7 @@ class ResolvedValidationSetTest extends TestCase
         $this->assertTrue($validationSet->isFieldNullable());
     }
 
-    /** @test */
+    #[Test]
     public function it_checks_if_validation_exists()
     {
         $validations = [
@@ -69,7 +70,7 @@ class ResolvedValidationSetTest extends TestCase
         $this->assertFalse($validationSet->hasValidation('max'));
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_specific_validation()
     {
         $minValidation = new ResolvedValidation('min', [5], 'Too short');
@@ -85,7 +86,7 @@ class ResolvedValidationSetTest extends TestCase
         $this->assertNull($validationSet->getValidation('max'));
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_custom_message_for_rule()
     {
         $validations = [
@@ -95,12 +96,12 @@ class ResolvedValidationSetTest extends TestCase
 
         $validationSet = ResolvedValidationSet::make('field', $validations);
 
-        $this->assertEquals('This field is required', $validationSet->getCustomMessage('required'));
-        $this->assertEquals('Too short', $validationSet->getCustomMessage('min'));
-        $this->assertNull($validationSet->getCustomMessage('max'));
+        $this->assertEquals('This field is required', $validationSet->getMessage('required'));
+        $this->assertEquals('Too short', $validationSet->getMessage('min'));
+        $this->assertNull($validationSet->getMessage('max'));
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_validation_parameter()
     {
         $validations = [
@@ -115,7 +116,7 @@ class ResolvedValidationSetTest extends TestCase
         $this->assertNull($validationSet->getValidationParameter('max'));
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_validation_parameters()
     {
         $validations = [
@@ -130,7 +131,7 @@ class ResolvedValidationSetTest extends TestCase
         $this->assertEquals([], $validationSet->getValidationParameters('max'));
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_rule_names()
     {
         $validations = [
@@ -144,7 +145,7 @@ class ResolvedValidationSetTest extends TestCase
         $this->assertEquals(['required', 'string', 'min'], $validationSet->getRuleNames());
     }
 
-    /** @test */
+    #[Test]
     public function it_converts_to_validation_array_for_backward_compatibility()
     {
         $validations = [
@@ -171,7 +172,7 @@ class ResolvedValidationSetTest extends TestCase
         ], $array['customMessages']);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_multiple_validations_with_same_rule()
     {
         $validations = [
@@ -188,7 +189,7 @@ class ResolvedValidationSetTest extends TestCase
         $this->assertEquals('param2', $customRuleValidations[1]->getFirstParameter());
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_empty_validations()
     {
         $validationSet = ResolvedValidationSet::make('field', [], 'string');

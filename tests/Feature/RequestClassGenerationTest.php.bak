@@ -52,7 +52,7 @@ class RequestClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'email',
-                    'validator' => null,
+                    'validator' => 'email',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('email', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -62,7 +62,7 @@ class RequestClassGenerationTest extends TestCase
                 ],
                 [
                     'name' => 'password',
-                    'validator' => null,
+                    'validator' => 'string',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('password', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -71,7 +71,7 @@ class RequestClassGenerationTest extends TestCase
                 ],
                 [
                     'name' => 'remember',
-                    'validator' => null,
+                    'validator' => 'boolean',
                     'isOptional' => true,
                     'validations' => ResolvedValidationSet::make('remember', [
                         new ResolvedValidation('boolean', [], null, false, false),
@@ -101,7 +101,7 @@ class RequestClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'optional_field',
-                    'validator' => null,
+                    'validator' => 'string',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('optional_field', [
                         new ResolvedValidation('nullable', [], null, false, true),
@@ -128,7 +128,7 @@ class RequestClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'tags',
-                    'validator' => null,
+                    'validator' => 'array',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('tags', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -142,8 +142,7 @@ class RequestClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('tags: z.array(', $schema);
-        $this->assertStringContainsString('z.any())', $schema);
+        $this->assertStringContainsString('tags: z.array(z.any())', $schema);
     }
 
     #[Test]
@@ -183,7 +182,7 @@ class RequestClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'categories',
-                    'validator' => null,
+                    'validator' => 'array',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make(
                         'categories',
@@ -204,10 +203,8 @@ class RequestClassGenerationTest extends TestCase
 
         // Check that we get an array with nested object validation
         $this->assertStringContainsString('categories: z.array(z.object({', $schema);
-        $this->assertStringContainsString('title: z.string()', $schema);
-        $this->assertStringContainsString('.max(50', $schema);
-        $this->assertStringContainsString('slug: z.string()', $schema);
-        $this->assertStringContainsString('.max(30', $schema);
+        $this->assertStringContainsString('title: z.string().max(50', $schema);
+        $this->assertStringContainsString('slug: z.string().max(30', $schema);
         $this->assertStringContainsString('Title must be 50 characters or less', $schema);
         $this->assertStringContainsString('Slug must be 30 characters or less', $schema);
     }
@@ -221,7 +218,7 @@ class RequestClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'status',
-                    'validator' => null,
+                    'validator' => 'string',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('status', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -235,8 +232,7 @@ class RequestClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('status: z.enum([', $schema);
-        $this->assertStringContainsString('"pending", "approved", "rejected"', $schema);
+        $this->assertStringContainsString('status: z.enum(["pending", "approved", "rejected"])', $schema);
     }
 
     #[Test]
@@ -248,7 +244,7 @@ class RequestClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'email',
-                    'validator' => null,
+                    'validator' => 'string',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('email', [
                         new ResolvedValidation('required', [], 'Email address is required', true, false),
@@ -262,7 +258,7 @@ class RequestClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('email: z.email(', $schema);
+        $this->assertStringContainsString('email: z.email()', $schema);
     }
 
     #[Test]
@@ -274,7 +270,7 @@ class RequestClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'phone',
-                    'validator' => null,
+                    'validator' => 'string',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('phone', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -288,8 +284,7 @@ class RequestClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('phone: z.string()', $schema);
-        $this->assertStringContainsString('.regex(', $schema);
+        $this->assertStringContainsString('.regex(/^\\d{3}-\\d{3}-\\d{4}$/', $schema);
     }
 
     #[Test]
@@ -301,7 +296,7 @@ class RequestClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'age',
-                    'validator' => null,
+                    'validator' => 'number',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('age', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -317,9 +312,7 @@ class RequestClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('age: z.number()', $schema);
-        $this->assertStringContainsString('.min(18)', $schema);
-        $this->assertStringContainsString('.max(120)', $schema);
+        $this->assertStringContainsString('age: z.number().min(18).max(120)', $schema);
     }
 
     #[Test]
@@ -331,7 +324,7 @@ class RequestClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'website',
-                    'validator' => null,
+                    'validator' => 'string',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('website', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -345,8 +338,7 @@ class RequestClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('website: z.string()', $schema);
-        $this->assertStringContainsString('.url(', $schema);
+        $this->assertStringContainsString('website: z.string().url(', $schema);
     }
 
     #[Test]
@@ -358,7 +350,7 @@ class RequestClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'uuid',
-                    'validator' => null,
+                    'validator' => 'string',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('uuid', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -372,8 +364,7 @@ class RequestClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('uuid: z.string()', $schema);
-        $this->assertStringContainsString('.uuid(', $schema);
+        $this->assertStringContainsString('uuid: z.string().uuid(', $schema);
     }
 
     #[Test]
@@ -395,7 +386,7 @@ class RequestClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'tags',
-                    'validator' => null,
+                    'validator' => 'array',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make(
                         'tags',
@@ -415,8 +406,7 @@ class RequestClassGenerationTest extends TestCase
         $schema = $this->generator->generate($extracted);
 
         // Check that we get an array with nested string validation
-        $this->assertStringContainsString('tags: z.array(z.string()', $schema);
-        $this->assertStringContainsString('.max(50', $schema);
+        $this->assertStringContainsString('tags: z.array(z.string().max(50', $schema);
         $this->assertStringContainsString('Each tag must be 50 characters or less', $schema);
     }
 
@@ -439,7 +429,7 @@ class RequestClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'tags',
-                    'validator' => null,
+                    'validator' => 'array',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make(
                         'tags',
@@ -459,8 +449,7 @@ class RequestClassGenerationTest extends TestCase
         $schema = $this->generator->generate($extracted);
 
         // Check that we get an array with nested string validation
-        $this->assertStringContainsString('tags: z.array(z.string()', $schema);
-        $this->assertStringContainsString('.max(50', $schema);
+        $this->assertStringContainsString('tags: z.array(z.string().max(50', $schema);
         $this->assertStringContainsString('Each tag must be 50 characters or less', $schema);
     }
 }

@@ -26,7 +26,7 @@ class TypeHandlerRegistryTest extends TestCase
     #[Test]
     public function it_registers_and_retrieves_handlers(): void
     {
-        $universalHandler = new UniversalTypeHandler;
+        $universalHandler = $this->app->make(UniversalTypeHandler::class);
 
         $this->registry->register($universalHandler);
 
@@ -89,7 +89,7 @@ class TypeHandlerRegistryTest extends TestCase
     #[Test]
     public function it_can_register_multiple_handlers_at_once(): void
     {
-        $universalHandler = new UniversalTypeHandler;
+        $universalHandler = $this->app->make(UniversalTypeHandler::class);
         $customHandler = $this->createMockHandler('custom_type', 100);
 
         $this->registry->registerMany([$universalHandler, $customHandler]);
@@ -111,7 +111,7 @@ class TypeHandlerRegistryTest extends TestCase
     #[Test]
     public function it_can_clear_all_handlers(): void
     {
-        $this->registry->register(new UniversalTypeHandler);
+        $this->registry->register($this->app->make(UniversalTypeHandler::class));
         $this->assertInstanceOf(UniversalTypeHandler::class, $this->registry->getHandler('string'));
 
         $this->registry->clear();

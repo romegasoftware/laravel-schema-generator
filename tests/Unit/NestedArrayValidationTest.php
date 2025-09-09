@@ -14,7 +14,7 @@ class NestedArrayValidationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->extractor = new RequestClassExtractor;
+        $this->extractor = $this->app->make(RequestClassExtractor::class);
     }
 
     #[Test]
@@ -27,7 +27,7 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string|max:50',
         ];
 
-        $extractor = new RequestClassExtractor;
+        $extractor = $this->app->make(RequestClassExtractor::class);
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -55,7 +55,7 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string|max:50',
         ];
 
-        $extractor = new RequestClassExtractor;
+        $extractor = $this->app->make(RequestClassExtractor::class);
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -81,7 +81,7 @@ class NestedArrayValidationTest extends TestCase
             'items.*.pricing.*.component' => 'required|in:base,tax,discount',
         ];
 
-        $extractor = new RequestClassExtractor;
+        $extractor = $this->app->make(RequestClassExtractor::class);
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -126,7 +126,7 @@ class NestedArrayValidationTest extends TestCase
             'users.*.profiles.*.name' => 'string|max:100',
         ];
 
-        $extractor = new RequestClassExtractor;
+        $extractor = $this->app->make(RequestClassExtractor::class);
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -164,7 +164,7 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string',  // No base rule
         ];
 
-        $extractor = new RequestClassExtractor;
+        $extractor = $this->app->make(RequestClassExtractor::class);
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);

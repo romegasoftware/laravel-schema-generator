@@ -209,15 +209,24 @@ class LaravelValidationResolver
         foreach ($rules as $rule) {
             [$ruleName, $parameters] = ValidationRuleParser::parse($rule);
 
-            $validatorReflection = new ReflectionClass($validator);
-            $getMessage = $validatorReflection->getMethod('getMessage');
+            // Check for custom message first
+            $customMessageKey = $field . '.' . lcfirst($ruleName);
+            $message = null;
+            
+            if (isset($validator->customMessages[$customMessageKey])) {
+                $message = $validator->customMessages[$customMessageKey];
+            } else {
+                // Fall back to default Laravel message
+                $validatorReflection = new ReflectionClass($validator);
+                $getMessage = $validatorReflection->getMethod('getMessage');
 
-            $message = $validator->makeReplacements(
-                $getMessage->invoke($validator, $field, $ruleName),
-                $field,
-                $ruleName,
-                $parameters
-            );
+                $message = $validator->makeReplacements(
+                    $getMessage->invoke($validator, $field, $ruleName),
+                    $field,
+                    $ruleName,
+                    $parameters
+                );
+            }
 
             $resolvedValidation = new ResolvedValidation(
                 rule: $ruleName,

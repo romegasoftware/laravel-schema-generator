@@ -196,7 +196,18 @@ class ResolvedValidationSet extends Data
             } else {
                 $result[$validation->rule] = true;
             }
+        }
 
+        // Add custom messages if any exist
+        $customMessages = [];
+        foreach ($this->validations as $validation) {
+            if ($validation->message !== null) {
+                $customMessages[$validation->rule] = $validation->message;
+            }
+        }
+        
+        if (!empty($customMessages)) {
+            $result['customMessages'] = $customMessages;
         }
 
         return $result;

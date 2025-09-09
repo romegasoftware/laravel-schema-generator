@@ -1,6 +1,7 @@
 <?php
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Integration;
+use PHPUnit\Framework\Attributes\Test;
 
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver;
@@ -16,11 +17,11 @@ class UnifiedValidationStrategyTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->resolver = new LaravelValidationResolver;
-        $this->handler = new UniversalTypeHandler;
+        $this->resolver = $this->app->make(LaravelValidationResolver::class);
+        $this->handler = $this->app->make(UniversalTypeHandler::class);
     }
 
-    /** @test */
+    #[Test]
     public function it_demonstrates_complete_unified_validation_workflow()
     {
         // Step 1: Resolve Laravel validation rules
@@ -58,7 +59,7 @@ class UnifiedValidationStrategyTest extends TestCase
         $this->assertStringContainsString('.max(255', $ValidationSchema);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_complex_string_validation()
     {
         $rules = 'required|string|min:8|max:100|regex:/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).+$/';
@@ -93,7 +94,7 @@ class UnifiedValidationStrategyTest extends TestCase
         $this->assertStringContainsString('.regex(', $ValidationSchema);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_numeric_validation()
     {
         $rules = 'required|integer|min:0|max:120';
@@ -114,10 +115,11 @@ class UnifiedValidationStrategyTest extends TestCase
         $ValidationSchema = $builder->build();
 
         $this->assertEquals('number', $validationSet->inferredType);
-        $this->assertStringContainsString('z.number()', $ValidationSchema);
+        // Numbers with integer validation use z.number({error:...})
+        $this->assertStringContainsString('z.number({error:', $ValidationSchema);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_enum_validation()
     {
         $rules = 'required|in:pending,approved,rejected';
@@ -144,7 +146,7 @@ class UnifiedValidationStrategyTest extends TestCase
         $this->assertStringContainsString('rejected', $ValidationSchema);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_boolean_validation()
     {
         $rules = 'boolean';
@@ -167,7 +169,7 @@ class UnifiedValidationStrategyTest extends TestCase
         $this->assertStringContainsString('.optional()', $ValidationSchema);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_array_validation()
     {
         $rules = 'required|array|min:1|max:10';
@@ -191,7 +193,7 @@ class UnifiedValidationStrategyTest extends TestCase
         $this->assertStringContainsString('z.array(', $ValidationSchema);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_nullable_validation()
     {
         $rules = 'nullable|string|max:500';
@@ -216,7 +218,7 @@ class UnifiedValidationStrategyTest extends TestCase
         $this->assertStringContainsString('.optional()', $ValidationSchema);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_url_validation()
     {
         $rules = 'url';
@@ -240,7 +242,7 @@ class UnifiedValidationStrategyTest extends TestCase
         $this->assertStringContainsString('.optional()', $ValidationSchema);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_uuid_validation()
     {
         $rules = 'required|uuid';
@@ -262,7 +264,7 @@ class UnifiedValidationStrategyTest extends TestCase
         $this->assertStringContainsString('.uuid(', $ValidationSchema);
     }
 
-    /** @test */
+    #[Test]
     public function it_demonstrates_backward_compatibility()
     {
         $rules = 'required|string|min:2|max:50';

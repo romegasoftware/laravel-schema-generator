@@ -1,6 +1,7 @@
 <?php
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit\TypeHandlers;
+use PHPUnit\Framework\Attributes\Test;
 
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
@@ -21,10 +22,10 @@ class UniversalTypeHandlerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->handler = new UniversalTypeHandler;
+        $this->handler = $this->app->make(UniversalTypeHandler::class);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_handle_any_type()
     {
         $this->assertTrue($this->handler->canHandle('string'));
@@ -34,7 +35,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertTrue($this->handler->canHandle('custom'));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_handle_property_with_resolved_validation_set()
     {
         $validationSet = ResolvedValidationSet::make('test', [], 'string');
@@ -48,7 +49,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertTrue($this->handler->canHandleProperty($property));
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_string_builder_for_string_type()
     {
         $validationSet = ResolvedValidationSet::make('name', [], 'string');
@@ -64,7 +65,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertInstanceOf(ZodStringBuilder::class, $builder);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_number_builder_for_number_type()
     {
         $validationSet = ResolvedValidationSet::make('age', [], 'number');
@@ -80,7 +81,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertInstanceOf(ZodNumberBuilder::class, $builder);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_boolean_builder_for_boolean_type()
     {
         $validationSet = ResolvedValidationSet::make('is_active', [], 'boolean');
@@ -96,7 +97,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertInstanceOf(ZodBooleanBuilder::class, $builder);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_array_builder_for_array_type()
     {
         $validationSet = ResolvedValidationSet::make('tags', [], 'array');
@@ -112,7 +113,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertInstanceOf(ZodArrayBuilder::class, $builder);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_email_builder_for_email_type()
     {
         $validationSet = ResolvedValidationSet::make('email', [], 'email');
@@ -128,7 +129,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertInstanceOf(ZodEmailBuilder::class, $builder);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_enum_builder_for_enum_type()
     {
         $validationSet = ResolvedValidationSet::make('status', [], 'enum:pending,approved,rejected');
@@ -144,7 +145,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertInstanceOf(ZodEnumBuilder::class, $builder);
     }
 
-    /** @test */
+    #[Test]
     public function it_applies_validations_to_string_builder()
     {
         $validations = [
@@ -170,7 +171,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertStringContainsString('.max(50', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_applies_numeric_validations_to_number_builder()
     {
         $validations = [
@@ -192,10 +193,11 @@ class UniversalTypeHandlerTest extends TestCase
         $result = $builder->build();
 
         $this->assertInstanceOf(ZodNumberBuilder::class, $builder);
-        $this->assertStringContainsString('z.number()', $result);
+        // Numbers with integer validation use z.number({error:...})
+        $this->assertStringContainsString('z.number({error:', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_optional_fields()
     {
         $validationSet = ResolvedValidationSet::make('optional_field', [], 'string');
@@ -212,7 +214,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertStringContainsString('.optional()', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_nullable_fields()
     {
         $validations = [
@@ -233,7 +235,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertStringContainsString('.nullable()', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_converts_php_regex_to_javascript()
     {
         $validations = [
@@ -254,7 +256,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertStringContainsString('/^[A-Z]{2,4}$/', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_applies_email_validation()
     {
         $validations = [
@@ -275,7 +277,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertInstanceOf(ZodEmailBuilder::class, $builder);
     }
 
-    /** @test */
+    #[Test]
     public function it_applies_url_validation()
     {
         $validations = [
@@ -297,7 +299,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertStringContainsString('.url(', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_applies_uuid_validation()
     {
         $validations = [
@@ -319,7 +321,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertStringContainsString('.uuid(', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_skips_unknown_validations_gracefully()
     {
         $validations = [
@@ -344,7 +346,7 @@ class UniversalTypeHandlerTest extends TestCase
         $this->assertStringContainsString('.min(5', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_has_lowest_priority()
     {
         $this->assertEquals(1, $this->handler->getPriority());

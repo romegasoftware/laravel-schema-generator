@@ -30,7 +30,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'email',
-                    'validator' => null,
+                    'type' => 'string',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('email', [
                         new ResolvedValidation('email', [], null, false, false),
@@ -44,8 +44,7 @@ class DataClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('email: z.email(', $schema);
-        $this->assertStringContainsString('.max(255)', $schema);
+        $this->assertStringContainsString('email: z.email().max(255)', $schema);
     }
 
     #[Test]
@@ -57,7 +56,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'posts',
-                    'validator' => null,
+                    'type' => 'DataCollection:PostData',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('posts', [
                         new ResolvedValidation('array', [], null, false, false),
@@ -70,8 +69,7 @@ class DataClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        // For now, arrays are generated as z.array(z.any())
-        $this->assertStringContainsString('posts: z.array(', $schema);
+        $this->assertStringContainsString('posts: z.array(PostSchema)', $schema);
     }
 
     #[Test]
@@ -83,7 +81,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'customer',
-                    'validator' => null,
+                    'type' => 'CustomerData',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('customer', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -96,8 +94,7 @@ class DataClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        // Objects with required validation are generated as z.string()
-        $this->assertStringContainsString('customer: z.string()', $schema);
+        $this->assertStringContainsString('customer: CustomerSchema', $schema);
     }
 
     #[Test]
@@ -109,7 +106,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'addresses',
-                    'validator' => null,
+                    'type' => 'DataCollection:AddressData',
                     'isOptional' => true,
                     'validations' => ResolvedValidationSet::make('addresses', [
                         new ResolvedValidation('array', [], null, false, false),
@@ -122,8 +119,7 @@ class DataClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('addresses: z.array(', $schema);
-        $this->assertStringContainsString('.optional()', $schema);
+        $this->assertStringContainsString('addresses: z.array(AddressSchema).optional()', $schema);
     }
 
     #[Test]
@@ -135,7 +131,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'orders',
-                    'validator' => null,
+                    'type' => 'DataCollection:OrderData',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('orders', [
                         new ResolvedValidation('array', [], null, false, false),
@@ -149,8 +145,7 @@ class DataClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('orders: z.array(', $schema);
-        $this->assertStringContainsString('.nullable()', $schema);
+        $this->assertStringContainsString('orders: z.array(OrderSchema).nullable()', $schema);
     }
 
     #[Test]
@@ -162,7 +157,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'status',
-                    'validator' => null,
+                    'type' => 'enum:UserStatus',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('status', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -175,8 +170,7 @@ class DataClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        // Enums with required validation are generated as z.string()
-        $this->assertStringContainsString('status: z.string()', $schema);
+        $this->assertStringContainsString('status: z.enum(App.UserStatus)', $schema);
     }
 
     #[Test]
@@ -188,7 +182,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'role',
-                    'validator' => null,
+                    'type' => 'enum:UserRole',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('role', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -202,8 +196,7 @@ class DataClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        // Enums with messages are generated as z.string()
-        $this->assertStringContainsString('role: z.string()', $schema);
+        $this->assertStringContainsString('role: z.enum(App.UserRole, { message: "Please select a valid role" })', $schema);
     }
 
     #[Test]
@@ -215,7 +208,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'tags',
-                    'validator' => null,
+                    'type' => 'array:string',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('tags', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -229,7 +222,7 @@ class DataClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('tags: z.array(z.any())', $schema);
+        $this->assertStringContainsString('tags: z.array(z.string())', $schema);
     }
 
     #[Test]
@@ -241,7 +234,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'codes',
-                    'validator' => null,
+                    'type' => 'array',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('codes', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -256,7 +249,7 @@ class DataClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('codes: z.array(z.any())', $schema);
+        $this->assertStringContainsString('codes: z.array(z.string().regex(/^[A-Z]{3}$/, \'Each code must be 3 uppercase letters\'))', $schema);
     }
 
     #[Test]
@@ -269,7 +262,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'profile',
-                    'validator' => null,
+                    'type' => 'ProfileSchema',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('profile', [], 'object'),
                 ],
@@ -284,7 +277,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'bio',
-                    'validator' => null,
+                    'type' => 'string',
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('bio', [], 'string'),
                 ],
@@ -312,7 +305,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'postal_code',
-                    'validator' => null,
+                    'type' => 'string',
                     'isOptional' => true,
                     'validations' => ResolvedValidationSet::make('postal_code', [
                         new ResolvedValidation('regex', ['/^\\d{5}(-\\d{4})?$/'], null, false, false),
@@ -326,8 +319,7 @@ class DataClassGenerationTest extends TestCase
         $schema = $this->generator->generate($extracted);
 
         // The PHP regex should be converted to JavaScript format
-        $this->assertStringContainsString('.regex(', $schema);
-        $this->assertStringContainsString('/^\\d{5}(-\\d{4})?$/', $schema);
+        $this->assertStringContainsString('.regex(/^\\d{5}(-\\d{4})?$/)', $schema);
     }
 
     #[Test]
@@ -339,7 +331,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'postal_code',
-                    'validator' => null,
+                    'type' => 'string',
                     'isOptional' => true,
                     'validations' => ResolvedValidationSet::make('postal_code', [
                         new ResolvedValidation('regex', ['/^\\d{5}(-\\d{4})?$/'], 'Postal Code must match ##### or #####-####', false, false),
@@ -353,8 +345,7 @@ class DataClassGenerationTest extends TestCase
         $schema = $this->generator->generate($extracted);
 
         // Should include the custom message for regex validation
-        $this->assertStringContainsString('.regex(', $schema);
-        $this->assertStringContainsString('Postal Code must match ##### or #####-####', $schema);
+        $this->assertStringContainsString('.regex(/^\\d{5}(-\\d{4})?$/, \'Postal Code must match ##### or #####-####\')', $schema);
     }
 
     #[Test]
@@ -369,7 +360,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'postal_code',
-                    'validator' => null,
+                    'type' => 'string',
                     'isOptional' => true,
                     'validations' => ResolvedValidationSet::make('postal_code', [
                         new ResolvedValidation('regex', ['/^\\d{5}(-\\d{4})?$/'], 'Postal Code must match ##### or #####-####', false, false),
@@ -383,10 +374,7 @@ class DataClassGenerationTest extends TestCase
         $schema = $this->generator->generate($extracted);
 
         // Should include the inherited custom message for regex validation
-        $this->assertStringContainsString('postal_code: z.string()', $schema);
-        $this->assertStringContainsString('.regex(', $schema);
-        $this->assertStringContainsString('Postal Code must match ##### or #####-####', $schema);
-        $this->assertStringContainsString('.optional()', $schema);
+        $this->assertStringContainsString('postal_code: z.string().regex(/^\\d{5}(-\\d{4})?$/, \'Postal Code must match ##### or #####-####\').optional()', $schema);
     }
 
     #[Test]
@@ -398,7 +386,7 @@ class DataClassGenerationTest extends TestCase
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'platform_card_fees',
-                    'validator' => null,
+                    'type' => 'FeeStructureData',
                     'isOptional' => true,
                     'validations' => ResolvedValidationSet::make('platform_card_fees', [
                         new ResolvedValidation('nullable', [false], null, false, false),
@@ -412,7 +400,6 @@ class DataClassGenerationTest extends TestCase
         $schema = $this->generator->generate($extracted);
 
         // Should reference the FeeStructure schema
-        // Strings with nullable are generated as z.string()
-        $this->assertStringContainsString('platform_card_fees: z.string()', $schema);
+        $this->assertStringContainsString('platform_card_fees: FeeStructureSchema', $schema);
     }
 }

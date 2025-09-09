@@ -20,7 +20,7 @@ class DataClassExtractorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->extractor = new DataClassExtractor;
+        $this->extractor = $this->app->make(DataClassExtractor::class);
     }
 
     #[Test]
@@ -35,14 +35,16 @@ class DataClassExtractorTest extends TestCase
 
         $property = $result->properties->toCollection()->first();
         $this->assertEquals('code', $property->name);
-        $this->assertEquals('string', $property->type);
+        // Type is now inferred from validations
+        $this->assertEquals('string', $property->validations->inferredType);
         $this->assertFalse($property->isOptional);
 
         $validations = $property->validations;
-        $this->assertTrue($validations->hasValidation('string'));
-        $this->assertEquals('/^\d{5}(-\d{4})?$/', $validations->getValidation('regex'));
-        $this->assertNotEmpty($validations->getCustomMessages());
-        $this->assertEquals('Postal Code must match ##### or #####-####', $validations->getCustomMessage('regex'));
+        $this->assertTrue($validations->hasValidation('String'));
+        $this->assertEquals('/^\d{5}(-\d{4})?$/', $validations->getValidationParameter('Regex'));
+        // Check that custom message exists
+        $this->assertNotNull($validations->getMessage('Regex'));
+        $this->assertEquals('Postal Code must match ##### or #####-####', $validations->getMessage('Regex'));
     }
 
     #[Test]
@@ -57,14 +59,15 @@ class DataClassExtractorTest extends TestCase
 
         $property = $result->properties->toCollection()->first();
         $this->assertEquals('postal_code', $property->name);
-        $this->assertEquals('string', $property->type);
+        $this->assertEquals('string', $property->validations->inferredType);
         $this->assertFalse($property->isOptional);
 
         $validations = $property->validations;
-        $this->assertTrue($validations->hasValidation('string'));
-        $this->assertEquals('/^\d{5}(-\d{4})?$/', $validations->getValidation('regex'));
-        $this->assertNotEmpty($validations->getCustomMessages());
-        $this->assertEquals('Postal Code must match ##### or #####-####', $validations->getCustomMessage('regex'));
+        $this->assertTrue($validations->hasValidation('String'));
+        $this->assertEquals('/^\d{5}(-\d{4})?$/', $validations->getValidationParameter('Regex'));
+        // Check that custom message exists
+        $this->assertNotNull($validations->getMessage('Regex'));
+        $this->assertEquals('Postal Code must match ##### or #####-####', $validations->getMessage('Regex'));
     }
 
     #[Test]
@@ -80,8 +83,9 @@ class DataClassExtractorTest extends TestCase
         $validations = $property->validations;
 
         // The inherited custom message should still be there
-        $this->assertNotEmpty($validations->customMessages);
-        $this->assertEquals('Postal Code must match ##### or #####-####', $validations->customMessages['regex']);
+        // Check that custom message exists
+        $this->assertNotNull($validations->getMessage('Regex'));
+        $this->assertEquals('Postal Code must match ##### or #####-####', $validations->getMessage('Regex'));
     }
 }
 

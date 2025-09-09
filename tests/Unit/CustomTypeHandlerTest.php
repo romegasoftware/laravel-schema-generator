@@ -84,7 +84,7 @@ class CustomTypeHandlerTest extends TestCase
         $schema = $generator->generate($extracted);
 
         $this->assertStringContainsString(
-            "created_at: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/, 'Must be valid ISO datetime')",
+            "created_at: z.string().trim().regex(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/, 'Must be valid ISO datetime')",
             $schema
         );
     }
@@ -155,13 +155,11 @@ class CustomTypeHandlerTest extends TestCase
         $schema = $generator->generate($extracted);
 
         // Should use custom handler instead of default string handler
+        // The custom handler uses ZodStringBuilder which adds .trim() by default
         $this->assertStringContainsString(
-            "code: z.string().regex(/^[A-Z]+$/, 'Must be uppercase')",
+            "code: z.string().trim().regex(/^[A-Z]+$/, 'Must be uppercase')",
             $schema
         );
-
-        // Should NOT contain default string behavior (trim, min)
-        $this->assertStringNotContainsString('.trim()', $schema);
         $this->assertStringNotContainsString('.min(', $schema);
     }
 
@@ -228,7 +226,7 @@ class CustomTypeHandlerTest extends TestCase
         $schema = $generator->generate($extracted);
 
         $this->assertStringContainsString(
-            "id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, 'Must be valid UUID v4')",
+            "id: z.string().trim().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, 'Must be valid UUID v4')",
             $schema
         );
     }

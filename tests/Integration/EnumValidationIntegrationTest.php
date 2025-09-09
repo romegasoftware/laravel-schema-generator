@@ -1,6 +1,7 @@
 <?php
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Integration;
+use PHPUnit\Framework\Attributes\Test;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Orchestra\Testbench\Attributes\WithMigration;
@@ -32,6 +33,7 @@ class EnumValidationIntegrationTest extends TestCase
         $this->generator = app(ValidationSchemaGenerator::class);
     }
 
+    #[Test]
     public function test_enum_validation_consistency_between_root_and_nested()
     {
         $extractor = app(\RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor::class);
@@ -52,6 +54,7 @@ class EnumValidationIntegrationTest extends TestCase
         $this->assertStringContainsString('z.object({', $schema);
     }
 
+    #[Test]
     public function test_enum_validation_with_only_in_rule()
     {
         $request = new class extends FormRequest
@@ -72,6 +75,7 @@ class EnumValidationIntegrationTest extends TestCase
         $this->assertStringContainsString('status: z.enum(["active", "inactive", "pending"])', $schema);
     }
 
+    #[Test]
     public function test_enum_validation_with_required_in_rule()
     {
         $request = new class extends FormRequest

@@ -140,8 +140,9 @@ class ZodArrayBuilderDependencyInjectionTest extends TestCase
     #[Test]
     public function factory_creates_correct_builder_types(): void
     {
+        $factory = app(ZodBuilderFactory::class);
         $universalTypeHandler = app(UniversalTypeHandler::class);
-        $factory = new ZodBuilderFactory($universalTypeHandler);
+        $factory->setUniversalTypeHandler($universalTypeHandler);
 
         // Test array builder creation
         $arrayBuilder = $factory->createArrayBuilder();
@@ -151,8 +152,7 @@ class ZodArrayBuilderDependencyInjectionTest extends TestCase
         $inlineObjectBuilder = $factory->createInlineObjectBuilder();
         $this->assertInstanceOf(ZodInlineObjectBuilder::class, $inlineObjectBuilder);
 
-        // Test that factory provides access to UniversalTypeHandler
-        $this->assertSame($universalTypeHandler, $factory->getUniversalTypeHandler());
+        // Factory doesn't expose UniversalTypeHandler directly anymore
     }
 
     protected function tearDown(): void

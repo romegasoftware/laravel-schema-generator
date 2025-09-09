@@ -1,13 +1,14 @@
 <?php
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit\Data;
+use PHPUnit\Framework\Attributes\Test;
 
-use PHPUnit\Framework\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 
 class ResolvedValidationTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function it_creates_resolved_validation_with_basic_properties()
     {
         $validation = new ResolvedValidation('required');
@@ -19,7 +20,7 @@ class ResolvedValidationTest extends TestCase
         $this->assertFalse($validation->isNullable);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_resolved_validation_with_parameters()
     {
         $validation = new ResolvedValidation('min', [5]);
@@ -30,7 +31,7 @@ class ResolvedValidationTest extends TestCase
         $this->assertTrue($validation->hasParameters());
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_resolved_validation_with_custom_message()
     {
         $validation = new ResolvedValidation('required', [], 'This field is required');
@@ -39,7 +40,7 @@ class ResolvedValidationTest extends TestCase
         $this->assertTrue($validation->hasMessage());
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_required_validation()
     {
         $validation = new ResolvedValidation('required', [], null, true);
@@ -48,7 +49,7 @@ class ResolvedValidationTest extends TestCase
         $this->assertFalse($validation->isNullable);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_nullable_validation()
     {
         $validation = new ResolvedValidation('nullable', [], null, false, true);
@@ -57,7 +58,7 @@ class ResolvedValidationTest extends TestCase
         $this->assertTrue($validation->isNullable);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_specific_parameter_by_index()
     {
         $validation = new ResolvedValidation('between', [10, 20]);
@@ -67,7 +68,7 @@ class ResolvedValidationTest extends TestCase
         $this->assertNull($validation->getParameter(2));
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_all_parameters()
     {
         $validation = new ResolvedValidation('in', ['apple', 'banana', 'cherry']);
@@ -75,7 +76,7 @@ class ResolvedValidationTest extends TestCase
         $this->assertEquals(['apple', 'banana', 'cherry'], $validation->getParameters());
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_validation_without_parameters()
     {
         $validation = new ResolvedValidation('email');
@@ -85,7 +86,7 @@ class ResolvedValidationTest extends TestCase
         $this->assertEmpty($validation->getParameters());
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_validation_without_custom_message()
     {
         $validation = new ResolvedValidation('required');

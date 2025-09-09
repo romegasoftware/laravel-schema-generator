@@ -1,6 +1,7 @@
 <?php
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit\Services;
+use PHPUnit\Framework\Attributes\Test;
 
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
@@ -14,10 +15,10 @@ class LaravelValidationResolverTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->resolver = new LaravelValidationResolver;
+        $this->resolver = $this->app->make(LaravelValidationResolver::class);
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_simple_required_string_rule()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -39,7 +40,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertTrue($result->hasValidation('String'));
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_string_with_min_max_validation()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -59,7 +60,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertEquals(20, $result->getValidationParameter('Max'));
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_email_validation()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -76,7 +77,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertTrue($result->hasValidation('Email'));
     }
 
-    /** @test */
+    #[Test]
     public function it_correctly_infers_email_type_from_string_rules()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -95,7 +96,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertTrue($result->hasValidation('Email'), 'Should have Email validation');
     }
 
-    /** @test */
+    #[Test]
     public function it_correctly_infers_email_type_with_additional_rules()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -114,7 +115,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertEquals(255, $result->getValidationParameter('Max'));
     }
 
-    /** @test */
+    #[Test]
     public function it_correctly_infers_email_type_when_nullable()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -133,7 +134,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertTrue($result->hasValidation('Email'));
     }
 
-    /** @test */
+    #[Test]
     public function it_captures_custom_email_validation_messages()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -169,7 +170,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertEquals('Email address is mandatory.', $requiredValidation->message);
     }
 
-    /** @test */
+    #[Test]
     public function it_captures_default_email_validation_messages_when_no_custom_message()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -205,7 +206,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertNotEquals('', $requiredValidation->message, 'Required message should not be empty');
     }
 
-    /** @test */
+    #[Test]
     public function it_correctly_infers_types_for_common_validation_rules()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -231,7 +232,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertEquals('enum:active,inactive,pending', $result->inferredType, 'In rules should infer enum type');
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_numeric_validations()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -249,7 +250,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertTrue($result->hasValidation('Max'));
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_boolean_validation()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -266,7 +267,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertFalse($result->isFieldRequired());
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_array_validation()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -282,7 +283,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertTrue($result->hasValidation('Array'));
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_enum_validation()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -302,7 +303,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertEquals(['pending', 'approved', 'rejected'], $inValidation->getParameters());
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_nullable_validation()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -319,7 +320,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertFalse($result->isFieldRequired());
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_custom_messages()
     {
         $customMessages = [
@@ -341,7 +342,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertEquals('Name must be at least 3 characters', $result->getMessage('Min'));
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_regex_validation()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -360,7 +361,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertEquals('/^[A-Z]{2,4}$/', $regexValidation->getFirstParameter());
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_url_validation()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -376,7 +377,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertTrue($result->hasValidation('Url'));
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_uuid_validation()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -392,7 +393,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertTrue($result->hasValidation('Uuid'));
     }
 
-    /** @test */
+    #[Test]
     public function it_converts_to_validation_array_for_backward_compatibility()
     {
         $customMessages = [
@@ -418,7 +419,7 @@ class LaravelValidationResolverTest extends TestCase
         // This assertion is no longer applicable
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_string_rule_format()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -437,7 +438,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertEquals(3, $result->getValidationParameter('Min'));
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_complex_validation_combinations()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -459,7 +460,7 @@ class LaravelValidationResolverTest extends TestCase
         $this->assertEquals(255, $result->getValidationParameter('Max'));
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_actual_laravel_validation_messages()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -488,7 +489,7 @@ class LaravelValidationResolverTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_boolean_validation_messages()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -512,7 +513,7 @@ class LaravelValidationResolverTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_email_validation_messages()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -546,7 +547,7 @@ class LaravelValidationResolverTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_integer_validation_messages()
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
@@ -583,7 +584,7 @@ class LaravelValidationResolverTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_custom_messages_correctly()
     {
         $customMessages = [
@@ -614,7 +615,7 @@ class LaravelValidationResolverTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_never_returns_translation_keys_as_messages()
     {
         $testCases = [
@@ -647,7 +648,7 @@ class LaravelValidationResolverTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_manually_tests_laravel_validator_message_resolution()
     {
         $factory = app(\Illuminate\Validation\Factory::class);
