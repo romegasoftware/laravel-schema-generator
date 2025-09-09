@@ -1,6 +1,6 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Support;
+namespace RomegaSoftware\LaravelSchemaGenerator\Support;
 
 class PackageDetector
 {
@@ -45,7 +45,7 @@ class PackageDetector
      */
     public function isFeatureEnabled(string $feature): bool
     {
-        $configValue = config("laravel-zod-generator.features.{$feature}", 'auto');
+        $configValue = config("laravel-schema-generator.features.{$feature}", 'auto');
 
         if ($configValue === 'auto') {
             return match ($feature) {

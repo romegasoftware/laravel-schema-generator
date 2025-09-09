@@ -1,24 +1,30 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Extractors;
+namespace RomegaSoftware\LaravelSchemaGenerator\Extractors;
 
 use Illuminate\Foundation\Http\FormRequest;
 use ReflectionClass;
-use RomegaSoftware\LaravelZodGenerator\Attributes\ZodSchema;
-use RomegaSoftware\LaravelZodGenerator\Data\ExtractedSchemaData;
-use RomegaSoftware\LaravelZodGenerator\Data\SchemaPropertyData;
-use RomegaSoftware\LaravelZodGenerator\Data\ValidationRules\ValidationRulesFactory;
+use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver;
 use Spatie\LaravelData\DataCollection;
 
-class RequestClassExtractor implements ExtractorInterface
+class RequestClassExtractor extends BaseExtractor
 {
+    public function __construct(
+        protected LaravelValidationResolver $validationResolver
+    ) {
+    }
+
     /**
      * Check if this extractor can handle the given class
      */
     public function canHandle(ReflectionClass $class): bool
     {
-        // Check if class has ZodSchema attribute
-        if (empty($class->getAttributes(ZodSchema::class))) {
+        // Check if class has ValidationSchema attribute
+        if (empty($class->getAttributes(ValidationSchema::class))) {
             return false;
         }
 
@@ -37,9 +43,7 @@ class RequestClassExtractor implements ExtractorInterface
     public function extract(ReflectionClass $class): ExtractedSchemaData
     {
         $schemaName = $this->getSchemaName($class);
-        $rules = $this->extractRules($class);
-        $messages = $this->extractMessages($class);
-        $properties = $this->transformRulesToProperties($rules, $messages);
+        $properties = $this->transformRulesToProperties($class);
 
         return new ExtractedSchemaData(
             name: $schemaName,
@@ -62,7 +66,7 @@ class RequestClassExtractor implements ExtractorInterface
      */
     protected function getSchemaName(ReflectionClass $class): string
     {
-        $attributes = $class->getAttributes(ZodSchema::class);
+        $attributes = $class->getAttributes(ValidationSchema::class);
 
         if (! empty($attributes)) {
             $zodAttribute = $attributes[0]->newInstance();
@@ -82,102 +86,52 @@ class RequestClassExtractor implements ExtractorInterface
     }
 
     /**
-     * Extract rules from the class
-     */
-    protected function extractRules(ReflectionClass $class): array
-    {
-        // Try to instantiate the class to get rules
-        try {
-            if ($class->isInstantiable()) {
-                $instance = $class->newInstanceWithoutConstructor();
-
-                if (method_exists($instance, 'rules')) {
-                    $rulesMethod = $class->getMethod('rules');
-                    $rulesMethod->setAccessible(true);
-
-                    // Check if method is static
-                    if ($rulesMethod->isStatic()) {
-                        return $rulesMethod->invoke(null);
-                    } else {
-                        return $rulesMethod->invoke($instance);
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            // If we can't instantiate, try static invocation
-            if ($class->hasMethod('rules')) {
-                $rulesMethod = $class->getMethod('rules');
-                if ($rulesMethod->isStatic()) {
-                    return $rulesMethod->invoke(null);
-                }
-            }
-        }
-
-        return [];
-    }
-
-    /**
-     * Extract custom messages from the class
-     */
-    protected function extractMessages(ReflectionClass $class): array
-    {
-        try {
-            if ($class->isInstantiable() && $class->hasMethod('messages')) {
-                $instance = $class->newInstanceWithoutConstructor();
-                $messagesMethod = $class->getMethod('messages');
-                $messagesMethod->setAccessible(true);
-
-                if ($messagesMethod->isStatic()) {
-                    return $messagesMethod->invoke(null);
-                } else {
-                    return $messagesMethod->invoke($instance);
-                }
-            }
-        } catch (\Exception $e) {
-            // Silently fail and return empty messages
-        }
-
-        return [];
-    }
-
-    /**
      * Transform Laravel validation rules to properties array
      *
      * @return SchemaPropertyData[]
      */
-    protected function transformRulesToProperties(array $rules, array $messages): array
+    protected function transformRulesToProperties(ReflectionClass $class): array
     {
+        $instance = $class->newInstance();
+        $instance->setContainer(app());
+        $validationRules = $class->getMethod('validationRules');
+        $validatorInstance = $class->getMethod('getValidatorInstance');
+
+        // Check if method is static
+        if ($validatorInstance->isStatic()) {
+            $validator = $validatorInstance->invoke(null);
+        } else {
+            $validator = $validatorInstance->invoke($instance);
+        }
+
+        if ($validationRules->isStatic()) {
+            $rules = $validationRules->invoke(null);
+        } else {
+            $rules = $validationRules->invoke($instance);
+        }
+
+        // Group rules by base field for nested array handling
+        $groupedRules = $this->groupRulesByBaseField($rules);
         $properties = [];
-        $nestedRules = ValidationRulesFactory::parseNestedRulesMagically($rules);
 
-        foreach ($rules as $field => $fieldRules) {
-            // Skip nested rules (handled separately)
-            if (str_contains($field, '.')) {
-                continue;
-            }
-
-            // Use magical parsing for zero-maintenance validation handling
-            $validationRules = ValidationRulesFactory::createMagically($fieldRules);
-
-            // Extract type from the validation rules object
-            $type = $this->extractTypeFromValidationRules($validationRules, $fieldRules);
-
-            // Add custom messages to the validation rules
-            $customMessages = $this->extractFieldMessages($field, $messages);
-            if (! empty($customMessages)) {
-                $validationRules = $this->addCustomMessagesToValidationRules($validationRules, $customMessages);
-            }
-
-            // Check for array item validations
-            if (isset($nestedRules[$field]['*'])) {
-                $validationRules = $this->addArrayItemValidations($validationRules, $nestedRules[$field]['*']);
+        foreach ($groupedRules as $baseField => $fieldRules) {
+            if (isset($fieldRules['nested'])) {
+                // This is an array field with nested rules
+                $resolvedValidationSet = $this->resolveArrayFieldWithNestedRules(
+                    $baseField,
+                    $fieldRules,
+                    $validator
+                );
+            } else {
+                // Regular field without nesting
+                $resolvedValidationSet = $this->validationResolver->resolve($baseField, $fieldRules['rules'], $validator);
             }
 
             $properties[] = new SchemaPropertyData(
-                name: $field,
-                type: $type,
-                isOptional: ! $validationRules->isRequired(),
-                validations: $validationRules,
+                name: $baseField,
+                validator: $validator,
+                isOptional: ! $resolvedValidationSet->isFieldRequired(),
+                validations: $resolvedValidationSet,
             );
         }
 
@@ -185,79 +139,262 @@ class RequestClassExtractor implements ExtractorInterface
     }
 
     /**
-     * Extract custom messages for a specific field
+     * Group validation rules by their base field name to handle nested arrays
+     *
+     * Example:
+     * Input: [
+     *   'items' => 'array',
+     *   'items.*.variations' => 'array',
+     *   'items.*.variations.*.type' => 'required|string',
+     *   'items.*.variations.*.size' => 'string',
+     *   'items.*.pricing' => 'array',
+     *   'items.*.pricing.*.component' => 'required|in:base,tax,discount'
+     * ]
+     * Output: [
+     *   'items' => [
+     *     'rules' => 'array',
+     *     'nested' => [
+     *       'variations' => [
+     *         'rules' => 'array',
+     *         'nested' => [
+     *           'type' => 'required|string',
+     *           'size' => 'string'
+     *         ]
+     *       ],
+     *       'pricing' => [
+     *         'rules' => 'array',
+     *         'nested' => [
+     *           'component' => 'required|in:base,tax,discount'
+     *         ]
+     *       ]
+     *     ]
+     *   ]
+     * ]
      */
-    protected function extractFieldMessages(string $field, array $messages): array
+    protected function groupRulesByBaseField(array $rules): array
     {
-        $fieldMessages = [];
+        $grouped = [];
 
-        foreach ($messages as $key => $message) {
-            if (str_starts_with($key, $field.'.')) {
-                $validationType = substr($key, strlen($field) + 1);
-                $fieldMessages[$validationType] = $message;
+        foreach ($rules as $field => $ruleSet) {
+            if (str_contains($field, '.*')) {
+                // This is a wildcard field - handle multi-level nesting recursively
+                $this->addNestedRule($grouped, $field, $ruleSet);
+            } else {
+                // Regular field or base array field
+                if (! isset($grouped[$field])) {
+                    $grouped[$field] = [
+                        'rules' => $ruleSet,
+                        'nested' => [],
+                    ];
+                } else {
+                    // Field already exists from wildcard processing, add base rules
+                    $grouped[$field]['rules'] = $ruleSet;
+                }
             }
         }
 
-        return $fieldMessages;
+        // Clean up - remove nested array if empty, mark as having nested rules if not
+        $this->cleanupGroupedRules($grouped);
+
+        return $grouped;
     }
 
     /**
-     * Extract type from validation rules object
+     * Recursively add nested rules to the grouped structure
+     * Handles multi-level wildcards like items.*.variations.*.type
      */
-    protected function extractTypeFromValidationRules($validationRules, $originalRules): string
+    protected function addNestedRule(array &$grouped, string $field, string $ruleSet): void
     {
-        // Try to get type from validation rules object methods
-        if (method_exists($validationRules, 'getType')) {
-            return $validationRules->getType();
+        // Split on the first .* occurrence only
+        $parts = explode('.*', $field, 2);
+        $baseField = $parts[0];
+        $remainingPath = $parts[1] ?? '';
+
+        // Initialize base field if not exists
+        if (! isset($grouped[$baseField])) {
+            $grouped[$baseField] = [
+                'rules' => null,
+                'nested' => [],
+            ];
         }
 
-        // Fallback to checking specific validation rule types
-        if (method_exists($validationRules, 'hasValidation')) {
-            if ($validationRules->hasValidation('in')) {
-                return 'enum';
-            }
-            if ($validationRules->hasValidation('email')) {
-                return 'email';
-            }
-            if ($validationRules->hasValidation('boolean')) {
-                return 'boolean';
-            }
-            if ($validationRules->hasValidation('array')) {
-                return 'array';
-            }
-            if ($validationRules->hasValidation('numeric') || $validationRules->hasValidation('integer')) {
-                return 'number';
+        if ($remainingPath === '') {
+            // Direct array items (e.g., tags.*)
+            $grouped[$baseField]['nested']['*'] = $ruleSet;
+        } else {
+            // Remove leading dot and process remaining path
+            $remainingPath = ltrim($remainingPath, '.');
+
+            if (str_contains($remainingPath, '.*')) {
+                // Still has wildcards - need to handle nested arrays recursively
+                $this->addNestedRuleRecursively($grouped[$baseField]['nested'], $remainingPath, $ruleSet);
+            } else {
+                // No more wildcards - this is a simple nested property
+                // But we need to make sure we don't overwrite existing structured data
+                if (! isset($grouped[$baseField]['nested'][$remainingPath])) {
+                    $grouped[$baseField]['nested'][$remainingPath] = $ruleSet;
+                } elseif (is_array($grouped[$baseField]['nested'][$remainingPath]) && isset($grouped[$baseField]['nested'][$remainingPath]['rules'])) {
+                    // Already a structured field, update its rules
+                    $grouped[$baseField]['nested'][$remainingPath]['rules'] = $ruleSet;
+                } else {
+                    // Simple field, just update it
+                    $grouped[$baseField]['nested'][$remainingPath] = $ruleSet;
+                }
             }
         }
-
-        return 'string';
     }
 
     /**
-     * Add custom messages to validation rules (if the rules object supports it)
+     * Recursively handle nested array structures within the nested rules
      */
-    protected function addCustomMessagesToValidationRules($validationRules, array $customMessages)
+    protected function addNestedRuleRecursively(array &$nested, string $path, string $ruleSet): void
     {
-        if (method_exists($validationRules, 'withCustomMessages')) {
-            return $validationRules->withCustomMessages($customMessages);
-        }
+        if (str_contains($path, '.*')) {
+            // Split on the first .* occurrence in the remaining path
+            $parts = explode('.*', $path, 2);
+            $currentField = $parts[0];
+            $remainingPath = $parts[1] ?? '';
 
-        // If the validation rules don't support custom messages directly,
-        // we'll need to recreate with the messages included
-        // This is a fallback approach
-        return $validationRules;
+            // Initialize or convert nested field structure
+            if (! isset($nested[$currentField])) {
+                $nested[$currentField] = [
+                    'rules' => null,
+                    'nested' => [],
+                ];
+            } elseif (is_string($nested[$currentField])) {
+                // Convert existing string rule to structured format
+                $existingRule = $nested[$currentField];
+                $nested[$currentField] = [
+                    'rules' => $existingRule,
+                    'nested' => [],
+                ];
+            }
+
+            if ($remainingPath === '') {
+                // Direct array items at this level
+                $nested[$currentField]['nested']['*'] = $ruleSet;
+            } else {
+                // Remove leading dot and continue recursively
+                $remainingPath = ltrim($remainingPath, '.');
+
+                if (str_contains($remainingPath, '.*')) {
+                    // More wildcards ahead - recurse deeper
+                    $this->addNestedRuleRecursively($nested[$currentField]['nested'], $remainingPath, $ruleSet);
+                } else {
+                    // Final property - add it as a simple rule
+                    $nested[$currentField]['nested'][$remainingPath] = $ruleSet;
+                }
+            }
+        } else {
+            // No wildcards left - simple property, store directly as rule
+            $nested[$path] = $ruleSet;
+        }
     }
 
     /**
-     * Add array item validations to validation rules
+     * Clean up grouped rules by removing empty nested arrays
      */
-    protected function addArrayItemValidations($validationRules, array $itemValidations)
+    protected function cleanupGroupedRules(array &$grouped): void
     {
-        if (method_exists($validationRules, 'withArrayItemValidations')) {
-            return $validationRules->withArrayItemValidations($itemValidations);
+        foreach ($grouped as $field => &$data) {
+            if (isset($data['nested'])) {
+                $this->cleanupNestedRules($data['nested']);
+
+                if (empty($data['nested'])) {
+                    unset($data['nested']);
+                }
+            }
+        }
+    }
+
+    /**
+     * Recursively clean up nested rule structures
+     */
+    protected function cleanupNestedRules(array &$nested): void
+    {
+        foreach ($nested as $key => &$value) {
+            if (is_array($value) && isset($value['nested'])) {
+                $this->cleanupNestedRules($value['nested']);
+
+                if (empty($value['nested'])) {
+                    unset($value['nested']);
+                }
+            }
+        }
+    }
+
+    /**
+     * Resolve array field with nested validation rules
+     */
+    protected function resolveArrayFieldWithNestedRules(string $baseField, array $fieldRules, $validator): ResolvedValidationSet
+    {
+        // Resolve base array rules if they exist
+        $baseRules = $fieldRules['rules'] ?? 'array';
+        $baseValidationSet = $this->validationResolver->resolve($baseField, $baseRules, $validator);
+
+        // Create nested validation structure
+        $nestedValidations = null;
+        if (! empty($fieldRules['nested'])) {
+            if (isset($fieldRules['nested']['*'])) {
+                // Direct array items (e.g., tags.*)
+                $itemValidationSet = $this->validationResolver->resolve(
+                    $baseField.'.*',
+                    $fieldRules['nested']['*'],
+                    $validator
+                );
+                $nestedValidations = $itemValidationSet;
+            } else {
+                // Nested object properties (e.g., categories.*.title)
+                $nestedValidations = $this->createNestedObjectValidation($baseField, $fieldRules['nested'], $validator);
+            }
         }
 
-        // Fallback approach
-        return $validationRules;
+        // Create final validation set with nested structure
+        return ResolvedValidationSet::make(
+            $baseField,
+            $baseValidationSet->validations->all(),
+            'array',
+            $nestedValidations
+        );
+    }
+
+    /**
+     * Create nested object validation for array items with multiple properties
+     * Handles multi-level nesting recursively
+     * Example: categories.*.title, categories.*.slug -> object with title and slug properties
+     * Example: items.*.variations.*.type -> nested array with objects containing type property
+     */
+    protected function createNestedObjectValidation(string $baseField, array $nestedRules, $validator): ResolvedValidationSet
+    {
+        $objectProperties = [];
+
+        foreach ($nestedRules as $property => $rules) {
+            if (is_array($rules) && isset($rules['nested'])) {
+                // This property is itself a nested array structure
+                $nestedValidationSet = $this->resolveArrayFieldWithNestedRules(
+                    $baseField.'.*.'.$property,
+                    $rules,
+                    $validator
+                );
+                $objectProperties[$property] = $nestedValidationSet;
+            } else {
+                // Simple property
+                $propertyValidationSet = $this->validationResolver->resolve(
+                    $baseField.'.*.'.$property,
+                    $rules,
+                    $validator
+                );
+                $objectProperties[$property] = $propertyValidationSet;
+            }
+        }
+
+        // Create a validation set that represents an object with nested properties
+        return ResolvedValidationSet::make(
+            fieldName: $baseField.'.*[object]',
+            validations: [],
+            inferredType: 'object',
+            nestedValidations: null,
+            objectProperties: $objectProperties
+        );
     }
 }

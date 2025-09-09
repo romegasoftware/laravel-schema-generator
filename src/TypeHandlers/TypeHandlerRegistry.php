@@ -1,8 +1,9 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\TypeHandlers;
+namespace RomegaSoftware\LaravelSchemaGenerator\TypeHandlers;
 
-use RomegaSoftware\LaravelZodGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\TypeHandlerInterface;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 
 class TypeHandlerRegistry
 {

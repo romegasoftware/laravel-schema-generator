@@ -1,0 +1,355 @@
+---
+sidebar_position: 4
+---
+
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+# Quick Start Guide
+
+Get up and running with Laravel Zod Generator in just a few minutes. This guide will walk you through creating your first Zod schema from a Laravel validation class.
+
+## Prerequisites
+
+- Laravel Zod Generator [installed](./installation.mdx)
+- A Laravel project with validation classes
+- Basic understanding of Laravel validation and TypeScript
+
+## Step 1: Add the Attribute
+
+Add the `#[ValidationSchema]` attribute to any validation class you want to generate schemas for.
+
+<Tabs>
+  <TabItem value="FormRequest" label="Form Request">
+    ### Laravel FormRequest Example
+
+    ```php
+    <?php
+
+    namespace App\Http\Requests;
+
+    use Illuminate\Foundation\Http\FormRequest;
+    // highlight-next-line
+    use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
+
+    // highlight-next-line
+    #[ValidationSchema]
+    class CreatePostRequest extends FormRequest
+    {
+        public function rules(): array
+        {
+            return [
+                'title' => 'required|string|max:255',
+                'content' => 'required|string|min:10',
+                'published' => 'boolean',
+                'tags' => 'array',
+                'tags.*' => 'string|max:50',
+                'author_email' => 'required|email',
+            ];
+        }
+
+        public function messages(): array
+        {
+            return [
+                'title.required' => 'Please provide a title for your post',
+                'content.min' => 'Content must be at least 10 characters long',
+                'tags.*.max' => 'Each tag must be 50 characters or less',
+            ];
+        }
+    }
+    ```
+
+  </TabItem>
+  <TabItem value="DataClass" label="Data Class">
+    ### Spatie Data Class Example (if installed)
+
+    ```php
+    <?php
+
+    namespace App\Data;
+
+    use Spatie\LaravelData\Data;
+    use Spatie\LaravelData\Attributes\Validation\Max;
+    use Spatie\LaravelData\Attributes\Validation\Min;
+    use Spatie\LaravelData\Attributes\Validation\Email;
+    use Spatie\LaravelData\Attributes\Validation\Nullable;
+    use Spatie\LaravelData\Attributes\Validation\Required;
+    use Spatie\LaravelData\Attributes\Validation\ArrayType;
+    use Spatie\LaravelData\Attributes\Validation\StringType;
+    use Spatie\LaravelData\Attributes\Validation\BooleanType;
+    use Spatie\LaravelData\Attributes\Validation\IntegerType;
+    // highlight-next-line
+    use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
+
+    // highlight-next-line
+    #[ValidationSchema]
+    class UserData extends Data
+    {
+        public function __construct(
+            #[Required, StringType, Max(255)]
+            public string $name,
+
+            #[Required, Email, Max(255)]
+            public string $email,
+
+            #[Nullable, IntegerType, Min(18), Max(120)]
+            public ?int $age,
+
+            #[BooleanType]
+            public bool $is_active = true,
+
+            #[ArrayType, Max(5)]
+            public array $roles = [],
+        ) {}
+    }
+    ```
+
+  </TabItem>
+</Tabs>
+
+## Step 2: Generate Schemas
+
+Run the generation command to scan your codebase and create the TypeScript file:
+
+```bash
+php artisan schema:generate
+```
+
+You should see output similar to:
+
+```
+📦 Available Features:
+  ✓ Laravel FormRequest support enabled
+  ✓ Spatie Data class support enabled
+
+🔍 Scanning for classes with #[ValidationSchema] attribute...
+  Found: App\Http\Requests\CreatePostRequest
+  Found: App\Data\UserData
+
+✅ Generated schemas at: resources/js/types/zod-schemas.ts
+📝 Generated 2 schemas successfully!
+```
+
+## Step 3: Review Generated Schemas
+
+The generated TypeScript file (`resources/js/types/zod-schemas.ts`) will contain:
+
+```typescript
+import { z } from "zod";
+
+export const CreatePostSchema = z.object({
+  title: z.string().min(1, "Please provide a title for your post").max(255),
+  content: z.string().min(10, "Content must be at least 10 characters long"),
+  published: z.boolean().optional(),
+  tags: z
+    .array(z.string().max(50, "Each tag must be 50 characters or less"))
+    .optional(),
+  author_email: z.email(),
+});
+export type CreatePostSchemaType = z.infer<typeof CreatePostSchema>;
+
+export const UserSchema = z.object({
+  name: z.string().min(1, "Please provide a name").max(255),
+  email: z.email().min(1),
+  age: z.number().min(18).max(120).nullable(),
+  is_active: z.boolean(),
+});
+export type UserSchemaType = z.infer<typeof UserSchema>;
+```
+
+## Step 4: Use in Your Frontend
+
+Now you can use these schemas in your TypeScript/JavaScript frontend:
+
+### React Example
+
+```tsx
+import { useState } from "react";
+import { CreatePostSchema, CreatePostSchemaType } from "@/types/zod-schemas";
+
+function CreatePostForm() {
+  const [formData, setFormData] = useState<CreatePostSchemaType>({
+    title: "",
+    content: "",
+    published: false,
+    tags: [],
+    author_email: "",
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate with Zod
+    const result = CreatePostSchema.safeParse(formData);
+
+    if (!result.success) {
+      // Handle validation errors
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach((error) => {
+        fieldErrors[error.path[0]] = error.message;
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
+    // Data is valid, submit to API
+    try {
+      const response = await fetch("/api/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(result.data),
+      });
+
+      if (response.ok) {
+        console.log("Post created successfully!");
+      }
+    } catch (error) {
+      console.error("Failed to create post:", error);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <input
+          type="text"
+          placeholder="Title"
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+        />
+        {errors.title && <span className="error">{errors.title}</span>}
+      </div>
+
+      <div>
+        <textarea
+          placeholder="Content"
+          value={formData.content}
+          onChange={(e) =>
+            setFormData({ ...formData, content: e.target.value })
+          }
+        />
+        {errors.content && <span className="error">{errors.content}</span>}
+      </div>
+
+      <button type="submit">Create Post</button>
+    </form>
+  );
+}
+```
+
+### Vue Example
+
+```vue
+<template>
+  <form @submit.prevent="handleSubmit">
+    <div>
+      <input v-model="formData.title" type="text" placeholder="Title" />
+      <span v-if="errors.title" class="error">{{ errors.title }}</span>
+    </div>
+
+    <div>
+      <textarea v-model="formData.content" placeholder="Content" />
+      <span v-if="errors.content" class="error">{{ errors.content }}</span>
+    </div>
+
+    <button type="submit">Create Post</button>
+  </form>
+</template>
+
+<script setup lang="ts">
+import { ref } from "vue";
+import { CreatePostSchema, CreatePostSchemaType } from "@/types/zod-schemas";
+
+const formData = ref<CreatePostSchemaType>({
+  title: "",
+  content: "",
+  published: false,
+  tags: [],
+  author_email: "",
+});
+
+const errors = ref<Record<string, string>>({});
+
+const handleSubmit = async () => {
+  const result = CreatePostSchema.safeParse(formData.value);
+
+  if (!result.success) {
+    const fieldErrors: Record<string, string> = {};
+    result.error.errors.forEach((error) => {
+      fieldErrors[error.path[0]] = error.message;
+    });
+    errors.value = fieldErrors;
+    return;
+  }
+
+  // Submit valid data to API
+  try {
+    await fetch("/api/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(result.data),
+    });
+  } catch (error) {
+    console.error("Failed to create post:", error);
+  }
+};
+</script>
+```
+
+## Step 5: Automate the Process (Optional)
+
+If you have `spatie/laravel-typescript-transformer` installed, you can hook into their command:
+
+```bash
+php artisan typescript:transform
+```
+
+This will automatically run `schema:generate` after generating your TypeScript types, keeping everything in sync.
+
+## Testing Your Setup
+
+You can verify everything is working by running a dry-run:
+
+```bash
+php artisan schema:generate --dry-run
+```
+
+This shows you what would be generated without actually creating files.
+
+## Common Patterns
+
+### Custom Schema Names
+
+```php
+#[ValidationSchema(name: 'PostCreationSchema')]
+class CreatePostRequest extends FormRequest
+{
+    // ...
+}
+```
+
+### Multiple Schemas in One File
+
+```php
+#[ValidationSchema]
+class CreatePostRequest extends FormRequest { /* ... */ }
+
+#[ValidationSchema]
+class UpdatePostRequest extends FormRequest { /* ... */ }
+```
+
+Both will be included in the same generated TypeScript file.
+
+## What's Next?
+
+Now that you have the basics working:
+
+1. **Learn More**: Check out [Basic Usage](./usage/basic-usage.md) for detailed examples
+2. **Customize**: See [Configuration](./configuration.md) to tailor the package to your needs
+3. **Advanced Features**: Explore [Custom Extractors](./advanced/custom-extractors.md) and [Custom Type Handlers](./advanced/custom-type-handlers.md)
+4. **Examples**: Browse [Real-world Examples](./examples/real-world.md) for inspiration
+
+:::tip[Need Help?]
+If you encounter any issues, check our comprehensive [Troubleshooting Guide](./reference/troubleshooting.md) for solutions to common problems.
+:::

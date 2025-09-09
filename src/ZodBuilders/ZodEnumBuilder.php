@@ -1,20 +1,42 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\ZodBuilders;
+namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
 
 class ZodEnumBuilder extends ZodBuilder
 {
-    protected array $values;
+    protected array $values = [];
 
-    protected ?string $enumReference;
+    protected ?string $enumReference = null;
 
-    protected ?string $customMessage;
+    protected ?string $customMessage = null;
 
     public function __construct(array $values = [], ?string $enumReference = null)
     {
         $this->values = $values;
         $this->enumReference = $enumReference;
-        $this->customMessage = null;
+    }
+
+    public function setEnumReference(?string $enumReference = null): self
+    {
+        $this->enumReference = $enumReference;
+
+        return $this;
+    }
+
+    public function setValues(array|string $values = []): self
+    {
+        if (is_string($values)) {
+            $enumValues = [];
+            if (str_starts_with($values, 'enum:')) {
+                $valueString = substr($values, 5);
+                $enumValues = explode(',', $valueString);
+            }
+            $this->values = $enumValues;
+        } else {
+            $this->values = $values;
+        }
+
+        return $this;
     }
 
     protected function getBaseType(): string

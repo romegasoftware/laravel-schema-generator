@@ -16,27 +16,31 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
 3. If you've changed APIs, update the documentation.
 4. Ensure the test suite passes.
 5. Make sure your code lints.
-6. Issue that pull request!
+6. Create that pull request!
 
 ## Development Setup
 
 1. Clone the repository:
+
 ```bash
-git clone https://github.com/romegasoftware/laravel-zod-generator.git
-cd laravel-zod-generator
+git clone https://github.com/romegasoftware/laravel-schema-generator.git
+cd laravel-schema-generator
 ```
 
 2. Install dependencies:
+
 ```bash
 composer install
 ```
 
 3. Run tests:
+
 ```bash
 composer test
 ```
 
 4. Run code style fixer:
+
 ```bash
 composer format
 ```

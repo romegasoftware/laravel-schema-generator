@@ -1,9 +1,9 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Tests;
+namespace RomegaSoftware\LaravelSchemaGenerator\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
-use RomegaSoftware\LaravelZodGenerator\LaravelZodGeneratorServiceProvider;
+use RomegaSoftware\LaravelSchemaGenerator\LaravelSchemaGeneratorServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
@@ -16,18 +16,18 @@ abstract class TestCase extends Orchestra
     {
         return [
             \Spatie\LaravelData\LaravelDataServiceProvider::class,
-            LaravelZodGeneratorServiceProvider::class,
+            LaravelSchemaGeneratorServiceProvider::class,
         ];
     }
 
     protected function getEnvironmentSetUp($app)
     {
         // Set up test configuration
-        $app['config']->set('laravel-zod-generator.scan_paths', [
+        $app['config']->set('laravel-schema-generator.scan_paths', [
             __DIR__.'/Fixtures',
         ]);
 
-        $app['config']->set('laravel-zod-generator.output.path',
+        $app['config']->set('laravel-schema-generator.zod.output.path',
             __DIR__.'/temp/zod-schemas.ts'
         );
     }

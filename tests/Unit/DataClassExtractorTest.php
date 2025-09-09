@@ -1,13 +1,13 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Tests\Unit;
+namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
-use RomegaSoftware\LaravelZodGenerator\Attributes\InheritValidationFrom;
-use RomegaSoftware\LaravelZodGenerator\Attributes\ZodSchema;
-use RomegaSoftware\LaravelZodGenerator\Extractors\DataClassExtractor;
-use RomegaSoftware\LaravelZodGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Attributes\InheritValidationFrom;
+use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
+use RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use Spatie\LaravelData\Attributes\Validation\Regex;
 use Spatie\LaravelData\Attributes\Validation\StringType;
 use Spatie\LaravelData\Data;
@@ -33,7 +33,7 @@ class DataClassExtractorTest extends TestCase
         $this->assertEquals('TestPostalCodeSchema', $result->name);
         $this->assertCount(1, $result->properties);
 
-        $property = $result->properties->first();
+        $property = $result->properties->toCollection()->first();
         $this->assertEquals('code', $property->name);
         $this->assertEquals('string', $property->type);
         $this->assertFalse($property->isOptional);
@@ -55,7 +55,7 @@ class DataClassExtractorTest extends TestCase
         $this->assertEquals('TestInheritingSchema', $result->name);
         $this->assertCount(1, $result->properties);
 
-        $property = $result->properties->first();
+        $property = $result->properties->toCollection()->first();
         $this->assertEquals('postal_code', $property->name);
         $this->assertEquals('string', $property->type);
         $this->assertFalse($property->isOptional);
@@ -76,7 +76,7 @@ class DataClassExtractorTest extends TestCase
 
         $result = $this->extractor->extract($reflection);
 
-        $property = $result->properties->first();
+        $property = $result->properties->toCollection()->first();
         $validations = $property->validations;
 
         // The inherited custom message should still be there
@@ -88,7 +88,7 @@ class DataClassExtractorTest extends TestCase
 // Test classes for the extractor
 
 #[TypeScript]
-#[ZodSchema]
+#[ValidationSchema]
 class TestPostalCodeData extends Data
 {
     public function __construct(
@@ -105,7 +105,7 @@ class TestPostalCodeData extends Data
 }
 
 #[TypeScript]
-#[ZodSchema]
+#[ValidationSchema]
 class TestInheritingData extends Data
 {
     public function __construct(
@@ -117,7 +117,7 @@ class TestInheritingData extends Data
 }
 
 #[TypeScript]
-#[ZodSchema]
+#[ValidationSchema]
 class TestInheritingDataWithoutMessages extends Data
 {
     public function __construct(

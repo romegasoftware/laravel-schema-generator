@@ -1,17 +1,18 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Tests\Unit;
+namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
-use RomegaSoftware\LaravelZodGenerator\Data\ExtractedSchemaData;
-use RomegaSoftware\LaravelZodGenerator\Data\SchemaPropertyData;
-use RomegaSoftware\LaravelZodGenerator\Data\ValidationRules\StringValidationRules;
-use RomegaSoftware\LaravelZodGenerator\Generators\ZodSchemaGenerator;
-use RomegaSoftware\LaravelZodGenerator\Tests\TestCase;
-use RomegaSoftware\LaravelZodGenerator\TypeHandlers\TypeHandlerInterface;
-use RomegaSoftware\LaravelZodGenerator\TypeHandlers\TypeHandlerRegistry;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodBuilder;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodStringBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\TypeHandlerInterface;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
 use Spatie\LaravelData\DataCollection;
 
 class CustomTypeHandlerTest extends TestCase
@@ -29,7 +30,8 @@ class CustomTypeHandlerTest extends TestCase
 
             public function canHandleProperty(SchemaPropertyData $property): bool
             {
-                return $this->canHandle($property->type);
+                return $property->validations instanceof ResolvedValidationSet &&
+                       $property->validations->inferredType === 'datetime';
             }
 
             public function handle(SchemaPropertyData $property): ZodBuilder
@@ -41,11 +43,11 @@ class CustomTypeHandlerTest extends TestCase
 
                 // Handle nullable/optional
                 $validations = $property->validations;
-                if ($validations->nullable) {
+                if ($validations->isFieldNullable()) {
                     $builder->nullable();
                 }
 
-                if ($property->isOptional && ! $validations->required) {
+                if ($property->isOptional && ! $validations->isFieldRequired()) {
                     $builder->optional();
                 }
 
@@ -63,13 +65,13 @@ class CustomTypeHandlerTest extends TestCase
         $registry->register($customHandler);
 
         // Create generator with custom registry
-        $generator = new ZodSchemaGenerator($registry);
+        $generator = new ValidationSchemaGenerator($registry);
 
         $property = new SchemaPropertyData(
             name: 'created_at',
-            type: 'datetime',
+            validator: null,
             isOptional: false,
-            validations: new StringValidationRules,
+            validations: ResolvedValidationSet::make('created_at', [], 'datetime'),
         );
 
         $extracted = new ExtractedSchemaData(
@@ -100,7 +102,8 @@ class CustomTypeHandlerTest extends TestCase
 
             public function canHandleProperty(SchemaPropertyData $property): bool
             {
-                return $this->canHandle($property->type);
+                return $property->validations instanceof ResolvedValidationSet &&
+                       $property->validations->inferredType === 'string';
             }
 
             public function handle(SchemaPropertyData $property): ZodBuilder
@@ -112,11 +115,11 @@ class CustomTypeHandlerTest extends TestCase
                 $builder->regex('/^[A-Z]+$/', 'Must be uppercase');
 
                 $validations = $property->validations;
-                if ($validations->nullable) {
+                if ($validations && $validations->isFieldNullable()) {
                     $builder->nullable();
                 }
 
-                if ($property->isOptional && ! $validations->required) {
+                if ($property->isOptional && $validations && ! $validations->isFieldRequired()) {
                     $builder->optional();
                 }
 
@@ -130,16 +133,16 @@ class CustomTypeHandlerTest extends TestCase
         };
 
         // Create generator with default registry from service provider
-        $generator = $this->app->make(ZodSchemaGenerator::class);
+        $generator = $this->app->make(ValidationSchemaGenerator::class);
 
         // Add custom handler with high priority
         $generator->getTypeHandlerRegistry()->register($customStringHandler);
 
         $property = new SchemaPropertyData(
             name: 'code',
-            type: 'string',
+            validator: null,
             isOptional: false,
-            validations: new StringValidationRules,
+            validations: ResolvedValidationSet::make('code', [], 'string'),
         );
 
         $extracted = new ExtractedSchemaData(
@@ -175,7 +178,7 @@ class CustomTypeHandlerTest extends TestCase
 
             public function canHandleProperty(SchemaPropertyData $property): bool
             {
-                return $property->validations->uuid;
+                return $property->validations->hasValidation('uuid');
             }
 
             public function handle(SchemaPropertyData $property): ZodBuilder
@@ -186,11 +189,11 @@ class CustomTypeHandlerTest extends TestCase
                 $builder->regex('/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', 'Must be valid UUID v4');
 
                 $validations = $property->validations;
-                if ($validations->nullable) {
+                if ($validations->isFieldNullable()) {
                     $builder->nullable();
                 }
 
-                if ($property->isOptional && ! $validations->required) {
+                if ($property->isOptional && ! $validations->isFieldRequired()) {
                     $builder->optional();
                 }
 
@@ -203,16 +206,16 @@ class CustomTypeHandlerTest extends TestCase
             }
         };
 
-        $generator = $this->app->make(ZodSchemaGenerator::class);
+        $generator = $this->app->make(ValidationSchemaGenerator::class);
         $generator->getTypeHandlerRegistry()->register($uuidHandler);
 
         $property = new SchemaPropertyData(
             name: 'id',
-            type: 'string',
+            validator: null,
             isOptional: false,
-            validations: new StringValidationRules(
-                uuid: true,
-            ),
+            validations: ResolvedValidationSet::make('id', [
+                new ResolvedValidation('uuid', [], null, false, false),
+            ], 'string'),
         );
 
         $extracted = new ExtractedSchemaData(

@@ -1,6 +1,6 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Data;
+namespace RomegaSoftware\LaravelSchemaGenerator\Data;
 
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
@@ -16,5 +16,6 @@ class ExtractedSchemaData extends Data
         public string $type,
         /** @var string[] */
         public array $dependencies = [],
-    ) {}
+    ) {
+    }
 }

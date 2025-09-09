@@ -1,12 +1,28 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\ZodBuilders;
+namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
 
 class ZodEmailBuilder extends ZodBuilder
 {
+    protected ?string $requiredMessage = null;
+
+    protected ?string $emailErrorMessage = null;
+
     protected function getBaseType(): string
     {
-        return 'z.email()';
+        $content = 'z.email()';
+
+        if (isset($this->requiredMessage) && ! isset($this->emailErrorMessage)) {
+            $content = "z.email({ error: (val) => (val != undefined && val != null ? '{$this->requiredMessage}' : undefined) })";
+        }
+
+        if (isset($this->emailErrorMessage)) {
+            $content = "z.email({ error: (val) => (val != undefined && val != null ? '{$this->emailErrorMessage}' : undefined) })";
+        }
+
+        $content .= '.trim()';
+
+        return $content;
     }
 
     /**
@@ -30,6 +46,41 @@ class ZodEmailBuilder extends ZodBuilder
         $rule = ".min({$length}{$messageStr})";
 
         return $this->replaceRule('min', $rule);
+    }
+
+    /**
+     * Make field required using Zod v4 error callback approach
+     */
+    public function required(?string $message = null): self
+    {
+        $resolvedMessage = $this->resolveMessage('required', $message);
+
+        if ($resolvedMessage) {
+            $escapedMessage = $this->escapeForJS($resolvedMessage);
+            $this->requiredMessage = $escapedMessage;
+        }
+
+        $length = 1;
+        $messageStr = $this->formatMessage($resolvedMessage);
+
+        $rule = ".min({$length}{$messageStr})";
+
+        return $this->replaceRule('min', $rule);
+    }
+
+    /**
+     * Make field required using Zod v4 error callback approach
+     */
+    public function email(?string $message = null): self
+    {
+        $resolvedMessage = $this->resolveMessage('email', $message);
+
+        if ($resolvedMessage) {
+            $escapedMessage = $this->escapeForJS($resolvedMessage);
+            $this->emailErrorMessage = $escapedMessage;
+        }
+
+        return $this;
     }
 
     /**
@@ -70,7 +121,7 @@ class ZodEmailBuilder extends ZodBuilder
     public function build(): string
     {
         // Start with base email type
-        $zodString = 'z.email()';
+        $zodString = $this->getBaseType();
 
         // Add all validation rules
         foreach ($this->chain as $rule) {

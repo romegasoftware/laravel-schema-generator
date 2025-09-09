@@ -1,17 +1,17 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Tests\Unit;
+namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
-use RomegaSoftware\LaravelZodGenerator\Data\SchemaPropertyData;
-use RomegaSoftware\LaravelZodGenerator\Data\ValidationRules\StringValidationRules;
-use RomegaSoftware\LaravelZodGenerator\Tests\TestCase;
-use RomegaSoftware\LaravelZodGenerator\TypeHandlers\EmailTypeHandler;
-use RomegaSoftware\LaravelZodGenerator\TypeHandlers\StringTypeHandler;
-use RomegaSoftware\LaravelZodGenerator\TypeHandlers\TypeHandlerInterface;
-use RomegaSoftware\LaravelZodGenerator\TypeHandlers\TypeHandlerRegistry;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodBuilder;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodStringBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\TypeHandlerInterface;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
+use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
 
 class TypeHandlerRegistryTest extends TestCase
 {
@@ -26,24 +26,24 @@ class TypeHandlerRegistryTest extends TestCase
     #[Test]
     public function it_registers_and_retrieves_handlers(): void
     {
-        $stringHandler = new StringTypeHandler;
-        $emailHandler = new EmailTypeHandler;
+        $universalHandler = new UniversalTypeHandler;
 
-        $this->registry->register($stringHandler);
-        $this->registry->register($emailHandler);
+        $this->registry->register($universalHandler);
 
         $handler = $this->registry->getHandler('string');
-        $this->assertInstanceOf(StringTypeHandler::class, $handler);
+        $this->assertInstanceOf(UniversalTypeHandler::class, $handler);
 
-        // EmailTypeHandler doesn't handle 'email' type directly, it handles properties with email validation
+        // UniversalTypeHandler handles properties with ResolvedValidationSet
         $emailProperty = new SchemaPropertyData(
             name: 'email',
-            type: 'string',
+            validator: null,
             isOptional: false,
-            validations: new StringValidationRules(email: true),
+            validations: ResolvedValidationSet::make('email', [
+                new ResolvedValidation('email', [], null, false, false),
+            ], 'email'),
         );
         $handler = $this->registry->getHandlerForProperty($emailProperty);
-        $this->assertInstanceOf(EmailTypeHandler::class, $handler);
+        $this->assertInstanceOf(UniversalTypeHandler::class, $handler);
     }
 
     #[Test]
@@ -75,9 +75,11 @@ class TypeHandlerRegistryTest extends TestCase
 
         $property = new SchemaPropertyData(
             name: 'test',
-            type: 'string',
+            validator: null,
             isOptional: false,
-            validations: new StringValidationRules(email: true),
+            validations: ResolvedValidationSet::make('test', [
+                new ResolvedValidation('email', [], null, false, false),
+            ], 'email'),
         );
 
         $handler = $this->registry->getHandlerForProperty($property);
@@ -87,28 +89,30 @@ class TypeHandlerRegistryTest extends TestCase
     #[Test]
     public function it_can_register_multiple_handlers_at_once(): void
     {
-        $stringHandler = new StringTypeHandler;
-        $emailHandler = new EmailTypeHandler;
+        $universalHandler = new UniversalTypeHandler;
+        $customHandler = $this->createMockHandler('custom_type', 100);
 
-        $this->registry->registerMany([$stringHandler, $emailHandler]);
+        $this->registry->registerMany([$universalHandler, $customHandler]);
 
-        $this->assertInstanceOf(StringTypeHandler::class, $this->registry->getHandler('string'));
+        $this->assertInstanceOf(UniversalTypeHandler::class, $this->registry->getHandler('string'));
 
-        // EmailTypeHandler doesn't handle 'email' type directly, test with property
+        // UniversalTypeHandler handles properties with ResolvedValidationSet
         $emailProperty = new SchemaPropertyData(
             name: 'email',
-            type: 'string',
+            validator: null,
             isOptional: false,
-            validations: new StringValidationRules(email: true),
+            validations: ResolvedValidationSet::make('email', [
+                new ResolvedValidation('email', [], null, false, false),
+            ], 'email'),
         );
-        $this->assertInstanceOf(EmailTypeHandler::class, $this->registry->getHandlerForProperty($emailProperty));
+        $this->assertInstanceOf(UniversalTypeHandler::class, $this->registry->getHandlerForProperty($emailProperty));
     }
 
     #[Test]
     public function it_can_clear_all_handlers(): void
     {
-        $this->registry->register(new StringTypeHandler);
-        $this->assertInstanceOf(StringTypeHandler::class, $this->registry->getHandler('string'));
+        $this->registry->register(new UniversalTypeHandler);
+        $this->assertInstanceOf(UniversalTypeHandler::class, $this->registry->getHandler('string'));
 
         $this->registry->clear();
         $this->assertNull($this->registry->getHandler('string'));
@@ -127,7 +131,7 @@ class TypeHandlerRegistryTest extends TestCase
 
             public function canHandleProperty(SchemaPropertyData $property): bool
             {
-                return $this->canHandle($property->type);
+                return false; // This handler only handles by type
             }
 
             public function handle(SchemaPropertyData $property): ZodBuilder
@@ -153,7 +157,8 @@ class TypeHandlerRegistryTest extends TestCase
 
             public function canHandleProperty(SchemaPropertyData $property): bool
             {
-                return $property->validations->email;
+                return $property->validations instanceof ResolvedValidationSet &&
+                       $property->validations->hasValidation('email');
             }
 
             public function handle(SchemaPropertyData $property): ZodBuilder

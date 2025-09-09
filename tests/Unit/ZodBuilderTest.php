@@ -1,14 +1,14 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Tests\Unit;
+namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
-use RomegaSoftware\LaravelZodGenerator\Tests\TestCase;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodArrayBuilder;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodEmailBuilder;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodEnumBuilder;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodNumberBuilder;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodStringBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodArrayBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEmailBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEnumBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodNumberBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
 
 class ZodBuilderTest extends TestCase
 {
@@ -80,9 +80,73 @@ class ZodBuilderTest extends TestCase
     }
 
     #[Test]
+    public function it_builds_email_with_custom_email_message(): void
+    {
+        $builder = new ZodEmailBuilder;
+        
+        $result = $builder->emailMessage('Please enter a valid email address')
+            ->build();
+
+        $this->assertEquals("z.email().email('Please enter a valid email address')", $result);
+    }
+
+    #[Test]
+    public function it_builds_email_with_required_message_using_zod_v4_approach(): void
+    {
+        $builder = new ZodEmailBuilder;
+        
+        $result = $builder->required('Email is required')
+            ->build();
+
+        // Should use the Zod v4 error callback approach for required messages
+        $this->assertEquals("z.email({ error: (val) => (val != undefined && val != null ? 'Email is required' : undefined) }).min(1, 'Email is required')", $result);
+    }
+
+    #[Test]
+    public function it_builds_email_with_both_custom_email_and_required_messages(): void
+    {
+        $builder = new ZodEmailBuilder;
+        
+        $result = $builder->required('Email field is mandatory')
+            ->emailMessage('Must be a valid email format')
+            ->max(255, 'Email too long')
+            ->build();
+
+        // Should combine both approaches: Zod v4 error callback for required, and custom email message
+        $this->assertEquals("z.email({ error: (val) => (val != undefined && val != null ? 'Email field is mandatory' : undefined) }).min(1, 'Email field is mandatory').email('Must be a valid email format').max(255, 'Email too long')", $result);
+    }
+
+    #[Test]
+    public function it_builds_email_with_escaped_quotes_in_messages(): void
+    {
+        $builder = new ZodEmailBuilder;
+        
+        $result = $builder->emailMessage("Can't be empty or invalid")
+            ->required("Email field can't be blank")
+            ->build();
+
+        // Should properly escape quotes in JavaScript strings
+        $this->assertEquals("z.email({ error: (val) => (val != undefined && val != null ? 'Email field can\\'t be blank' : undefined) }).email('Can\\'t be empty or invalid').min(1, 'Email field can\\'t be blank')", $result);
+    }
+
+    #[Test]
+    public function it_builds_nullable_optional_email_with_messages(): void
+    {
+        $builder = new ZodEmailBuilder;
+        
+        $result = $builder->emailMessage('Invalid email format')
+            ->nullable()
+            ->optional()
+            ->build();
+
+        $this->assertEquals("z.email().email('Invalid email format').nullable().optional()", $result);
+    }
+
+    #[Test]
     public function it_builds_array_validations(): void
     {
-        $builder = new ZodArrayBuilder('z.string()');
+        $factory = app(\RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory::class);
+        $builder = $factory->createArrayBuilder('z.string()');
 
         $result = $builder->min(1, 'At least one required')
             ->max(10)

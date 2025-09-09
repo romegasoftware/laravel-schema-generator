@@ -1,13 +1,17 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\TypeHandlers;
+namespace RomegaSoftware\LaravelSchemaGenerator\TypeHandlers;
 
-use RomegaSoftware\LaravelZodGenerator\Data\SchemaPropertyData;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodBooleanBuilder;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory;
 
-class BooleanTypeHandler implements TypeHandlerInterface
+class BooleanTypeHandler extends BaseTypeHandler
 {
+    public function __construct(ZodBuilderFactory $factory)
+    {
+        parent::__construct($factory);
+    }
     public function canHandle(string $type): bool
     {
         return in_array($type, ['boolean', 'bool']);
@@ -15,16 +19,16 @@ class BooleanTypeHandler implements TypeHandlerInterface
 
     public function canHandleProperty(SchemaPropertyData $property): bool
     {
-        return $this->canHandle($property->type);
+        return $property->validations && $this->canHandle($property->validations->inferredType);
     }
 
-    public function handle(SchemaPropertyData $property): ZodBuilder
+    public function handle(SchemaPropertyData $property): BuilderInterface
     {
-        $builder = new ZodBooleanBuilder;
+        $builder = $this->factory->createBooleanBuilder();
         $validations = $property->validations;
 
         // Handle optional
-        if ($property->isOptional && (! $validations || ! $validations->isRequired())) {
+        if ($property->isOptional && (! $validations || ! $validations->isFieldRequired())) {
             $builder->optional();
         }
 
@@ -33,7 +37,7 @@ class BooleanTypeHandler implements TypeHandlerInterface
         }
 
         // Handle nullable
-        if ($validations->isNullable()) {
+        if ($validations->isFieldNullable()) {
             $builder->nullable();
         }
 

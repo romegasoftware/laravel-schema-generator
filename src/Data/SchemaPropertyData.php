@@ -1,16 +1,16 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Data;
+namespace RomegaSoftware\LaravelSchemaGenerator\Data;
 
-use RomegaSoftware\LaravelZodGenerator\Data\ValidationRules\ValidationRulesInterface;
+use Illuminate\Validation\Validator;
 use Spatie\LaravelData\Data;
 
 class SchemaPropertyData extends Data
 {
     public function __construct(
         public string $name,
-        public string $type,
+        public ?Validator $validator,
         public bool $isOptional,
-        public ?ValidationRulesInterface $validations,
+        public ?ResolvedValidationSet $validations,
     ) {}
 }

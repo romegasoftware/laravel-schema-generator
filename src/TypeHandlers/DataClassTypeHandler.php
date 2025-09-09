@@ -1,35 +1,43 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\TypeHandlers;
+namespace RomegaSoftware\LaravelSchemaGenerator\TypeHandlers;
 
-use RomegaSoftware\LaravelZodGenerator\Data\SchemaPropertyData;
-use RomegaSoftware\LaravelZodGenerator\Support\SchemaNameGenerator;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodArrayBuilder;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodBuilder;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodObjectBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory;
+use RomegaSoftware\LaravelSchemaGenerator\Support\SchemaNameGenerator;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodObjectBuilder;
 
-class DataClassTypeHandler implements TypeHandlerInterface
+class DataClassTypeHandler extends BaseTypeHandler
 {
+    public function __construct(ZodBuilderFactory $factory)
+    {
+        parent::__construct($factory);
+    }
+
     public function canHandle(string $type): bool
     {
-        return str_ends_with($type, 'Data') || str_starts_with($type, 'DataCollection:');
+        return str_ends_with($type, 'Data') || str_starts_with($type, 'DataCollection:') || str_ends_with($type, 'Schema');
     }
 
     public function canHandleProperty(SchemaPropertyData $property): bool
     {
-        return $this->canHandle($property->type);
+        return $property->validations && $this->canHandle($property->validations->inferredType);
     }
 
-    public function handle(SchemaPropertyData $property): ZodBuilder
+    public function handle(SchemaPropertyData $property): BuilderInterface
     {
-        $type = $property->type;
+        $type = $property->validations->inferredType;
         $validations = $property->validations;
 
         // Handle DataCollection references
         if (str_starts_with($type, 'DataCollection:')) {
             $dataClass = substr($type, 15);
             $schemaName = SchemaNameGenerator::generate($dataClass);
-            $builder = new ZodArrayBuilder($schemaName);
+            $builder = $this->factory->createArrayBuilder($schemaName);
+        } elseif (str_ends_with($type, 'Schema')) {
+            // Handle Schema references directly
+            $builder = new ZodObjectBuilder($type);
         } else {
             // Handle Data class references
             $schemaName = SchemaNameGenerator::generate($type);
@@ -37,7 +45,7 @@ class DataClassTypeHandler implements TypeHandlerInterface
         }
 
         // Handle optional
-        if ($property->isOptional && (! $validations || ! $validations->isRequired())) {
+        if ($property->isOptional && (! $validations || ! $validations->isFieldRequired())) {
             $builder->optional();
         }
 
@@ -46,7 +54,7 @@ class DataClassTypeHandler implements TypeHandlerInterface
         }
 
         // Handle nullable
-        if ($validations->isNullable()) {
+        if ($validations->isFieldNullable()) {
             $builder->nullable();
         }
 

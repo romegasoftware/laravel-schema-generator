@@ -1,14 +1,55 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\ZodBuilders;
+namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
 
-abstract class ZodBuilder
+use Illuminate\Contracts\Translation\Translator;
+use Illuminate\Support\Traits\Macroable;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+
+abstract class ZodBuilder implements BuilderInterface
 {
+    use Macroable;
+
+    protected ?Translator $translator = null;
+
     protected array $chain = [];
 
     protected bool $nullable = false;
 
     protected bool $optional = false;
+
+    /** Context for auto-message resolution */
+    protected ?string $fieldName = null;
+
+    public SchemaPropertyData $property;
+
+    /**
+     * Set the translator instance
+     */
+    public function setTranslator(?Translator $translator): self
+    {
+        $this->translator = $translator;
+        
+        return $this;
+    }
+
+    public function setProperty(SchemaPropertyData $schemaProperty): self
+    {
+        $this->property = $schemaProperty;
+
+        return $this;
+    }
+
+    /**
+     * Set field name for auto-message resolution
+     */
+    public function setFieldName(string $fieldName): self
+    {
+        $this->fieldName = $fieldName;
+
+        return $this;
+    }
 
     /**
      * Make the field nullable
@@ -101,6 +142,44 @@ abstract class ZodBuilder
     }
 
     /**
+     * Auto-resolve Laravel validation message with localization support
+     */
+    protected function resolveMessage(string $rule, ?string $customMessage = null, array $parameters = []): ?string
+    {
+        // Use custom message if provided
+        if ($customMessage !== null) {
+            return $customMessage;
+        }
+
+        // Skip auto-resolution if we don't have field context or translator
+        if ($this->fieldName === null || $this->translator === null) {
+            return null;
+        }
+
+        try {
+            // Get Laravel's localized message
+            $fieldDisplayName = ucfirst(str_replace(['_', '-'], ' ', $this->fieldName));
+
+            $messagePath = "validation.{$rule}";
+            $messageParams = array_merge([
+                'attribute' => $fieldDisplayName,
+            ], $parameters);
+
+            // Try to get the translation directly - it will return the key if not found
+            $translation = $this->translator->get($messagePath, $messageParams);
+            
+            // Check if we got an actual translation or just the key back
+            if ($translation !== $messagePath) {
+                return $translation;
+            }
+        } catch (\Throwable) {
+            // Silently fall back to no message if translator context isn't available
+        }
+
+        return null;
+    }
+
+    /**
      * Format a message for use in validation rules
      */
     protected function formatMessage(?string $message): string
@@ -113,5 +192,17 @@ abstract class ZodBuilder
         $escapedMessage = str_replace("'", "\\'", $message);
 
         return ", '{$escapedMessage}'";
+    }
+
+    /**
+     * Escape string for JavaScript
+     */
+    public function escapeForJS(string $str): string
+    {
+        return str_replace(
+            ['\\', "'", '"', "\n", "\r", "\t"],
+            ['\\\\', "\\'", '\\"', '\\n', '\\r', '\\t'],
+            $str
+        );
     }
 }

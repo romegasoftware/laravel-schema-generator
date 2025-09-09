@@ -1,16 +1,17 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Tests\Unit;
+namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
-use RomegaSoftware\LaravelZodGenerator\Data\ExtractedSchemaData;
-use RomegaSoftware\LaravelZodGenerator\Data\SchemaPropertyData;
-use RomegaSoftware\LaravelZodGenerator\Data\ValidationRules\StringValidationRules;
-use RomegaSoftware\LaravelZodGenerator\Extractors\ExtractorInterface;
-use RomegaSoftware\LaravelZodGenerator\Extractors\ExtractorManager;
-use RomegaSoftware\LaravelZodGenerator\Support\PackageDetector;
-use RomegaSoftware\LaravelZodGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\ExtractorInterface;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Extractors\ExtractorManager;
+use RomegaSoftware\LaravelSchemaGenerator\Support\PackageDetector;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use Spatie\LaravelData\DataCollection;
 
 class CustomExtractorTest extends TestCase
@@ -32,7 +33,9 @@ class CustomExtractorTest extends TestCase
                     name: 'custom_field',
                     type: 'string',
                     isOptional: false,
-                    validations: new StringValidationRules(required: true),
+                    validations: ResolvedValidationSet::make('custom_field', [
+                        new ResolvedValidation('required', [], null, true, false),
+                    ], 'string'),
                 );
 
                 return new ExtractedSchemaData(
@@ -55,7 +58,7 @@ class CustomExtractorTest extends TestCase
         });
 
         // Set config with custom extractor
-        config(['laravel-zod-generator.custom_extractors' => ['CustomExtractor']]);
+        config(['laravel-schema-generator.custom_extractors' => ['CustomExtractor']]);
 
         // Create ExtractorManager which should register our custom extractor
         $manager = new ExtractorManager($this->app->make(PackageDetector::class));
@@ -91,11 +94,11 @@ class CustomExtractorTest extends TestCase
                     name: 'api_key',
                     type: 'string',
                     isOptional: false,
-                    validations: new StringValidationRules(
-                        required: true,
-                        min: 32,
-                        max: 64,
-                    ),
+                    validations: ResolvedValidationSet::make('api_key', [
+                        new ResolvedValidation('required', [], null, true, false),
+                        new ResolvedValidation('min', [32], null, false, false),
+                        new ResolvedValidation('max', [64], null, false, false),
+                    ], 'string'),
                 );
 
                 return new ExtractedSchemaData(
@@ -105,11 +108,11 @@ class CustomExtractorTest extends TestCase
                             'name' => 'api_key',
                             'type' => 'string',
                             'isOptional' => false,
-                            'validations' => StringValidationRules::from([
-                                'required' => true,
-                                'min' => 32,
-                                'max' => 64,
-                            ]),
+                            'validations' => ResolvedValidationSet::make('api_key', [
+                                new ResolvedValidation('required', [], null, true, false),
+                                new ResolvedValidation('min', [32], null, false, false),
+                                new ResolvedValidation('max', [64], null, false, false),
+                            ], 'string'),
                         ],
                     ], DataCollection::class),
                     className: $class->getName(),
@@ -129,7 +132,7 @@ class CustomExtractorTest extends TestCase
         });
 
         // Set config
-        config(['laravel-zod-generator.custom_extractors' => ['CustomApiExtractor']]);
+        config(['laravel-schema-generator.custom_extractors' => ['CustomApiExtractor']]);
 
         // Create a mock class that ends with CustomValidation
         $mockClass = new ReflectionClass(new class {});
@@ -153,15 +156,15 @@ class CustomExtractorTest extends TestCase
         $this->assertCount(1, $result->properties);
         $this->assertEquals('api_key', $result->properties[0]->name);
         $this->assertEquals('string', $result->properties[0]->type);
-        $this->assertTrue($result->properties[0]->validations->required);
-        $this->assertEquals(32, $result->properties[0]->validations->min);
-        $this->assertEquals(64, $result->properties[0]->validations->max);
+        $this->assertTrue($result->properties[0]->validations->isFieldRequired());
+        $this->assertEquals(32, $result->properties[0]->validations->getValidationParameter('min'));
+        $this->assertEquals(64, $result->properties[0]->validations->getValidationParameter('max'));
     }
 
     #[Test]
     public function it_throws_exception_for_non_existent_custom_extractor_class(): void
     {
-        config(['laravel-zod-generator.custom_extractors' => ['NonExistentExtractor']]);
+        config(['laravel-schema-generator.custom_extractors' => ['NonExistentExtractor']]);
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Custom extractor class NonExistentExtractor does not exist.');
@@ -182,7 +185,7 @@ class CustomExtractorTest extends TestCase
             return $invalidExtractor;
         });
 
-        config(['laravel-zod-generator.custom_extractors' => ['InvalidExtractor']]);
+        config(['laravel-schema-generator.custom_extractors' => ['InvalidExtractor']]);
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Custom extractor InvalidExtractor must implement ExtractorInterface.');
@@ -247,7 +250,7 @@ class CustomExtractorTest extends TestCase
             return $highPriorityExtractor;
         });
 
-        config(['laravel-zod-generator.custom_extractors' => [
+        config(['laravel-schema-generator.custom_extractors' => [
             'LowPriorityExtractor',
             'HighPriorityExtractor',
         ]]);

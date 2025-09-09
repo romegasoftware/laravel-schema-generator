@@ -1,13 +1,17 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\TypeHandlers;
+namespace RomegaSoftware\LaravelSchemaGenerator\TypeHandlers;
 
-use RomegaSoftware\LaravelZodGenerator\Data\SchemaPropertyData;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodBuilder;
-use RomegaSoftware\LaravelZodGenerator\ZodBuilders\ZodEnumBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory;
 
-class EnumTypeHandler implements TypeHandlerInterface
+class EnumTypeHandler extends BaseTypeHandler
 {
+    public function __construct(ZodBuilderFactory $factory)
+    {
+        parent::__construct($factory);
+    }
     public function canHandle(string $type): bool
     {
         return str_starts_with($type, 'enum:');
@@ -15,29 +19,32 @@ class EnumTypeHandler implements TypeHandlerInterface
 
     public function canHandleProperty(SchemaPropertyData $property): bool
     {
-        return $this->canHandle($property->type);
+        return $property->validations && $this->canHandle($property->validations->inferredType);
     }
 
-    public function handle(SchemaPropertyData $property): ZodBuilder
+    public function handle(SchemaPropertyData $property): BuilderInterface
     {
-        $type = $property->type;
+        $type = $property->validations->inferredType;
         $validations = $property->validations;
 
         if (str_starts_with($type, 'enum:')) {
-            // Handle enum class reference
-            $enumName = substr($type, 5);
-            $builder = new ZodEnumBuilder([], "App.{$enumName}");
+            // Handle enum values from validation rules
+            $enumValues = substr($type, 5);
+            $values = explode(',', $enumValues);
+            $builder = $this->factory->createEnumBuilder()
+                ->setValues($values);
         } elseif ($validations && $validations->hasValidation('in')) {
             // Handle 'in' rule with explicit values
-            $builder = new ZodEnumBuilder($validations->getValidation('in'));
+            $inValidation = $validations->getValidation('in');
+            $builder = $this->factory->createEnumBuilder()->setValues($inValidation ? $inValidation->getFirstParameter() : []);
         } else {
             // Fallback - shouldn't happen given canHandle logic
-            $builder = new ZodEnumBuilder([]);
+            $builder = $this->factory->createEnumBuilder();
         }
 
         // Handle optional
         $isOptional = $property->isOptional ?? false;
-        if ($isOptional && (! $validations || ! $validations->isRequired())) {
+        if ($isOptional && (! $validations || ! $validations->isFieldRequired())) {
             $builder->optional();
         }
 
@@ -45,15 +52,15 @@ class EnumTypeHandler implements TypeHandlerInterface
             return $builder;
         }
 
-        // Check for custom enum error messages
-        if (str_starts_with($type, 'enum:') && $validations->getCustomMessage('enum')) {
-            $builder->message($validations->getCustomMessage('enum'));
-        } elseif ($validations->hasValidation('in') && $validations->getCustomMessage('in')) {
-            $builder->message($validations->getCustomMessage('in'));
+        // Check for enum error messages
+        if (str_starts_with($type, 'enum:') && $validations && $validations->getMessage('enum')) {
+            $builder->message($validations->getMessage('enum'));
+        } elseif ($validations->hasValidation('in') && $validations->getMessage('in')) {
+            $builder->message($validations->getMessage('in'));
         }
 
         // Handle nullable
-        if ($validations->isNullable()) {
+        if ($validations->isFieldNullable()) {
             $builder->nullable();
         }
 

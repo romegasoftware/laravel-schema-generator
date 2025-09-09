@@ -1,10 +1,10 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Tests\Unit;
+namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
-use RomegaSoftware\LaravelZodGenerator\Support\PackageDetector;
-use RomegaSoftware\LaravelZodGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Support\PackageDetector;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 
 class PackageDetectorTest extends TestCase
 {

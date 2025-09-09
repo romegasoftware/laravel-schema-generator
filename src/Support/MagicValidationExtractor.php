@@ -1,6 +1,6 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Support;
+namespace RomegaSoftware\LaravelSchemaGenerator\Support;
 
 use Illuminate\Support\Str;
 use Illuminate\Translation\ArrayLoader;
@@ -49,7 +49,7 @@ class MagicValidationExtractor
      */
     public static function extractViaLaravel($rules): array
     {
-        $translator = new Translator(new ArrayLoader, 'en');
+        $translator = new Translator(new ArrayLoader(), 'en');
         $validator = new Validator($translator, ['field' => ''], ['field' => $rules]);
 
         // Access parsed rules via reflection
@@ -95,7 +95,7 @@ class MagicValidationExtractor
 
             // Auto-categorize based on discovered metadata
             if (isset($discovered[$ruleName])) {
-                if ($discovered[$ruleName]['isBoolean']) {
+                if ($discovered[$ruleName]['isBoolean'] && empty($parameters)) {
                     $result[$ruleName] = true;
                 } elseif (count($parameters) === 1) {
                     $result[$ruleName] = is_numeric($parameters[0]) ? (int) $parameters[0] : $parameters[0];
@@ -123,6 +123,7 @@ class MagicValidationExtractor
     public static function determineType(array $validations): string
     {
         // Direct type rules - Laravel tells us exactly what type it is
+        // Order matters - more specific types first
         $typeMap = [
             'boolean' => 'boolean',
             'bool' => 'boolean',
@@ -140,9 +141,10 @@ class MagicValidationExtractor
             'ipv6' => 'ip',
             'file' => 'file',
             'image' => 'image',
+            'string' => 'string',
         ];
 
-        // Check for direct type indicators
+        // Check for direct type indicators in priority order
         foreach ($typeMap as $rule => $type) {
             if (isset($validations[$rule])) {
                 return $type;

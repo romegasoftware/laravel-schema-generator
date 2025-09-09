@@ -1,0 +1,123 @@
+<?php
+
+namespace RomegaSoftware\LaravelSchemaGenerator\Factories;
+
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodArrayBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodInlineObjectBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodBooleanBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodNumberBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEnumBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEmailBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodAnyBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodObjectBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
+use Illuminate\Contracts\Translation\Translator;
+
+/**
+ * Factory class for creating ZodBuilder instances with proper dependency injection
+ */
+class ZodBuilderFactory
+{
+    private ?UniversalTypeHandler $universalTypeHandler = null;
+
+    public function __construct(
+        private ?Translator $translator = null
+    ) {
+    }
+
+    /**
+     * Set the universal type handler for complex builders
+     */
+    public function setUniversalTypeHandler(UniversalTypeHandler $universalTypeHandler): void
+    {
+        $this->universalTypeHandler = $universalTypeHandler;
+    }
+
+    /**
+     * Helper method to set translator on builders
+     */
+    private function setTranslatorOnBuilder($builder)
+    {
+        if (method_exists($builder, 'setTranslator')) {
+            $builder->setTranslator($this->translator);
+        }
+        return $builder;
+    }
+
+    /**
+     * Create a ZodArrayBuilder instance
+     */
+    public function createArrayBuilder(string $itemType = 'z.any()'): ZodArrayBuilder
+    {
+        if ($this->universalTypeHandler === null) {
+            throw new \InvalidArgumentException('UniversalTypeHandler must be set before creating array builders. Call setUniversalTypeHandler() first.');
+        }
+        
+        return $this->setTranslatorOnBuilder(new ZodArrayBuilder($itemType, $this, $this->universalTypeHandler));
+    }
+
+    /**
+     * Create a ZodInlineObjectBuilder instance
+     */
+    public function createInlineObjectBuilder(): ZodInlineObjectBuilder
+    {
+        return $this->setTranslatorOnBuilder(new ZodInlineObjectBuilder($this->universalTypeHandler));
+    }
+
+    /**
+     * Create a ZodBooleanBuilder instance
+     */
+    public function createBooleanBuilder(): ZodBooleanBuilder
+    {
+        return $this->setTranslatorOnBuilder(new ZodBooleanBuilder());
+    }
+
+    /**
+     * Create a ZodStringBuilder instance
+     */
+    public function createStringBuilder(): ZodStringBuilder
+    {
+        return $this->setTranslatorOnBuilder(new ZodStringBuilder());
+    }
+
+    /**
+     * Create a ZodNumberBuilder instance
+     */
+    public function createNumberBuilder(): ZodNumberBuilder
+    {
+        return $this->setTranslatorOnBuilder(new ZodNumberBuilder());
+    }
+
+    /**
+     * Create a ZodEnumBuilder instance
+     */
+    public function createEnumBuilder(): ZodEnumBuilder
+    {
+        return $this->setTranslatorOnBuilder(new ZodEnumBuilder());
+    }
+
+    /**
+     * Create a ZodEmailBuilder instance
+     */
+    public function createEmailBuilder(): ZodEmailBuilder
+    {
+        return $this->setTranslatorOnBuilder(new ZodEmailBuilder());
+    }
+
+    /**
+     * Create a ZodAnyBuilder instance
+     */
+    public function createAnyBuilder(): ZodAnyBuilder
+    {
+        return $this->setTranslatorOnBuilder(new ZodAnyBuilder());
+    }
+
+    /**
+     * Create a ZodObjectBuilder instance
+     */
+    public function createObjectBuilder(string $schemaReference = ''): ZodObjectBuilder
+    {
+        return $this->setTranslatorOnBuilder(new ZodObjectBuilder($schemaReference));
+    }
+}

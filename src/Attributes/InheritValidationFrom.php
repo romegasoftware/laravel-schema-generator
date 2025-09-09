@@ -1,6 +1,6 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Attributes;
+namespace RomegaSoftware\LaravelSchemaGenerator\Attributes;
 
 use Attribute;
 
@@ -41,5 +41,6 @@ class InheritValidationFrom
          * If null, uses the same property name as the current property.
          */
         public ?string $property = null
-    ) {}
+    ) {
+    }
 }

@@ -1,0 +1,125 @@
+---
+sidebar_position: 2
+---
+
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+# Installation
+
+Laravel Zod Generator can be installed in several ways depending on your project setup and requirements. Choose the installation method that best fits your needs.
+
+## Requirements
+
+- **PHP**: 8.1 or higher
+- **Laravel**: 9.0 or higher
+- **Node.js**: 18.0 or higher (for TypeScript/Zod usage)
+
+## Installation Options
+
+<Tabs>
+  <TabItem value="Basic Installation" label="Basic Installation">
+
+    ### Basic Installation (Laravel only)
+
+    If you're only using Laravel FormRequest classes and don't need Spatie Data support:
+
+    ```bash
+    composer require romegasoftware/laravel-schema-generator
+    ```
+
+    This provides:
+
+    - ✅ Laravel FormRequest support
+    - ✅ Custom validation class support
+    - ✅ Basic TypeScript generation
+    </TabItem>
+    <TabItem value="Spatie Data" label="With Spatie Data">
+    ### With Spatie Data Support
+
+    If you want to use Spatie Laravel Data classes:
+
+    ```bash
+    composer require spatie/laravel-data
+    composer require romegasoftware/laravel-schema-generator
+    ```
+
+    This adds:
+
+    - ✅ All basic features
+    - ✅ Spatie Data class support
+    - ✅ Property-level attribute validation
+    - ✅ Data collections and nested objects
+
+  </TabItem>
+  <TabItem value="Full Integration" label="Full Integration">
+    ### Full Integration
+
+    For the complete feature set including automatic integration with TypeScript transformations:
+
+    ```bash
+    composer require spatie/laravel-data
+    composer require spatie/laravel-typescript-transformer
+    composer require romegasoftware/laravel-schema-generator
+    ```
+
+    This provides:
+
+    - ✅ All previous features
+    - ✅ Automatic integration with `typescript:transform` command
+    - ✅ Coordinated TypeScript type and Zod schema generation
+
+  </TabItem>
+</Tabs>
+
+## Package Discovery
+
+Laravel Zod Generator uses **automatic package discovery**, so no manual service provider registration is required. The package will automatically:
+
+- Register the `ZodGeneratorServiceProvider`
+- Register the `schema:generate` Artisan command
+- Auto-detect installed packages and enable appropriate features
+
+## Verify Installation
+
+After installation, verify that everything is working:
+
+```bash
+php artisan list | grep zod
+```
+
+You should see:
+
+```
+schema:generate    Generate Zod schemas from Laravel validation classes
+```
+
+You can also check available features:
+
+```bash
+php artisan schema:generate --dry-run
+```
+
+This will show you which features are available based on your installed packages:
+
+```
+📦 Available Features:
+  ✓ Laravel FormRequest support enabled
+  ✓ Spatie Data class support enabled (if installed)
+  ✓ TypeScript Transformer integration available (if installed)
+  ✓ Automatic hook into typescript:transform command available (if installed)
+```
+
+## Next Steps
+
+1. **Configure the package**: [Configuration Guide](./configuration.md)
+2. **Start using it**: [Quick Start Guide](./quick-start.mdx)
+3. **Learn the basics**: [Basic Usage](./usage/basic-usage.md)
+
+:::tip[Need Help?]
+If you encounter any issues, check our comprehensive [Troubleshooting Guide](./reference/troubleshooting.md) for solutions to common problems.
+:::
+
+## Want to Contribute?
+
+Interested in contributing to the package? Check out our [Development & Contributing Guide](./development.md) for setup instructions and contribution guidelines.

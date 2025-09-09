@@ -1,6 +1,6 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Support;
+namespace RomegaSoftware\LaravelSchemaGenerator\Support;
 
 use Illuminate\Translation\ArrayLoader;
 use Illuminate\Translation\Translator;
@@ -14,18 +14,18 @@ class SmartTypeInferrer
      */
     public static function inferTypeByBehavior($rules): string
     {
-        $translator = new Translator(new ArrayLoader, 'en');
+        $translator = new Translator(new ArrayLoader(), 'en');
 
-        // Test values that should pass for different types
+        // Test values that should pass for different types - ordered by specificity
         $typeTests = [
-            'boolean' => [true, false],
-            'number' => [123, 0, -1, 3.14],
-            'array' => [['a'], [], ['key' => 'value']],
-            'string' => ['test', 'hello world', ''],
+            'boolean' => [true, false, 1, 0, '1', '0'],
             'email' => ['test@example.com', 'user@domain.org'],
             'url' => ['https://example.com', 'http://test.org'],
+            'number' => [123, 0, -1, 3.14, '42', '3.14'],
+            'array' => [['a'], [], ['key' => 'value']],
             'json' => ['{"key":"value"}', '[]', '{}'],
             'date' => ['2023-01-01', '2023-12-31 23:59:59'],
+            'string' => ['test', 'hello world', '', 'not-an-email', 'simple-text'],
         ];
 
         $typeScores = [];
@@ -47,9 +47,26 @@ class SmartTypeInferrer
             }
         }
 
-        // Return the type with the highest pass rate
+        // Return the type with the highest pass rate, but prefer more specific types
         if (! empty($typeScores)) {
             arsort($typeScores);
+
+            // Get the best score
+            $bestScore = reset($typeScores);
+
+            // If we have perfect or near-perfect matches, prefer the most specific one
+            if ($bestScore >= 0.8) {
+                $perfectMatches = array_filter($typeScores, fn ($score) => $score >= 0.8);
+
+                // Prefer specific types over general ones
+                $typePreference = ['boolean', 'email', 'url', 'number', 'array', 'json', 'date', 'string'];
+                foreach ($typePreference as $preferredType) {
+                    if (isset($perfectMatches[$preferredType])) {
+                        return $preferredType;
+                    }
+                }
+            }
+
             $bestType = array_key_first($typeScores);
 
             // Only return if we have a good confidence (> 50% pass rate)
@@ -70,12 +87,18 @@ class SmartTypeInferrer
         // First, try rule-based detection (fast)
         $ruleBasedType = MagicValidationExtractor::determineType($validations);
 
-        // If we got a specific type from rules, trust it
+        // If we got a specific type from rules, trust it completely
+        // Rule-based detection is more reliable than behavioral testing
         if ($ruleBasedType !== 'string') {
             return $ruleBasedType;
         }
 
-        // For ambiguous cases, use behavioral testing (slower but more accurate)
+        // If rule-based detection found 'string' explicitly, trust that
+        if (isset($validations['string']) && $validations['string'] === true) {
+            return 'string';
+        }
+
+        // For ambiguous cases where no explicit type was found, use behavioral testing
         return self::inferTypeByBehavior($rules);
     }
 

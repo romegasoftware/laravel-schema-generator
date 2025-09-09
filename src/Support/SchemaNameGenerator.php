@@ -1,6 +1,6 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Support;
+namespace RomegaSoftware\LaravelSchemaGenerator\Support;
 
 class SchemaNameGenerator
 {

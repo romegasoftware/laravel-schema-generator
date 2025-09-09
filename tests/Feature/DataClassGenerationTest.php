@@ -1,24 +1,24 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Tests\Feature;
+namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Feature;
 
 use PHPUnit\Framework\Attributes\Test;
-use RomegaSoftware\LaravelZodGenerator\Data\ExtractedSchemaData;
-use RomegaSoftware\LaravelZodGenerator\Data\SchemaPropertyData;
-use RomegaSoftware\LaravelZodGenerator\Data\ValidationRules\StringValidationRules;
-use RomegaSoftware\LaravelZodGenerator\Data\ValidationRules\ValidationRulesFactory;
-use RomegaSoftware\LaravelZodGenerator\Generators\ZodSchemaGenerator;
-use RomegaSoftware\LaravelZodGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use Spatie\LaravelData\DataCollection;
 
 class DataClassGenerationTest extends TestCase
 {
-    protected ZodSchemaGenerator $generator;
+    protected ValidationSchemaGenerator $generator;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->generator = $this->app->make(ZodSchemaGenerator::class);
+        $this->generator = $this->app->make(ValidationSchemaGenerator::class);
     }
 
     #[Test]
@@ -32,11 +32,10 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'email',
                     'type' => 'string',
                     'isOptional' => false,
-                    'validations' => ValidationRulesFactory::create('string', [
-                        'email' => true,
-                        'max' => 255,
-                        'customMessages' => [],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('email', [
+                        new ResolvedValidation('email', [], null, false, false),
+                        new ResolvedValidation('max', [255], null, false, false),
+                    ], 'email'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -59,9 +58,9 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'posts',
                     'type' => 'DataCollection:PostData',
                     'isOptional' => false,
-                    'validations' => ValidationRulesFactory::create('array', [
-                        'customMessages' => [],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('posts', [
+                        new ResolvedValidation('array', [], null, false, false),
+                    ], 'array'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -84,10 +83,9 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'customer',
                     'type' => 'CustomerData',
                     'isOptional' => false,
-                    'validations' => ValidationRulesFactory::create('object', [
-                        'required' => true,
-                        'customMessages' => [],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('customer', [
+                        new ResolvedValidation('required', [], null, true, false),
+                    ], 'object'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -110,9 +108,9 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'addresses',
                     'type' => 'DataCollection:AddressData',
                     'isOptional' => true,
-                    'validations' => ValidationRulesFactory::create('array', [
-                        'customMessages' => [],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('addresses', [
+                        new ResolvedValidation('array', [], null, false, false),
+                    ], 'array'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -135,10 +133,10 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'orders',
                     'type' => 'DataCollection:OrderData',
                     'isOptional' => false,
-                    'validations' => ValidationRulesFactory::create('array', [
-                        'nullable' => true,
-                        'customMessages' => [],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('orders', [
+                        new ResolvedValidation('array', [], null, false, false),
+                        new ResolvedValidation('nullable', [], null, false, true),
+                    ], 'array'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -161,10 +159,9 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'status',
                     'type' => 'enum:UserStatus',
                     'isOptional' => false,
-                    'validations' => ValidationRulesFactory::create('enum', [
-                        'required' => true,
-                        'customMessages' => [],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('status', [
+                        new ResolvedValidation('required', [], null, true, false),
+                    ], 'enum'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -187,12 +184,10 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'role',
                     'type' => 'enum:UserRole',
                     'isOptional' => false,
-                    'validations' => ValidationRulesFactory::create('enum', [
-                        'required' => true,
-                        'customMessages' => [
-                            'enum' => 'Please select a valid role',
-                        ],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('role', [
+                        new ResolvedValidation('required', [], null, true, false),
+                        new ResolvedValidation('enum', [], 'Please select a valid role', false, false),
+                    ], 'enum'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -215,10 +210,10 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'tags',
                     'type' => 'array:string',
                     'isOptional' => false,
-                    'validations' => ValidationRulesFactory::create('array', [
-                        'required' => true,
-                        'customMessages' => [],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('tags', [
+                        new ResolvedValidation('required', [], null, true, false),
+                        new ResolvedValidation('array', [], null, false, false),
+                    ], 'array'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -241,16 +236,11 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'codes',
                     'type' => 'array',
                     'isOptional' => false,
-                    'validations' => ValidationRulesFactory::create('array', [
-                        'required' => true,
-                        'arrayItemValidations' => [
-                            'regex' => '/^[A-Z]{3}$/',
-                            'customMessages' => [
-                                '*.regex' => 'Each code must be 3 uppercase letters',
-                            ],
-                        ],
-                        'customMessages' => [],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('codes', [
+                        new ResolvedValidation('required', [], null, true, false),
+                        new ResolvedValidation('array', [], null, false, false),
+                        new ResolvedValidation('regex', ['/^[A-Z]{3}$/'], 'Each code must be 3 uppercase letters', false, false),
+                    ], 'array'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -274,7 +264,7 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'profile',
                     'type' => 'ProfileSchema',
                     'isOptional' => false,
-                    'validations' => null,
+                    'validations' => ResolvedValidationSet::make('profile', [], 'object'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -289,7 +279,7 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'bio',
                     'type' => 'string',
                     'isOptional' => false,
-                    'validations' => null,
+                    'validations' => ResolvedValidationSet::make('bio', [], 'string'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -317,9 +307,9 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'postal_code',
                     'type' => 'string',
                     'isOptional' => true,
-                    'validations' => StringValidationRules::from([
-                        'regex' => '/^\\d{5}(-\\d{4})?$/',
-                    ]),
+                    'validations' => ResolvedValidationSet::make('postal_code', [
+                        new ResolvedValidation('regex', ['/^\\d{5}(-\\d{4})?$/'], null, false, false),
+                    ], 'string'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -343,12 +333,9 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'postal_code',
                     'type' => 'string',
                     'isOptional' => true,
-                    'validations' => StringValidationRules::from([
-                        'regex' => '/^\\d{5}(-\\d{4})?$/',
-                        'customMessages' => [
-                            'regex' => 'Postal Code must match ##### or #####-####',
-                        ],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('postal_code', [
+                        new ResolvedValidation('regex', ['/^\\d{5}(-\\d{4})?$/'], 'Postal Code must match ##### or #####-####', false, false),
+                    ], 'string'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -375,12 +362,9 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'postal_code',
                     'type' => 'string',
                     'isOptional' => true,
-                    'validations' => StringValidationRules::from([
-                        'regex' => '/^\\d{5}(-\\d{4})?$/',
-                        'customMessages' => [
-                            'regex' => 'Postal Code must match ##### or #####-####',
-                        ],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('postal_code', [
+                        new ResolvedValidation('regex', ['/^\\d{5}(-\\d{4})?$/'], 'Postal Code must match ##### or #####-####', false, false),
+                    ], 'string'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -404,10 +388,9 @@ class DataClassGenerationTest extends TestCase
                     'name' => 'platform_card_fees',
                     'type' => 'FeeStructureData',
                     'isOptional' => true,
-                    'validations' => StringValidationRules::from([
-                        'nullable' => false,
-                        'customMessages' => [],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('platform_card_fees', [
+                        new ResolvedValidation('nullable', [false], null, false, false),
+                    ], 'string'),
                 ],
             ], DataCollection::class),
             type: '',

@@ -1,24 +1,24 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Tests\Unit;
+namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
-use RomegaSoftware\LaravelZodGenerator\Data\ExtractedSchemaData;
-use RomegaSoftware\LaravelZodGenerator\Data\SchemaPropertyData;
-use RomegaSoftware\LaravelZodGenerator\Data\ValidationRules\NumberValidationRules;
-use RomegaSoftware\LaravelZodGenerator\Data\ValidationRules\StringValidationRules;
-use RomegaSoftware\LaravelZodGenerator\Generators\ZodSchemaGenerator;
-use RomegaSoftware\LaravelZodGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use Spatie\LaravelData\DataCollection;
 
-class ZodSchemaGeneratorTest extends TestCase
+class ValidationSchemaGeneratorTest extends TestCase
 {
-    protected ZodSchemaGenerator $generator;
+    protected ValidationSchemaGenerator $generator;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->generator = $this->app->make(ZodSchemaGenerator::class);
+        $this->generator = $this->app->make(ValidationSchemaGenerator::class);
     }
 
     #[Test]
@@ -48,7 +48,7 @@ class ZodSchemaGeneratorTest extends TestCase
                     'name' => 'test',
                     'type' => 'string',
                     'isOptional' => false,
-                    'validations' => StringValidationRules::from([]),
+                    'validations' => ResolvedValidationSet::make('test', [], 'string'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -91,14 +91,11 @@ class ZodSchemaGeneratorTest extends TestCase
                     'name' => 'name',
                     'type' => 'string',
                     'isOptional' => false,
-                    'validations' => StringValidationRules::from([
-                        'required' => true,
-                        'min' => 2,
-                        'max' => 100,
-                        'customMessages' => [
-                            'required' => 'Name is required',
-                        ],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('name', [
+                        new ResolvedValidation('required', [], 'The name field is required.', true, false),
+                        new ResolvedValidation('min', [2], 'The name field must be at least 2 characters.', false, false),
+                        new ResolvedValidation('max', [100], 'The name field may not be greater than 100 characters.', false, false),
+                    ], 'string'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -107,7 +104,11 @@ class ZodSchemaGeneratorTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString("name: z.string().trim().min(2, 'Name is required').max(100)", $schema);
+        // Test new Zod v4 format with error callback
+        $this->assertStringContainsString('z.string({', $schema);
+        $this->assertStringContainsString('The name field is required.', $schema);
+        $this->assertStringContainsString(".min(2, 'The name field must be at least 2 characters.')", $schema);
+        $this->assertStringContainsString(".max(100, 'The name field may not be greater than 100 characters.')", $schema);
     }
 
     #[Test]
@@ -121,12 +122,11 @@ class ZodSchemaGeneratorTest extends TestCase
                     'name' => 'count',
                     'type' => 'integer',
                     'isOptional' => false,
-                    'validations' => NumberValidationRules::from([
-                        'numeric' => true,
-                        'min' => 0,
-                        'max' => 100,
-                        'customMessages' => [],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('count', [
+                        new ResolvedValidation('integer', [], 'The count field must be an integer.', false, false),
+                        new ResolvedValidation('min', [0], 'The count field must be at least 0.', false, false),
+                        new ResolvedValidation('max', [100], 'The count field may not be greater than 100.', false, false),
+                    ], 'number'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -135,7 +135,11 @@ class ZodSchemaGeneratorTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('count: z.number().min(0).max(100).int()', $schema);
+        // Test integer validation with proper messages
+        $this->assertStringContainsString('count: z.number()', $schema);
+        $this->assertStringContainsString(".min(0, 'The count field must be at least 0.')", $schema);
+        $this->assertStringContainsString(".max(100, 'The count field may not be greater than 100.')", $schema);
+        $this->assertStringContainsString(".int('The count field must be an integer.')", $schema);
     }
 
     #[Test]
@@ -149,11 +153,10 @@ class ZodSchemaGeneratorTest extends TestCase
                     'name' => 'pattern',
                     'type' => 'string',
                     'isOptional' => false,
-                    'validations' => StringValidationRules::from([
-                        'required' => true,
-                        'regex' => '/^[A-Z]{2,4}$/',
-                        'customMessages' => [],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('pattern', [
+                        new ResolvedValidation('required', [], 'The pattern field is required.', true, false),
+                        new ResolvedValidation('regex', ['/^[A-Z]{2,4}$/'], 'The pattern field format is invalid.', false, false),
+                    ], 'string'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -163,7 +166,8 @@ class ZodSchemaGeneratorTest extends TestCase
         $schema = $this->generator->generate($extracted);
 
         // PHP regex /^[A-Z]{2,4}$/ should convert to JavaScript /^[A-Z]{2,4}$/
-        $this->assertStringContainsString('.regex(/^[A-Z]{2,4}$/)', $schema);
+        $this->assertStringContainsString('.regex(/^[A-Z]{2,4}$/', $schema);
+        $this->assertStringContainsString("'The pattern field format is invalid.')", $schema);
     }
 
     #[Test]
@@ -177,10 +181,9 @@ class ZodSchemaGeneratorTest extends TestCase
                     'name' => 'complex_field',
                     'type' => 'string',
                     'isOptional' => false,
-                    'validations' => StringValidationRules::from([
-                        'regex' => '/^[a-zA-Z0-9\.\-_]+$/',
-                        'customMessages' => [],
-                    ]),
+                    'validations' => ResolvedValidationSet::make('complex_field', [
+                        new ResolvedValidation('regex', ['/^[a-zA-Z0-9\.\-_]+$/'], null, false, false),
+                    ], 'string'),
                 ],
             ], DataCollection::class),
             type: '',
@@ -251,5 +254,166 @@ class ZodSchemaGeneratorTest extends TestCase
         // Customer should come before Order since Order depends on Customer
         $this->assertEquals('CustomerSchema', $sorted[0]->name);
         $this->assertEquals('OrderSchema', $sorted[1]->name);
+    }
+
+    #[Test]
+    public function it_generates_schemas_with_real_laravel_validation_messages(): void
+    {
+        // Use the actual LaravelValidationResolver to get realistic messages
+        $resolver = $this->app->make(\RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver::class);
+
+        // Test boolean validation
+        $booleanValidationSet = $resolver->resolve('published', 'boolean', []);
+
+        $extracted = new ExtractedSchemaData(
+            name: 'TestSchema',
+            dependencies: [],
+            properties: SchemaPropertyData::collect([
+                [
+                    'name' => 'published',
+                    'type' => 'boolean',
+                    'isOptional' => false,
+                    'validations' => $booleanValidationSet,
+                ],
+            ], DataCollection::class),
+            type: '',
+            className: ''
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        // Should generate boolean validation with a message
+        $this->assertStringContainsString('published: z.boolean(', $schema);
+
+        // Test email validation
+        $emailValidationSet = $resolver->resolve('author_email', 'required|email', []);
+
+        $emailExtracted = new ExtractedSchemaData(
+            name: 'EmailSchema',
+            dependencies: [],
+            properties: SchemaPropertyData::collect([
+                [
+                    'name' => 'author_email',
+                    'type' => 'email',
+                    'isOptional' => false,
+                    'validations' => $emailValidationSet,
+                ],
+            ], DataCollection::class),
+            type: '',
+            className: ''
+        );
+
+        $emailSchema = $this->generator->generate($emailExtracted);
+
+        // Should generate email validation with proper messages
+        $this->assertStringContainsString('author_email: z.', $emailSchema);
+        $this->assertStringContainsString('.email(', $emailSchema);
+
+        // Test array validation
+        $arrayValidationSet = $resolver->resolve('tags', 'array', []);
+
+        $arrayExtracted = new ExtractedSchemaData(
+            name: 'ArraySchema',
+            dependencies: [],
+            properties: SchemaPropertyData::collect([
+                [
+                    'name' => 'tags',
+                    'type' => 'array',
+                    'isOptional' => true,
+                    'validations' => $arrayValidationSet,
+                ],
+            ], DataCollection::class),
+            type: '',
+            className: ''
+        );
+
+        $arraySchema = $this->generator->generate($arrayExtracted);
+
+        // Should generate array validation
+        $this->assertStringContainsString('tags: z.array(', $arraySchema);
+        $this->assertStringContainsString('.optional()', $arraySchema);
+    }
+
+    #[Test]
+    public function it_properly_formats_laravel_validation_messages_in_zod_v4(): void
+    {
+        // This test demonstrates that Laravel validation messages are properly
+        // passed through to generated Zod schemas in the correct v4 format
+
+        $extracted = new ExtractedSchemaData(
+            name: 'ValidationMessageSchema',
+            dependencies: [],
+            properties: SchemaPropertyData::collect([
+                [
+                    'name' => 'email',
+                    'type' => 'email',
+                    'isOptional' => false,
+                    'validations' => ResolvedValidationSet::make('email', [
+                        new ResolvedValidation('required', [], 'The email field is required.', true, false),
+                        new ResolvedValidation('email', [], 'The email field must be a valid email address.', false, false),
+                        new ResolvedValidation('max', [255], 'The email field may not be greater than 255 characters.', false, false),
+                    ], 'email'),
+                ],
+                [
+                    'name' => 'age',
+                    'type' => 'integer',
+                    'isOptional' => false,
+                    'validations' => ResolvedValidationSet::make('age', [
+                        new ResolvedValidation('required', [], 'The age field is required.', true, false),
+                        new ResolvedValidation('integer', [], 'The age field must be an integer.', false, false),
+                        new ResolvedValidation('min', [18], 'The age field must be at least 18.', false, false),
+                        new ResolvedValidation('max', [120], 'The age field may not be greater than 120.', false, false),
+                    ], 'number'),
+                ],
+                [
+                    'name' => 'website',
+                    'type' => 'url',
+                    'isOptional' => true,
+                    'validations' => ResolvedValidationSet::make('website', [
+                        new ResolvedValidation('url', [], 'The website field must be a valid URL.', false, false),
+                    ], 'url'),
+                ],
+                [
+                    'name' => 'uuid',
+                    'type' => 'string',
+                    'isOptional' => false,
+                    'validations' => ResolvedValidationSet::make('uuid', [
+                        new ResolvedValidation('required', [], 'The uuid field is required.', true, false),
+                        new ResolvedValidation('uuid', [], 'The uuid field must be a valid UUID.', false, false),
+                    ], 'string'),
+                ],
+            ], DataCollection::class),
+            type: '',
+            className: ''
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        // Verify email field: should use proper email validation with messages
+        $this->assertStringContainsString('email: z.email()', $schema);
+        $this->assertStringContainsString('.max(255, ', $schema);
+        $this->assertStringContainsString('The email field may not be greater than 255 characters.', $schema);
+
+        // Verify integer field: should have int() validation with message
+        $this->assertStringContainsString('age: z.number()', $schema);
+        $this->assertStringContainsString('.int(\'The age field must be an integer.\')', $schema);
+        $this->assertStringContainsString('.min(18, ', $schema);
+        $this->assertStringContainsString('The age field must be at least 18.', $schema);
+        $this->assertStringContainsString('.max(120, ', $schema);
+        $this->assertStringContainsString('The age field may not be greater than 120.', $schema);
+
+        // Verify URL field: should have url() validation with message and be optional
+        $this->assertStringContainsString('website: z.', $schema);
+        $this->assertStringContainsString('.url(\'The website field must be a valid URL.\')', $schema);
+        $this->assertStringContainsString('.optional()', $schema);
+
+        // Verify UUID field: should have uuid() validation with message
+        $this->assertStringContainsString('uuid: z.string(', $schema);
+        $this->assertStringContainsString('The uuid field is required.', $schema);
+        $this->assertStringContainsString('.uuid(\'The uuid field must be a valid UUID.\')', $schema);
+
+        // Verify overall structure is valid Zod v4
+        $this->assertStringStartsWith('z.object({', $schema);
+        $this->assertStringEndsWith('})', $schema);
     }
 }

@@ -1,16 +1,17 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Tests\Unit;
+namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
-use RomegaSoftware\LaravelZodGenerator\Data\ExtractedSchemaData;
-use RomegaSoftware\LaravelZodGenerator\Data\SchemaPropertyData;
-use RomegaSoftware\LaravelZodGenerator\Data\ValidationRules\StringValidationRules;
-use RomegaSoftware\LaravelZodGenerator\Extractors\ExtractorInterface;
-use RomegaSoftware\LaravelZodGenerator\Extractors\ExtractorManager;
-use RomegaSoftware\LaravelZodGenerator\Support\PackageDetector;
-use RomegaSoftware\LaravelZodGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\ExtractorInterface;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Extractors\ExtractorManager;
+use RomegaSoftware\LaravelSchemaGenerator\Support\PackageDetector;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use Spatie\LaravelData\DataCollection;
 
 class ExtractorManagerTest extends TestCase
@@ -36,7 +37,7 @@ class ExtractorManagerTest extends TestCase
         // Should always have RequestClassExtractor
         $hasRequestExtractor = false;
         foreach ($extractors as $extractor) {
-            if (get_class($extractor) === 'RomegaSoftware\LaravelZodGenerator\Extractors\RequestClassExtractor') {
+            if (get_class($extractor) === 'RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor') {
                 $hasRequestExtractor = true;
                 break;
             }
@@ -222,7 +223,10 @@ class ExtractorManagerTest extends TestCase
                             name: 'email',
                             type: 'string',
                             isOptional: false,
-                            validations: new StringValidationRules(required: true, email: true),
+                            validations: ResolvedValidationSet::make('email', [
+                                new ResolvedValidation('required', [], null, true, false),
+                                new ResolvedValidation('email', [], null, false, false),
+                            ], 'string'),
                         ),
                     ]),
                     className: $class->getName(),

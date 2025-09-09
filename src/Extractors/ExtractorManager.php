@@ -1,10 +1,11 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\Extractors;
+namespace RomegaSoftware\LaravelSchemaGenerator\Extractors;
 
 use ReflectionClass;
-use RomegaSoftware\LaravelZodGenerator\Data\ExtractedSchemaData;
-use RomegaSoftware\LaravelZodGenerator\Support\PackageDetector;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\ExtractorInterface;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
+use RomegaSoftware\LaravelSchemaGenerator\Support\PackageDetector;
 
 class ExtractorManager
 {
@@ -25,11 +26,11 @@ class ExtractorManager
     protected function registerDefaultExtractors(): void
     {
         // Always register RequestClassExtractor for FormRequest support
-        $this->register(new RequestClassExtractor);
+        $this->register(app(RequestClassExtractor::class));
 
         // Conditionally register DataClassExtractor if Spatie Data is available
         if ($this->packageDetector->isFeatureEnabled('data_classes')) {
-            $this->register(new DataClassExtractor);
+            $this->register(app(DataClassExtractor::class));
         }
     }
 
@@ -38,7 +39,7 @@ class ExtractorManager
      */
     protected function registerCustomExtractors(): void
     {
-        $customExtractors = config('laravel-zod-generator.custom_extractors', []);
+        $customExtractors = config('laravel-schema-generator.custom_extractors', []);
 
         foreach ($customExtractors as $extractorClass) {
             try {
@@ -50,7 +51,7 @@ class ExtractorManager
                 }
 
                 // If it exists but can't be instantiated, try direct instantiation
-                $extractor = new $extractorClass;
+                $extractor = new $extractorClass();
             }
 
             if (! $extractor instanceof ExtractorInterface) {

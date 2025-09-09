@@ -1,6 +1,6 @@
 <?php
 
-namespace RomegaSoftware\LaravelZodGenerator\ZodBuilders;
+namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
 
 class ZodObjectBuilder extends ZodBuilder
 {
