@@ -2,10 +2,10 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit\TypeHandlers;
 
-use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
 use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodArrayBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodBooleanBuilder;

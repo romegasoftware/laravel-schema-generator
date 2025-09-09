@@ -12,7 +12,7 @@ class ZodNumberBuilderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->builder = new ZodNumberBuilder();
+        $this->builder = new ZodNumberBuilder;
     }
 
     public function test_basic_number_validation()
@@ -43,7 +43,7 @@ class ZodNumberBuilderTest extends TestCase
             ->lt(100)
             ->lte(99)
             ->build();
-        
+
         $this->assertStringContainsString('.gt(0)', $schema);
         $this->assertStringContainsString('.gte(1)', $schema);
         $this->assertStringContainsString('.lt(100)', $schema);
@@ -101,10 +101,10 @@ class ZodNumberBuilderTest extends TestCase
     public function test_positive_negative_validations()
     {
         $positive = $this->builder->positive()->build();
-        $negative = (new ZodNumberBuilder())->negative()->build();
-        $nonNegative = (new ZodNumberBuilder())->nonNegative()->build();
-        $nonPositive = (new ZodNumberBuilder())->nonPositive()->build();
-        
+        $negative = (new ZodNumberBuilder)->negative()->build();
+        $nonNegative = (new ZodNumberBuilder)->nonNegative()->build();
+        $nonPositive = (new ZodNumberBuilder)->nonPositive()->build();
+
         $this->assertStringContainsString('.positive()', $positive);
         $this->assertStringContainsString('.negative()', $negative);
         $this->assertStringContainsString('.nonnegative()', $nonNegative);

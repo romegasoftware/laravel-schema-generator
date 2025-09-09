@@ -17,6 +17,7 @@ class UniversalTypeHandler extends BaseTypeHandler
     {
         parent::__construct($factory);
     }
+
     public function canHandle(string $type): bool
     {
         return true; // This is the fallback handler for all types

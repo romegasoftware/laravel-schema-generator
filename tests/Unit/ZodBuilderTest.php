@@ -4,7 +4,6 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodArrayBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEmailBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEnumBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodNumberBuilder;
@@ -83,7 +82,7 @@ class ZodBuilderTest extends TestCase
     public function it_builds_email_with_custom_email_message(): void
     {
         $builder = new ZodEmailBuilder;
-        
+
         $result = $builder->emailMessage('Please enter a valid email address')
             ->build();
 
@@ -94,7 +93,7 @@ class ZodBuilderTest extends TestCase
     public function it_builds_email_with_required_message_using_zod_v4_approach(): void
     {
         $builder = new ZodEmailBuilder;
-        
+
         $result = $builder->required('Email is required')
             ->build();
 
@@ -106,7 +105,7 @@ class ZodBuilderTest extends TestCase
     public function it_builds_email_with_both_custom_email_and_required_messages(): void
     {
         $builder = new ZodEmailBuilder;
-        
+
         $result = $builder->required('Email field is mandatory')
             ->emailMessage('Must be a valid email format')
             ->max(255, 'Email too long')
@@ -120,7 +119,7 @@ class ZodBuilderTest extends TestCase
     public function it_builds_email_with_escaped_quotes_in_messages(): void
     {
         $builder = new ZodEmailBuilder;
-        
+
         $result = $builder->emailMessage("Can't be empty or invalid")
             ->required("Email field can't be blank")
             ->build();
@@ -133,7 +132,7 @@ class ZodBuilderTest extends TestCase
     public function it_builds_nullable_optional_email_with_messages(): void
     {
         $builder = new ZodEmailBuilder;
-        
+
         $result = $builder->emailMessage('Invalid email format')
             ->nullable()
             ->optional()

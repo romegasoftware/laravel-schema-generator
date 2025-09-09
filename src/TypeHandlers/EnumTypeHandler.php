@@ -12,6 +12,7 @@ class EnumTypeHandler extends BaseTypeHandler
     {
         parent::__construct($factory);
     }
+
     public function canHandle(string $type): bool
     {
         return str_starts_with($type, 'enum:');

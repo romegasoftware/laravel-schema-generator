@@ -19,8 +19,7 @@ class DataClassExtractor extends BaseExtractor
     public function __construct(
         protected LaravelValidationResolver $validationResolver,
         protected DataValidatorResolver $dataValidatorResolver
-    ) {
-    }
+    ) {}
 
     /**
      * Check if this extractor can handle the given class

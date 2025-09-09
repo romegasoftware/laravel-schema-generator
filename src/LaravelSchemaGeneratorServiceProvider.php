@@ -10,7 +10,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Support\PackageDetector;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
-use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
 
 class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
 {
@@ -44,9 +43,9 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
         $this->app->singleton(\Illuminate\Contracts\Translation\Translator::class, function ($app) {
             return $app->make('translator');
         });
-        
+
         $this->app->singleton(\RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver::class);
-        
+
         // Register Spatie Data dependencies if available
         if (class_exists(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class)) {
             $this->app->singleton(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class);
@@ -54,33 +53,49 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
 
         // Register type handlers with their factory dependencies
         $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\BaseTypeHandler::class, function ($app) {
-            return new class($app->make(ZodBuilderFactory::class)) extends \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\BaseTypeHandler {
-                public function canHandle(string $type): bool { return false; }
-                public function canHandleProperty(\RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData $property): bool { return false; }
-                public function handle(\RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData $property): \RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface { throw new \Exception('Base handler should not be called directly'); }
-                public function getPriority(): int { return 0; }
+            return new class($app->make(ZodBuilderFactory::class)) extends \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\BaseTypeHandler
+            {
+                public function canHandle(string $type): bool
+                {
+                    return false;
+                }
+
+                public function canHandleProperty(\RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData $property): bool
+                {
+                    return false;
+                }
+
+                public function handle(\RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData $property): \RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface
+                {
+                    throw new \Exception('Base handler should not be called directly');
+                }
+
+                public function getPriority(): int
+                {
+                    return 0;
+                }
             };
         });
-        
+
         $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\EnumTypeHandler::class, function ($app) {
             return new \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\EnumTypeHandler(
                 $app->make(ZodBuilderFactory::class)
             );
         });
-        
+
         $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\BooleanTypeHandler::class, function ($app) {
             return new \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\BooleanTypeHandler(
                 $app->make(ZodBuilderFactory::class)
             );
         });
-        
+
         $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler::class, function ($app) {
             $factory = $app->make(ZodBuilderFactory::class);
             $handler = new \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler($factory);
-            
+
             // Set up circular dependency: factory needs the universal handler for complex builders
             $factory->setUniversalTypeHandler($handler);
-            
+
             return $handler;
         });
 
@@ -89,14 +104,14 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
                 $app->make(ZodBuilderFactory::class)
             );
         });
-        
+
         // Register extractors with their dependencies
         $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor::class, function ($app) {
             return new \RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor(
                 $app->make(\RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver::class)
             );
         });
-        
+
         if (class_exists(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class)) {
             $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor::class, function ($app) {
                 return new \RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor(
@@ -105,7 +120,7 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
                 );
             });
         }
-        
+
         // Register writers with their dependencies
         $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\Writers\ZodTypeScriptWriter::class, function ($app) {
             return new \RomegaSoftware\LaravelSchemaGenerator\Writers\ZodTypeScriptWriter(

@@ -224,18 +224,18 @@ class ZodNumberBuilder extends ZodBuilder
 
         if ($max === null) {
             // Exact decimal places
-            $rule = ".refine((val) => {".
-                "const str = String(val); ".
+            $rule = '.refine((val) => {'.
+                'const str = String(val); '.
                 "const parts = str.split('.'); ".
                 "return parts.length === 1 || (parts.length === 2 && parts[1].length === {$min}); ".
                 "}, { message: '{$escapedMessage}' })";
         } else {
             // Range of decimal places
-            $rule = ".refine((val) => {".
-                "const str = String(val); ".
+            $rule = '.refine((val) => {'.
+                'const str = String(val); '.
                 "const parts = str.split('.'); ".
-                "if (parts.length === 1) return true; ".
-                "const decimals = parts[1].length; ".
+                'if (parts.length === 1) return true; '.
+                'const decimals = parts[1].length; '.
                 "return decimals >= {$min} && decimals <= {$max}; ".
                 "}, { message: '{$escapedMessage}' })";
         }
@@ -252,8 +252,8 @@ class ZodNumberBuilder extends ZodBuilder
         $resolvedMessage = $this->resolveMessage('digits', $message) ?? 'Invalid number of digits';
         $escapedMessage = $this->escapeForJS($resolvedMessage);
 
-        $rule = ".refine((val) => {".
-            "const str = String(Math.abs(Math.floor(val))); ".
+        $rule = '.refine((val) => {'.
+            'const str = String(Math.abs(Math.floor(val))); '.
             "return str.length === {$value}; ".
             "}, { message: '{$escapedMessage}' })";
 
@@ -269,9 +269,9 @@ class ZodNumberBuilder extends ZodBuilder
         $resolvedMessage = $this->resolveMessage('digits_between', $message) ?? 'Invalid number of digits';
         $escapedMessage = $this->escapeForJS($resolvedMessage);
 
-        $rule = ".refine((val) => {".
-            "const str = String(Math.abs(Math.floor(val))); ".
-            "const len = str.length; ".
+        $rule = '.refine((val) => {'.
+            'const str = String(Math.abs(Math.floor(val))); '.
+            'const len = str.length; '.
             "return len >= {$min} && len <= {$max}; ".
             "}, { message: '{$escapedMessage}' })";
 
@@ -287,8 +287,8 @@ class ZodNumberBuilder extends ZodBuilder
         $resolvedMessage = $this->resolveMessage('max_digits', $message) ?? 'Too many digits';
         $escapedMessage = $this->escapeForJS($resolvedMessage);
 
-        $rule = ".refine((val) => {".
-            "const str = String(Math.abs(Math.floor(val))); ".
+        $rule = '.refine((val) => {'.
+            'const str = String(Math.abs(Math.floor(val))); '.
             "return str.length <= {$value}; ".
             "}, { message: '{$escapedMessage}' })";
 
@@ -304,8 +304,8 @@ class ZodNumberBuilder extends ZodBuilder
         $resolvedMessage = $this->resolveMessage('min_digits', $message) ?? 'Not enough digits';
         $escapedMessage = $this->escapeForJS($resolvedMessage);
 
-        $rule = ".refine((val) => {".
-            "const str = String(Math.abs(Math.floor(val))); ".
+        $rule = '.refine((val) => {'.
+            'const str = String(Math.abs(Math.floor(val))); '.
             "return str.length >= {$value}; ".
             "}, { message: '{$escapedMessage}' })";
 

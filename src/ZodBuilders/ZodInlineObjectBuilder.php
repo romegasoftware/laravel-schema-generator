@@ -13,8 +13,8 @@ class ZodInlineObjectBuilder extends ZodBuilder
 {
     public function __construct(
         private ?UniversalTypeHandler $universalTypeHandler = null
-    ) {
-    }
+    ) {}
+
     protected array $properties = [];
 
     /**

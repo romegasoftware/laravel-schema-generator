@@ -32,7 +32,7 @@ class EnumValidationDebugTest extends TestCase
     {
         $extractor = app(\RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor::class);
         $extracted = $extractor->extract(new \ReflectionClass(TestRequestForDebug::class));
-        
+
         // Debug the extracted schema
         echo "\n\n=== EXTRACTED SCHEMA ===\n";
         foreach ($extracted->properties as $property) {
@@ -42,18 +42,18 @@ class EnumValidationDebugTest extends TestCase
                 echo "Validations:\n";
                 foreach ($property->validations->validations as $validation) {
                     echo "  - Rule: {$validation->rule}\n";
-                    echo "    Parameters: " . json_encode($validation->parameters) . "\n";
+                    echo '    Parameters: '.json_encode($validation->parameters)."\n";
                 }
             }
             echo "\n";
         }
-        
+
         $schema = $this->generator->generate($extracted, 'TestRequestForDebugSchema');
-        
+
         echo "\n=== GENERATED SCHEMA ===\n";
         echo $schema;
         echo "\n\n";
-        
+
         // This will fail but we'll see the output
         $this->assertStringContainsString("payment_method: z.enum(['credit_card', 'paypal', 'bank_transfer'])", $schema);
     }

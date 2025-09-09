@@ -14,7 +14,7 @@ class SmartTypeInferrer
      */
     public static function inferTypeByBehavior($rules): string
     {
-        $translator = new Translator(new ArrayLoader(), 'en');
+        $translator = new Translator(new ArrayLoader, 'en');
 
         // Test values that should pass for different types - ordered by specificity
         $typeTests = [

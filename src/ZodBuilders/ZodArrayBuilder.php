@@ -14,7 +14,7 @@ class ZodArrayBuilder extends ZodBuilder
     protected ?ZodBuilder $itemBuilder = null;
 
     public function __construct(
-        string $itemType = 'z.any()',
+        string $itemType,
         private ZodBuilderFactory $factory,
         private UniversalTypeHandler $universalTypeHandler
     ) {
@@ -37,13 +37,13 @@ class ZodArrayBuilder extends ZodBuilder
                 $propertyData = new SchemaPropertyData(
                     name: $nestedValidations->fieldName,
                     validator: null,
-                    isOptional: !$nestedValidations->isFieldRequired(),
+                    isOptional: ! $nestedValidations->isFieldRequired(),
                     validations: $nestedValidations
                 );
                 $itemBuilder = $typeHandler->setProperty($propertyData)->createBuilderForType();
                 $itemBuilder->setFieldName($nestedValidations->fieldName);
 
-                // Apply validations to the item builder  
+                // Apply validations to the item builder
                 $typeHandler->applyValidations();
             }
 
@@ -66,7 +66,7 @@ class ZodArrayBuilder extends ZodBuilder
             $propertyData = new SchemaPropertyData(
                 name: $validationSet->fieldName,
                 validator: null,
-                isOptional: !$validationSet->isFieldRequired(),
+                isOptional: ! $validationSet->isFieldRequired(),
                 validations: $validationSet
             );
             $propertyBuilder = $typeHandler->setProperty($propertyData)->createBuilderForType();

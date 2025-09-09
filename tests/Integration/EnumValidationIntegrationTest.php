@@ -40,21 +40,22 @@ class EnumValidationIntegrationTest extends TestCase
 
         // Root level enum should be properly formatted (using double quotes as per Zod standard)
         $this->assertStringContainsString('payment_method: z.enum(["credit_card", "paypal", "bank_transfer"])', $schema);
-        
+
         // Nested enum should also be properly formatted
         $this->assertStringContainsString('component: z.enum(["base", "tax", "discount"])', $schema);
-        
+
         // Should NOT contain malformed enum
-        $this->assertStringNotContainsString("z.enum(App.", $schema);
-        $this->assertStringNotContainsString("z.enum(credit_card", $schema);
-        
+        $this->assertStringNotContainsString('z.enum(App.', $schema);
+        $this->assertStringNotContainsString('z.enum(credit_card', $schema);
+
         // The full schema should be a valid Zod object
         $this->assertStringContainsString('z.object({', $schema);
     }
-    
+
     public function test_enum_validation_with_only_in_rule()
     {
-        $request = new class extends FormRequest {
+        $request = new class extends FormRequest
+        {
             public function rules(): array
             {
                 return [
@@ -62,18 +63,19 @@ class EnumValidationIntegrationTest extends TestCase
                 ];
             }
         };
-        
+
         $extractor = app(\RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor::class);
         $extracted = $extractor->extract(new \ReflectionClass($request));
         $schema = $this->generator->generate($extracted, 'StatusEnumSchema');
-        
+
         // Should generate enum correctly even without required|string
         $this->assertStringContainsString('status: z.enum(["active", "inactive", "pending"])', $schema);
     }
-    
+
     public function test_enum_validation_with_required_in_rule()
     {
-        $request = new class extends FormRequest {
+        $request = new class extends FormRequest
+        {
             public function rules(): array
             {
                 return [
@@ -81,11 +83,11 @@ class EnumValidationIntegrationTest extends TestCase
                 ];
             }
         };
-        
+
         $extractor = app(\RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor::class);
         $extracted = $extractor->extract(new \ReflectionClass($request));
         $schema = $this->generator->generate($extracted, 'PriorityEnumSchema');
-        
+
         // Should generate enum correctly with required
         $this->assertStringContainsString('priority: z.enum(["low", "medium", "high"])', $schema);
     }

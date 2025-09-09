@@ -2,7 +2,6 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
-use Illuminate\Foundation\Http\FormRequest;
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor;
@@ -15,7 +14,7 @@ class NestedArrayValidationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->extractor = new RequestClassExtractor();
+        $this->extractor = new RequestClassExtractor;
     }
 
     #[Test]
@@ -28,7 +27,7 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string|max:50',
         ];
 
-        $extractor = new RequestClassExtractor();
+        $extractor = new RequestClassExtractor;
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -41,13 +40,12 @@ class NestedArrayValidationTest extends TestCase
         $this->assertArrayHasKey('nested', $grouped['categories']);
         $this->assertEquals('string|max:50', $grouped['categories']['nested']['title']);
 
-        // Check tags grouping  
+        // Check tags grouping
         $this->assertArrayHasKey('tags', $grouped);
         $this->assertEquals('array', $grouped['tags']['rules']);
         $this->assertArrayHasKey('nested', $grouped['tags']);
         $this->assertEquals('string|max:50', $grouped['tags']['nested']['*']);
     }
-
 
     #[Test]
     public function it_handles_array_without_base_rule(): void
@@ -57,7 +55,7 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string|max:50',
         ];
 
-        $extractor = new RequestClassExtractor();
+        $extractor = new RequestClassExtractor;
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -76,14 +74,14 @@ class NestedArrayValidationTest extends TestCase
     {
         $rules = [
             'items' => 'array',
-            'items.*.variations' => 'array', 
+            'items.*.variations' => 'array',
             'items.*.variations.*.type' => 'required|string',
             'items.*.variations.*.size' => 'string',
             'items.*.pricing' => 'array',
-            'items.*.pricing.*.component' => 'required|in:base,tax,discount'
+            'items.*.pricing.*.component' => 'required|in:base,tax,discount',
         ];
 
-        $extractor = new RequestClassExtractor();
+        $extractor = new RequestClassExtractor;
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -99,7 +97,7 @@ class NestedArrayValidationTest extends TestCase
         $this->assertArrayHasKey('variations', $grouped['items']['nested']);
         $this->assertEquals('array', $grouped['items']['nested']['variations']['rules']);
         $this->assertArrayHasKey('nested', $grouped['items']['nested']['variations']);
-        
+
         // Check variations properties
         $this->assertArrayHasKey('type', $grouped['items']['nested']['variations']['nested']);
         $this->assertEquals('required|string', $grouped['items']['nested']['variations']['nested']['type']);
@@ -110,7 +108,7 @@ class NestedArrayValidationTest extends TestCase
         $this->assertArrayHasKey('pricing', $grouped['items']['nested']);
         $this->assertEquals('array', $grouped['items']['nested']['pricing']['rules']);
         $this->assertArrayHasKey('nested', $grouped['items']['nested']['pricing']);
-        
+
         // Check pricing properties
         $this->assertArrayHasKey('component', $grouped['items']['nested']['pricing']['nested']);
         $this->assertEquals('required|in:base,tax,discount', $grouped['items']['nested']['pricing']['nested']['component']);
@@ -125,10 +123,10 @@ class NestedArrayValidationTest extends TestCase
             'users.*.profiles.*.settings' => 'array',
             'users.*.profiles.*.settings.*.key' => 'required|string',
             'users.*.profiles.*.settings.*.value' => 'required|string',
-            'users.*.profiles.*.name' => 'string|max:100'
+            'users.*.profiles.*.name' => 'string|max:100',
         ];
 
-        $extractor = new RequestClassExtractor();
+        $extractor = new RequestClassExtractor;
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -139,7 +137,7 @@ class NestedArrayValidationTest extends TestCase
         $this->assertArrayHasKey('users', $grouped);
         $this->assertArrayHasKey('profiles', $grouped['users']['nested']);
         $this->assertArrayHasKey('settings', $grouped['users']['nested']['profiles']['nested']);
-        
+
         // Check three-level nesting
         $settings = $grouped['users']['nested']['profiles']['nested']['settings'];
         $this->assertEquals('array', $settings['rules']);
@@ -163,10 +161,10 @@ class NestedArrayValidationTest extends TestCase
             'data.*.nested_array.*' => 'integer',
             'data.*.complex.*.field' => 'required|string',
             'metadata.*.key' => 'string',
-            'tags.*' => 'string'  // No base rule
+            'tags.*' => 'string',  // No base rule
         ];
 
-        $extractor = new RequestClassExtractor();
+        $extractor = new RequestClassExtractor;
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -176,7 +174,7 @@ class NestedArrayValidationTest extends TestCase
         // Check data structure
         $this->assertArrayHasKey('data', $grouped);
         $this->assertEquals('array', $grouped['data']['rules']);
-        
+
         // Check simple field
         $this->assertArrayHasKey('simple_field', $grouped['data']['nested']);
         $this->assertEquals('string', $grouped['data']['nested']['simple_field']);

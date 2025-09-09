@@ -7,9 +7,7 @@ use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 
 class ZodTypeScriptWriter extends BaseScriptWriter
 {
-    public function __construct(protected ValidationSchemaGenerator $generator)
-    {
-    }
+    public function __construct(protected ValidationSchemaGenerator $generator) {}
 
     public function getOutputPath(): string
     {

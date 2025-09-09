@@ -30,7 +30,6 @@ class ZodArrayBuilderDependencyInjectionTest extends TestCase
         $this->assertEquals('z.string()', $arrayBuilder->getItemType());
     }
 
-
     #[Test]
     public function it_uses_factory_to_create_nested_array_builders(): void
     {
@@ -57,14 +56,14 @@ class ZodArrayBuilderDependencyInjectionTest extends TestCase
         $arrayBuilder = new ZodArrayBuilder('z.any()', $factory, $universalTypeHandler);
         $arrayBuilder->setProperty($property);
 
-        // Create nested validations with proper construction  
+        // Create nested validations with proper construction
         $nestedValidations = ResolvedValidationSet::make('nested', [], 'string');
-        
+
         // Mock the property validations method
         $mockValidations = Mockery::mock(ResolvedValidationSet::class);
         $mockValidations->shouldReceive('getNestedValidations')
             ->andReturn($nestedValidations);
-        
+
         $mockValidations->shouldReceive('hasObjectProperties')
             ->andReturn(false);
 
@@ -76,7 +75,7 @@ class ZodArrayBuilderDependencyInjectionTest extends TestCase
 
         $universalTypeHandler->shouldReceive('createBuilderForType')
             ->once()
-            ->andReturn(new ZodStringBuilder());
+            ->andReturn(new ZodStringBuilder);
 
         $universalTypeHandler->shouldReceive('applyValidations')
             ->once();
@@ -115,7 +114,7 @@ class ZodArrayBuilderDependencyInjectionTest extends TestCase
 
         $universalTypeHandler->shouldReceive('createBuilderForType')
             ->once()
-            ->andReturn(new ZodStringBuilder());
+            ->andReturn(new ZodStringBuilder);
 
         $universalTypeHandler->shouldReceive('applyValidations')
             ->once();

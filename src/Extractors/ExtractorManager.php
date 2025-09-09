@@ -51,7 +51,7 @@ class ExtractorManager
                 }
 
                 // If it exists but can't be instantiated, try direct instantiation
-                $extractor = new $extractorClass();
+                $extractor = new $extractorClass;
             }
 
             if (! $extractor instanceof ExtractorInterface) {

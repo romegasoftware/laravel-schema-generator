@@ -30,7 +30,7 @@ abstract class ZodBuilder implements BuilderInterface
     public function setTranslator(?Translator $translator): self
     {
         $this->translator = $translator;
-        
+
         return $this;
     }
 
@@ -167,7 +167,7 @@ abstract class ZodBuilder implements BuilderInterface
 
             // Try to get the translation directly - it will return the key if not found
             $translation = $this->translator->get($messagePath, $messageParams);
-            
+
             // Check if we got an actual translation or just the key back
             if ($translation !== $messagePath) {
                 return $translation;

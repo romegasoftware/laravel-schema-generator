@@ -49,7 +49,7 @@ class MagicValidationExtractor
      */
     public static function extractViaLaravel($rules): array
     {
-        $translator = new Translator(new ArrayLoader(), 'en');
+        $translator = new Translator(new ArrayLoader, 'en');
         $validator = new Validator($translator, ['field' => ''], ['field' => $rules]);
 
         // Access parsed rules via reflection

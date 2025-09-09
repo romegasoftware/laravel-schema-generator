@@ -12,6 +12,7 @@ class BooleanTypeHandler extends BaseTypeHandler
     {
         parent::__construct($factory);
     }
+
     public function canHandle(string $type): bool
     {
         return in_array($type, ['boolean', 'bool']);

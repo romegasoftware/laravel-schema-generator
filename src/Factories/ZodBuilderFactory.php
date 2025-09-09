@@ -2,17 +2,17 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Factories;
 
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodArrayBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodInlineObjectBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodBooleanBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodNumberBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEnumBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEmailBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodAnyBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodObjectBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
 use Illuminate\Contracts\Translation\Translator;
+use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodAnyBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodArrayBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodBooleanBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEmailBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEnumBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodInlineObjectBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodNumberBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodObjectBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
 
 /**
  * Factory class for creating ZodBuilder instances with proper dependency injection
@@ -23,8 +23,7 @@ class ZodBuilderFactory
 
     public function __construct(
         private ?Translator $translator = null
-    ) {
-    }
+    ) {}
 
     /**
      * Set the universal type handler for complex builders
@@ -42,6 +41,7 @@ class ZodBuilderFactory
         if (method_exists($builder, 'setTranslator')) {
             $builder->setTranslator($this->translator);
         }
+
         return $builder;
     }
 
@@ -53,7 +53,7 @@ class ZodBuilderFactory
         if ($this->universalTypeHandler === null) {
             throw new \InvalidArgumentException('UniversalTypeHandler must be set before creating array builders. Call setUniversalTypeHandler() first.');
         }
-        
+
         return $this->setTranslatorOnBuilder(new ZodArrayBuilder($itemType, $this, $this->universalTypeHandler));
     }
 
@@ -70,7 +70,7 @@ class ZodBuilderFactory
      */
     public function createBooleanBuilder(): ZodBooleanBuilder
     {
-        return $this->setTranslatorOnBuilder(new ZodBooleanBuilder());
+        return $this->setTranslatorOnBuilder(new ZodBooleanBuilder);
     }
 
     /**
@@ -78,7 +78,7 @@ class ZodBuilderFactory
      */
     public function createStringBuilder(): ZodStringBuilder
     {
-        return $this->setTranslatorOnBuilder(new ZodStringBuilder());
+        return $this->setTranslatorOnBuilder(new ZodStringBuilder);
     }
 
     /**
@@ -86,7 +86,7 @@ class ZodBuilderFactory
      */
     public function createNumberBuilder(): ZodNumberBuilder
     {
-        return $this->setTranslatorOnBuilder(new ZodNumberBuilder());
+        return $this->setTranslatorOnBuilder(new ZodNumberBuilder);
     }
 
     /**
@@ -94,7 +94,7 @@ class ZodBuilderFactory
      */
     public function createEnumBuilder(): ZodEnumBuilder
     {
-        return $this->setTranslatorOnBuilder(new ZodEnumBuilder());
+        return $this->setTranslatorOnBuilder(new ZodEnumBuilder);
     }
 
     /**
@@ -102,7 +102,7 @@ class ZodBuilderFactory
      */
     public function createEmailBuilder(): ZodEmailBuilder
     {
-        return $this->setTranslatorOnBuilder(new ZodEmailBuilder());
+        return $this->setTranslatorOnBuilder(new ZodEmailBuilder);
     }
 
     /**
@@ -110,7 +110,7 @@ class ZodBuilderFactory
      */
     public function createAnyBuilder(): ZodAnyBuilder
     {
-        return $this->setTranslatorOnBuilder(new ZodAnyBuilder());
+        return $this->setTranslatorOnBuilder(new ZodAnyBuilder);
     }
 
     /**
