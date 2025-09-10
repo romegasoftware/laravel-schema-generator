@@ -3,6 +3,7 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Extractors;
 
 use Illuminate\Validation\NestedRules;
+use Illuminate\Validation\Validator;
 use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\InheritValidationFrom;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
@@ -144,11 +145,23 @@ class DataClassExtractor extends BaseExtractor
         $parentProperties = app(DataConfig::class)->getDataClass($class->getName())->properties;
         $allRules = [];
 
+        // First, detect nested Data objects that aren't handled as NestedRules
+        // These will appear as regular fields with dot notation in the flattened rules
+        $nestedDataObjects = [];
+        foreach ($parentProperties as $property) {
+            if ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataObject) {
+                // Use the mapped name if available, otherwise use the property name
+                $fieldName = $property->inputMappedName ?? $property->name;
+                $nestedDataObjects[$fieldName] = $property;
+            }
+        }
+
+        // Process rules
         foreach ($rules as $field => $rule) {
             $fullField = $prefix ? $prefix.'.'.$field : $field;
 
             if ($rule instanceof NestedRules) {
-                // This is a nested Data class or DataCollection
+                // This is a DataCollection/array with nested Data class
                 $parentProperty = substr($field, 0, -2); // Remove .* suffix
                 $property = $parentProperties->get($parentProperty);
 
@@ -160,15 +173,29 @@ class DataClassExtractor extends BaseExtractor
                     $nestedPrefix = $parentField.'.*';
                     $reflectedDataChildClass = new ReflectionClass($property->type->dataClass);
                     $nestedRules = $this->recursivelyExtractProperties($reflectedDataChildClass, $nestedPrefix);
-                    // dump($allRules, $nestedRules);
-
+                    
                     // Merge nested rules into our collection
                     $allRules = array_merge($allRules, $nestedRules);
                 }
             } else {
-                // Regular field - add it with the full path
-                // Use the parent's normalizeRule method to handle all rule types
-                $allRules[$fullField] = $this->normalizeRule($rule);
+                // Check if this field is part of a nested Data object
+                $isNestedObjectField = false;
+                foreach ($nestedDataObjects as $nestedFieldName => $nestedProperty) {
+                    if (str_starts_with($field, $nestedFieldName.'.')) {
+                        // This is a property of a nested Data object
+                        // We'll handle these separately to group them properly
+                        $isNestedObjectField = true;
+                        break;
+                    }
+                }
+                
+                if (!$isNestedObjectField) {
+                    // Regular field - add it with the full path
+                    $allRules[$fullField] = $this->normalizeRule($rule);
+                } else {
+                    // Store for later processing - we'll group these
+                    $allRules[$fullField] = $this->normalizeRule($rule);
+                }
             }
         }
 
@@ -179,7 +206,7 @@ class DataClassExtractor extends BaseExtractor
             // Merge inherited validation messages
             $this->mergeInheritedMessages($class, $validator);
 
-            return $this->resolveRulesFromValidator($validator, $allRules);
+            return $this->resolveRulesFromValidatorWithNestedObjects($validator, $allRules, $nestedDataObjects);
         }
 
         // For nested calls, just return the raw rules array
@@ -230,6 +257,123 @@ class DataClassExtractor extends BaseExtractor
                 }
             }
         }
+    }
+
+    /**
+     * Resolve rules from validator with special handling for nested Data objects
+     *
+     * @param  Validator  $validator
+     * @param  array  $rules
+     * @param  array  $nestedDataObjects  Array of nested Data object properties keyed by mapped field name
+     * @return SchemaPropertyData[]
+     */
+    protected function resolveRulesFromValidatorWithNestedObjects($validator, array $rules, array $nestedDataObjects): array
+    {
+        // First, normalize all rules to string format
+        $normalizedRules = [];
+        foreach ($rules as $field => $rule) {
+            $normalizedRules[$field] = $this->normalizeRule($rule);
+        }
+
+        // Group rules by base field for nested array handling
+        $groupedRules = $this->groupRulesByBaseField($normalizedRules);
+        
+        // Now handle nested Data objects that were flattened
+        foreach ($nestedDataObjects as $fieldName => $property) {
+            // Find all rules that belong to this nested object
+            $nestedObjectRules = [];
+            $keysToRemove = [];
+            
+            foreach ($groupedRules as $field => $fieldRules) {
+                if (str_starts_with($field, $fieldName.'.')) {
+                    // This is a property of the nested object
+                    $nestedPropertyName = substr($field, strlen($fieldName) + 1);
+                    $nestedObjectRules[$nestedPropertyName] = $fieldRules;
+                    $keysToRemove[] = $field;
+                }
+            }
+            
+            // Remove the individual nested properties from grouped rules
+            foreach ($keysToRemove as $key) {
+                unset($groupedRules[$key]);
+            }
+            
+            // Add the nested object as a single property with nested structure
+            if (!empty($nestedObjectRules)) {
+                // Mark that this is a nested object, not an array
+                $groupedRules[$fieldName]['isNestedObject'] = true;
+                $groupedRules[$fieldName]['nested'] = [];
+                foreach ($nestedObjectRules as $nestedProp => $nestedRule) {
+                    $groupedRules[$fieldName]['nested'][$nestedProp] = $nestedRule['rules'] ?? '';
+                }
+            }
+        }
+        
+        $properties = [];
+
+        foreach ($groupedRules as $baseField => $fieldRules) {
+            if (isset($fieldRules['nested'])) {
+                if (isset($fieldRules['isNestedObject']) && $fieldRules['isNestedObject']) {
+                    // This is a nested Data object - resolve as an object, not an array
+                    $resolvedValidationSet = $this->resolveNestedObjectRules(
+                        $baseField,
+                        $fieldRules,
+                        $validator
+                    );
+                } else {
+                    // This is an array field with nested rules
+                    $resolvedValidationSet = $this->resolveArrayFieldWithNestedRules(
+                        $baseField,
+                        $fieldRules,
+                        $validator
+                    );
+                }
+            } else {
+                // Regular field without nesting
+                $resolvedValidationSet = $this->validationResolver->resolve($baseField, $fieldRules['rules'], $validator);
+            }
+
+            $properties[] = new SchemaPropertyData(
+                name: $baseField,
+                validator: $validator,
+                isOptional: ! $resolvedValidationSet->isFieldRequired(),
+                validations: $resolvedValidationSet,
+            );
+        }
+
+        return $properties;
+    }
+    
+    /**
+     * Resolve nested object rules (not an array of objects, just a single nested object)
+     */
+    protected function resolveNestedObjectRules(string $baseField, array $fieldRules, $validator): \RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet
+    {
+        // Resolve base object rules if they exist
+        $baseRules = $fieldRules['rules'] ?? '';
+        $baseValidationSet = $this->validationResolver->resolve($baseField, $baseRules, $validator);
+        
+        // Create nested validation structure for the object properties
+        $objectProperties = [];
+        if (!empty($fieldRules['nested'])) {
+            foreach ($fieldRules['nested'] as $property => $rules) {
+                $propertyValidationSet = $this->validationResolver->resolve(
+                    $baseField.'.'.$property,
+                    $rules,
+                    $validator
+                );
+                $objectProperties[$property] = $propertyValidationSet;
+            }
+        }
+        
+        // Create a validation set that represents an object with nested properties
+        return \RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet::make(
+            fieldName: $baseField,
+            validations: $baseValidationSet->validations->all(),
+            inferredType: 'object', // Mark as object, not array
+            nestedValidations: null,
+            objectProperties: $objectProperties
+        );
     }
 
     /**

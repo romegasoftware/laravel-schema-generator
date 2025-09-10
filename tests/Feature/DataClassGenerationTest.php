@@ -96,8 +96,8 @@ class DataClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        // Objects with required validation are generated as z.string()
-        $this->assertStringContainsString('customer: z.string()', $schema);
+        // Objects are now properly generated as z.object()
+        $this->assertStringContainsString('customer: z.object({})', $schema);
     }
 
     #[Test]

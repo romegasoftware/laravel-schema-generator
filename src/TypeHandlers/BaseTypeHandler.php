@@ -44,12 +44,42 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
             $type === 'array' => $this->factory->createArrayBuilder()
                 ->setProperty($this->property)
                 ->createArrayBuilder(),
+            $type === 'object' => $this->createObjectBuilderFromProperty(),
             $type === 'email' => $this->factory->createEmailBuilder(),
             str_starts_with($type, 'enum:') => $this->factory->createEnumBuilder()->setValues($type),
             default => $this->factory->createStringBuilder(),
         };
 
         return $this->builder;
+    }
+    
+    /**
+     * Create an object builder from property's objectProperties
+     */
+    protected function createObjectBuilderFromProperty(): BuilderInterface
+    {
+        $objectBuilder = $this->factory->createInlineObjectBuilder();
+        
+        // Check if we have objectProperties to add
+        if ($this->property->validations?->objectProperties) {
+            foreach ($this->property->validations->objectProperties as $propName => $propValidation) {
+                // Create a new SchemaPropertyData for the nested property
+                $nestedProperty = new \RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData(
+                    name: $propName,
+                    validator: $this->property->validator,
+                    isOptional: !$propValidation->isFieldRequired(),
+                    validations: $propValidation
+                );
+                
+                // Use UniversalTypeHandler to handle the nested property
+                $handler = new \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler($this->factory);
+                $nestedBuilder = $handler->handle($nestedProperty);
+                
+                $objectBuilder->property($propName, $nestedBuilder);
+            }
+        }
+        
+        return $objectBuilder;
     }
 
     /**
