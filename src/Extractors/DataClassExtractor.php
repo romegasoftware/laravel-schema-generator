@@ -4,6 +4,7 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Extractors;
 
 use Illuminate\Validation\NestedRules;
 use ReflectionClass;
+use RomegaSoftware\LaravelSchemaGenerator\Attributes\InheritValidationFrom;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
@@ -100,6 +101,33 @@ class DataClassExtractor extends BaseExtractor
         $dataClass = $class->newInstanceWithoutConstructor();
         $rules = $dataClass->getValidationRules([]);
 
+        // Process InheritValidationFrom attributes to merge inherited rules
+        $constructor = $class->getConstructor();
+        if ($constructor) {
+            foreach ($constructor->getParameters() as $parameter) {
+                $inheritAttributes = $parameter->getAttributes(InheritValidationFrom::class);
+
+                if (! empty($inheritAttributes)) {
+                    foreach ($inheritAttributes as $inheritAttribute) {
+                        $inheritInstance = $inheritAttribute->newInstance();
+                        $sourceClass = new ReflectionClass($inheritInstance->class);
+                        $sourceProperty = $inheritInstance->property ?? $parameter->getName();
+
+                        // Get rules from the source class for the specific property
+                        $sourceDataClass = $sourceClass->newInstanceWithoutConstructor();
+                        $sourceRules = $sourceDataClass->getValidationRules([]);
+
+                        // Find the source property rules
+                        if (isset($sourceRules[$sourceProperty])) {
+                            // Override the current property's rules with inherited ones
+                            $currentPropertyName = $parameter->getName();
+                            $rules[$currentPropertyName] = $sourceRules[$sourceProperty];
+                        }
+                    }
+                }
+            }
+        }
+
         return $rules;
     }
 
@@ -148,11 +176,60 @@ class DataClassExtractor extends BaseExtractor
         if ($prefix === '') {
             $validator = $this->dataValidatorResolver->execute($class->getName(), []);
 
+            // Merge inherited validation messages
+            $this->mergeInheritedMessages($class, $validator);
+
             return $this->resolveRulesFromValidator($validator, $allRules);
         }
 
         // For nested calls, just return the raw rules array
         return $allRules;
+    }
+
+    /**
+     * Merge inherited validation messages from InheritValidationFrom attributes
+     */
+    protected function mergeInheritedMessages(ReflectionClass $class, \Illuminate\Validation\Validator $validator): void
+    {
+        $constructor = $class->getConstructor();
+        if (! $constructor) {
+            return;
+        }
+
+        foreach ($constructor->getParameters() as $parameter) {
+            $inheritAttributes = $parameter->getAttributes(InheritValidationFrom::class);
+
+            if (empty($inheritAttributes)) {
+                continue;
+            }
+
+            foreach ($inheritAttributes as $inheritAttribute) {
+                $inheritInstance = $inheritAttribute->newInstance();
+                $sourceClass = $inheritInstance->class;
+                $sourceProperty = $inheritInstance->property ?? $parameter->getName();
+
+                // Get messages from the source class
+                if (method_exists($sourceClass, 'messages')) {
+                    $sourceMessages = $sourceClass::messages();
+
+                    // Map the source property messages to the current property
+                    $currentPropertyName = $parameter->getName();
+                    foreach ($sourceMessages as $key => $message) {
+                        // Check if this message is for the source property
+                        if (str_starts_with($key, $sourceProperty.'.')) {
+                            // Replace the source property name with the current property name
+                            $ruleType = substr($key, strlen($sourceProperty) + 1);
+                            $newKey = $currentPropertyName.'.'.$ruleType;
+
+                            // Only add if not already defined in current class
+                            if (! isset($validator->customMessages[$newKey])) {
+                                $validator->customMessages[$newKey] = $message;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**
