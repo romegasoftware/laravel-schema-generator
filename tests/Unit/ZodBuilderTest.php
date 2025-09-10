@@ -150,7 +150,7 @@ class ZodBuilderTest extends TestCase
         $factory = app(\RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory::class);
         $universalTypeHandler = app(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler::class);
         $factory->setUniversalTypeHandler($universalTypeHandler);
-        
+
         $builder = $factory->createArrayBuilder('z.string()');
 
         $result = $builder->min(1, 'At least one required')

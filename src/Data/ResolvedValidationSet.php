@@ -205,8 +205,8 @@ class ResolvedValidationSet extends Data
                 $customMessages[$validation->rule] = $validation->message;
             }
         }
-        
-        if (!empty($customMessages)) {
+
+        if (! empty($customMessages)) {
             $result['customMessages'] = $customMessages;
         }
 

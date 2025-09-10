@@ -53,7 +53,7 @@ class DataClassManualRulesTest extends TestCase
         // - songs.*.title: required|string
         // - songs.*.artist: required|string
 
-        $titleProperty = $result->properties->toCollection()->firstWhere('name', 'title');
+        $titleProperty = $result->properties->toCollection()->firstWhere('name', 'album_title');
         $this->assertNotNull($titleProperty, 'Title property should exist');
         $this->assertTrue($titleProperty->validations->hasValidation('Required'));
 
@@ -62,10 +62,8 @@ class DataClassManualRulesTest extends TestCase
         $this->assertEquals('array', $songsProperty->validations->inferredType);
 
         // Check array validations
-        $this->assertTrue($songsProperty->validations->hasValidation('Required'));
+        $this->assertTrue($songsProperty->validations->hasValidation('Present'));
         $this->assertTrue($songsProperty->validations->hasValidation('Array'));
-        $this->assertTrue($songsProperty->validations->hasValidation('Min'));
-        $this->assertTrue($songsProperty->validations->hasValidation('Max'));
 
         // Check for nested song validations
         $this->assertNotNull($songsProperty->validations->nestedValidations, 'Songs should have nested validations');

@@ -210,9 +210,9 @@ class LaravelValidationResolver
             [$ruleName, $parameters] = ValidationRuleParser::parse($rule);
 
             // Check for custom message first
-            $customMessageKey = $field . '.' . lcfirst($ruleName);
+            $customMessageKey = $field.'.'.lcfirst($ruleName);
             $message = null;
-            
+
             if (isset($validator->customMessages[$customMessageKey])) {
                 $message = $validator->customMessages[$customMessageKey];
             } else {
@@ -238,6 +238,9 @@ class LaravelValidationResolver
 
             switch ($ruleName) {
                 case 'Required':
+                    $resolvedValidation->isRequired = true;
+                    break;
+                case 'Present':
                     $resolvedValidation->isRequired = true;
                     break;
                 case 'Nullable':

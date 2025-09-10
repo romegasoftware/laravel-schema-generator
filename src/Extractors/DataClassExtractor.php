@@ -127,12 +127,12 @@ class DataClassExtractor extends BaseExtractor
                 if ($property && $property->type->dataClass) {
                     // Add the array rule for the parent field
                     $parentField = $prefix ? $prefix.'.'.$parentProperty : $parentProperty;
-                    $allRules[$parentField] = 'array';
 
                     // Recursively get rules from the nested Data class
                     $nestedPrefix = $parentField.'.*';
                     $reflectedDataChildClass = new ReflectionClass($property->type->dataClass);
                     $nestedRules = $this->recursivelyExtractProperties($reflectedDataChildClass, $nestedPrefix);
+                    // dump($allRules, $nestedRules);
 
                     // Merge nested rules into our collection
                     $allRules = array_merge($allRules, $nestedRules);

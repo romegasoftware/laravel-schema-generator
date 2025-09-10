@@ -39,7 +39,7 @@ class DataClassExtractionTest extends TestCase
         // Plus nested rules from producers collection
 
         $properties = $result->properties->toCollection();
-        
+
         // Should have base properties and nested array properties
         $titleProperty = $properties->firstWhere('name', 'title');
         $this->assertNotNull($titleProperty, 'Title property should exist');
@@ -74,14 +74,13 @@ class DataClassExtractionTest extends TestCase
 
         $properties = $result->properties->toCollection();
 
-
         // Expected structure from recursive extraction:
         // AlbumData has:
         //   - album_title: string (required)
         //   - songs: DataCollection<SongData> (array)
-        // 
+        //
         // SongData has (nested under songs.*):
-        //   - title: string with Max(20) 
+        //   - title: string with Max(20)
         //   - artist: ?string but required from rules()
         //   - metaData: SongMetaData (mapped to song_meta_data_custom_name)
         //   - producers: array (DataCollection of TestUserData)
@@ -105,45 +104,45 @@ class DataClassExtractionTest extends TestCase
 
         // The nested validations should contain the song properties
         $this->assertNotNull($songsProperty->validations->nestedValidations, 'Songs should have nested validations');
-        
+
         // Check if nested validations have object properties (for the nested SongData fields)
         if ($songsProperty->validations->nestedValidations->objectProperties ?? null) {
             $nestedProps = $songsProperty->validations->nestedValidations->objectProperties;
-            
+
             // These are the direct properties of SongData
             $this->assertArrayHasKey('title', $nestedProps, 'Should have nested title property');
             $this->assertArrayHasKey('artist', $nestedProps, 'Should have nested artist property');
             $this->assertArrayHasKey('song_meta_data_custom_name', $nestedProps, 'Should have nested metaData with mapped name');
             $this->assertArrayHasKey('producers', $nestedProps, 'Should have nested producers property');
-            
+
             // Check the nested title has Max validation
             $nestedTitle = $nestedProps['title'];
             $this->assertTrue($nestedTitle->hasValidation('Max'), 'Nested title should have Max validation from attribute');
-            
+
             // Check the nested artist is required from rules()
             $nestedArtist = $nestedProps['artist'];
             $this->assertTrue($nestedArtist->hasValidation('Required'), 'Nested artist should be required from rules()');
-            
+
             // The way BaseExtractor groups rules, deeper nested properties appear as dotted keys
             // in the objectProperties (e.g., 'song_meta_data_custom_name.lengthInSeconds')
             // This is actually correct for how the validation rules work in Laravel
-            
+
             // Check for the flattened nested properties
-            $this->assertArrayHasKey('song_meta_data_custom_name.lengthInSeconds', $nestedProps, 
+            $this->assertArrayHasKey('song_meta_data_custom_name.lengthInSeconds', $nestedProps,
                 'Should have nested lengthInSeconds as dotted key');
-            $this->assertArrayHasKey('song_meta_data_custom_name.fileFormat', $nestedProps, 
+            $this->assertArrayHasKey('song_meta_data_custom_name.fileFormat', $nestedProps,
                 'Should have nested fileFormat as dotted key');
-            
+
             // Verify the deeply nested lengthInSeconds has correct validations
             $lengthProp = $nestedProps['song_meta_data_custom_name.lengthInSeconds'];
             $this->assertTrue($lengthProp->hasValidation('Required'), 'lengthInSeconds should be required');
             $this->assertTrue($lengthProp->hasValidation('Min'), 'lengthInSeconds should have min validation');
             $this->assertTrue($lengthProp->hasValidation('Max'), 'lengthInSeconds should have max validation');
-            
+
             // Verify min and max values
             $minValidation = $lengthProp->getValidation('Min');
             $this->assertEquals([10], $minValidation->parameters, 'lengthInSeconds min should be 10');
-            
+
             $maxValidation = $lengthProp->getValidation('Max');
             $this->assertEquals([300], $maxValidation->parameters, 'lengthInSeconds max should be 300');
         } else {

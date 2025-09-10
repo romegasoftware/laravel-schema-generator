@@ -1,8 +1,8 @@
 <?php
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Integration;
-use PHPUnit\Framework\Attributes\Test;
 
+use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;

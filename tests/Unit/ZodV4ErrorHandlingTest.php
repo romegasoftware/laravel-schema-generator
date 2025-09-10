@@ -26,7 +26,7 @@ class ZodV4ErrorHandlingTest extends TestCase
         $builder = new ZodStringBuilder;
         $result = $builder->required('Username is required')->trim()->build();
 
-        // The actual implementation uses refine method  
+        // The actual implementation uses refine method
         $this->assertStringContainsString('z.string().trim()', $result);
         $this->assertStringContainsString('.refine((val) => val != undefined && val != null && val != \'\', { error: \'Username is required\'})', $result);
     }
@@ -40,7 +40,7 @@ class ZodV4ErrorHandlingTest extends TestCase
             ->min(5, 'Title must be at least 5 characters')
             ->build();
 
-        // Should have required using refine method  
+        // Should have required using refine method
         $this->assertStringContainsString('z.string().trim()', $result);
         $this->assertStringContainsString('.refine((val) => val != undefined && val != null && val != \'\', { error: \'Title is required\'})', $result);
 
@@ -103,7 +103,7 @@ class ZodV4ErrorHandlingTest extends TestCase
         $builder = $this->handler->handle($propertyData);
         $result = $builder->build();
 
-        // UniversalTypeHandler doesn't add required messages automatically  
+        // UniversalTypeHandler doesn't add required messages automatically
         // It only adds .trim() for string types
         $this->assertEquals('z.string().trim()', $result);
     }

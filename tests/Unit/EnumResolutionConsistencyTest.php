@@ -1,10 +1,9 @@
 <?php
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
-use PHPUnit\Framework\Attributes\Test;
 
+use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodArrayBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEnumBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodObjectBuilder;
 
@@ -51,10 +50,10 @@ class EnumResolutionConsistencyTest extends TestCase
         // It doesn't build complex objects, just returns the reference
         $result = $objectBuilder->build();
         $this->assertEquals('TestObjectSchema', $result);
-        
+
         // Test that enums work independently
         $this->assertEquals('z.enum(["credit_card", "paypal", "bank_transfer"])', $paymentMethodEnum->build());
-        
+
         // Test another enum
         $componentEnum = new ZodEnumBuilder;
         $componentEnum->values(['base', 'tax', 'discount']);

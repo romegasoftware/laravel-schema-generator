@@ -15,13 +15,13 @@ class TestUserData extends Data
     public function __construct(
         #[Required, Email, Max(255)]
         public string $email,
-        
+
         #[Required, Min(2), Max(100)]
         public string $name,
-        
+
         #[Min(18), Max(120)]
         public ?int $age = null,
-        
+
         public bool $active = true
     ) {}
 }

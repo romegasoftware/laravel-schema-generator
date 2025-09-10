@@ -11,7 +11,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use Spatie\LaravelData\Attributes\Validation\Regex;
 use Spatie\LaravelData\Attributes\Validation\StringType;
 use Spatie\LaravelData\Data;
-use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 class DataClassExtractorTest extends TestCase
 {
@@ -91,7 +90,6 @@ class DataClassExtractorTest extends TestCase
 
 // Test classes for the extractor
 
-#[TypeScript]
 #[ValidationSchema]
 class TestPostalCodeData extends Data
 {
@@ -108,7 +106,6 @@ class TestPostalCodeData extends Data
     }
 }
 
-#[TypeScript]
 #[ValidationSchema]
 class TestInheritingData extends Data
 {
@@ -120,7 +117,6 @@ class TestInheritingData extends Data
     // This class has no messages() method, so messages should be inherited
 }
 
-#[TypeScript]
 #[ValidationSchema]
 class TestInheritingDataWithoutMessages extends Data
 {

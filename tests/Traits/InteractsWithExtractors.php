@@ -13,19 +13,19 @@ trait InteractsWithExtractors
     {
         return $this->app->make(RequestClassExtractor::class);
     }
-    
+
     protected function getDataExtractor(): DataClassExtractor
     {
         return $this->app->make(DataClassExtractor::class);
     }
-    
+
     protected function createRequestExtractorWithMocks(?LaravelValidationResolver $resolver = null): RequestClassExtractor
     {
         return new RequestClassExtractor(
             $resolver ?? $this->app->make(LaravelValidationResolver::class)
         );
     }
-    
+
     protected function createDataExtractorWithMocks(
         ?LaravelValidationResolver $resolver = null,
         ?DataValidatorResolver $dataValidator = null

@@ -1,10 +1,10 @@
 <?php
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Integration;
-use PHPUnit\Framework\Attributes\Test;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Orchestra\Testbench\Attributes\WithMigration;
+use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 

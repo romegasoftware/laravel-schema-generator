@@ -24,7 +24,7 @@ abstract class BaseExtractor implements ExtractorInterface
      *   'items.*.variations.*.type' => 'required|string',
      * ];
      *
-     * @param  array<string, mixed>  $rules Can be strings, arrays, or rule objects
+     * @param  array<string, mixed>  $rules  Can be strings, arrays, or rule objects
      * @return SchemaPropertyData[]
      */
     public function resolveRulesFromValidator(Validator $validator, array $rules): array
@@ -34,7 +34,7 @@ abstract class BaseExtractor implements ExtractorInterface
         foreach ($rules as $field => $rule) {
             $normalizedRules[$field] = $this->normalizeRule($rule);
         }
-        
+
         // Group rules by base field for nested array handling
         $groupedRules = $this->groupRulesByBaseField($normalizedRules);
         $properties = [];
@@ -66,16 +66,15 @@ abstract class BaseExtractor implements ExtractorInterface
     /**
      * Normalize a rule to string format
      * Handles strings, arrays, and Laravel rule objects
-     * 
-     * @param mixed $rule
-     * @return string
+     *
+     * @param  mixed  $rule
      */
     protected function normalizeRule($rule): string
     {
         if (is_string($rule)) {
             return $rule;
         }
-        
+
         if (is_array($rule)) {
             $normalizedRules = [];
             foreach ($rule as $singleRule) {
@@ -89,22 +88,22 @@ abstract class BaseExtractor implements ExtractorInterface
                     continue;
                 }
             }
+
             return implode('|', $normalizedRules);
         }
-        
+
         if (is_object($rule)) {
             return $this->resolveRuleObject($rule);
         }
-        
+
         // Default to empty string for unhandled types
         return '';
     }
-    
+
     /**
      * Resolve a Laravel rule object to its string representation
-     * 
-     * @param object $rule
-     * @return string
+     *
+     * @param  object  $rule
      */
     protected function resolveRuleObject($rule): string
     {
@@ -112,30 +111,29 @@ abstract class BaseExtractor implements ExtractorInterface
         if (method_exists($rule, '__toString')) {
             return (string) $rule;
         }
-        
+
         // Special handling for Enum rule which doesn't have __toString
         if ($rule instanceof \Illuminate\Validation\Rules\Enum) {
             // Try to extract the enum values from the Enum rule
             $enumValues = $this->extractEnumValues($rule);
-            if (!empty($enumValues)) {
+            if (! empty($enumValues)) {
                 // Convert to 'in' rule with the enum values
-                return 'in:' . implode(',', $enumValues);
+                return 'in:'.implode(',', $enumValues);
             }
+
             // Fallback to generic enum rule
             return 'enum';
         }
-        
+
         // For other rule objects, try to get the class name as a fallback
         $className = get_class($rule);
         $shortName = substr($className, strrpos($className, '\\') + 1);
+
         return strtolower($shortName);
     }
-    
+
     /**
      * Extract enum values from an Enum rule object
-     * 
-     * @param \Illuminate\Validation\Rules\Enum $enumRule
-     * @return array
      */
     protected function extractEnumValues(\Illuminate\Validation\Rules\Enum $enumRule): array
     {
@@ -145,23 +143,24 @@ abstract class BaseExtractor implements ExtractorInterface
             $typeProperty = $reflection->getProperty('type');
             $typeProperty->setAccessible(true);
             $enumClass = $typeProperty->getValue($enumRule);
-            
+
             // Check if there's an 'only' property for filtered values
             if ($reflection->hasProperty('only')) {
                 $onlyProperty = $reflection->getProperty('only');
                 $onlyProperty->setAccessible(true);
                 $onlyValues = $onlyProperty->getValue($enumRule);
-                
-                if (!empty($onlyValues)) {
+
+                if (! empty($onlyValues)) {
                     // Return the filtered enum values
                     $values = [];
                     foreach ($onlyValues as $enumCase) {
                         $values[] = $enumCase->value ?? $enumCase->name;
                     }
+
                     return $values;
                 }
             }
-            
+
             // Get all enum cases if it's a valid enum class
             if (enum_exists($enumClass)) {
                 $values = [];
@@ -169,12 +168,13 @@ abstract class BaseExtractor implements ExtractorInterface
                     // For backed enums, use the value; for pure enums, use the name
                     $values[] = $case->value ?? $case->name;
                 }
+
                 return $values;
             }
         } catch (\Exception $e) {
             // If we can't extract values, return empty array
         }
-        
+
         return [];
     }
 

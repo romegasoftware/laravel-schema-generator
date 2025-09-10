@@ -11,6 +11,7 @@ use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 class EnumZodGenerationTest extends TestCase
 {
     protected RequestClassExtractor $extractor;
+
     protected ValidationSchemaGenerator $generator;
 
     protected function setUp(): void
@@ -26,13 +27,13 @@ class EnumZodGenerationTest extends TestCase
         $reflection = new \ReflectionClass(TestLoginRequest::class);
         $extracted = $this->extractor->extract($reflection);
         $schema = $this->generator->generate($extracted, 'TestLoginRequestSchema');
-        
+
         // The login_as_user_type field should generate a z.enum()
-        $this->assertStringContainsString('login_as_user_type: z.enum(["Super Admin"])', $schema, 
+        $this->assertStringContainsString('login_as_user_type: z.enum(["Super Admin"])', $schema,
             'Should generate z.enum() for Enum rule with only() filter');
-        
+
         // Should be optional since there's no 'required' rule
-        $this->assertStringContainsString('.optional()', $schema, 
+        $this->assertStringContainsString('.optional()', $schema,
             'Enum field should be optional when not required');
     }
 }

@@ -1,8 +1,8 @@
 <?php
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
-use PHPUnit\Framework\Attributes\Test;
 
+use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEnumBuilder;
 
