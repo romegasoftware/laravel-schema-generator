@@ -21,7 +21,7 @@ class MessageResolutionService
      * @param  Validator  $validator  The validator instance
      * @param  array  $parameters  The rule parameters
      * @param  bool  $isNumericField  Whether the field is numeric
-     * @return string  The resolved message
+     * @return string The resolved message
      */
     public function resolveCustomMessage(
         string $field,
@@ -31,7 +31,7 @@ class MessageResolutionService
         bool $isNumericField = false
     ): string {
         // Check for custom message first
-        $customMessageKey = $field . '.' . lcfirst($ruleName);
+        $customMessageKey = $field.'.'.lcfirst($ruleName);
 
         if (isset($validator->customMessages[$customMessageKey])) {
             return $validator->customMessages[$customMessageKey];
@@ -49,7 +49,7 @@ class MessageResolutionService
      * @param  Validator  $validator  The validator instance
      * @param  array  $parameters  The rule parameters
      * @param  bool  $isNumericField  Whether the field is numeric
-     * @return string  The default message
+     * @return string The default message
      */
     private function getDefaultMessage(
         string $field,
@@ -95,7 +95,7 @@ class MessageResolutionService
     public function mergeNestedMessages(array $nestedMessages, Validator $validator): void
     {
         foreach ($nestedMessages as $key => $message) {
-            if (!isset($validator->customMessages[$key])) {
+            if (! isset($validator->customMessages[$key])) {
                 $validator->customMessages[$key] = $message;
             }
         }
@@ -118,9 +118,9 @@ class MessageResolutionService
             $remainingKey = isset($parts[1]) ? ltrim($parts[1], '.') : '';
 
             // Ensure the base array exists
-            if (!isset($array[$baseKey])) {
+            if (! isset($array[$baseKey])) {
                 $array[$baseKey] = [[]]; // Create array with one empty item
-            } elseif (!is_array($array[$baseKey])) {
+            } elseif (! is_array($array[$baseKey])) {
                 $array[$baseKey] = [[]];
             } elseif (empty($array[$baseKey])) {
                 $array[$baseKey] = [[]];
@@ -142,7 +142,7 @@ class MessageResolutionService
         while (count($keys) > 1) {
             $key = array_shift($keys);
 
-            if (!isset($array[$key]) || !is_array($array[$key])) {
+            if (! isset($array[$key]) || ! is_array($array[$key])) {
                 $array[$key] = [];
             }
 

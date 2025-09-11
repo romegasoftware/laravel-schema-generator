@@ -55,7 +55,6 @@ class RequestClassExtractor extends BaseExtractor
         return 10; // Lower priority than DataClassExtractor
     }
 
-
     /**
      * Transform Laravel validation rules to properties array
      *

@@ -25,8 +25,7 @@ class FieldMetadata
 
         /** Child field metadata for nested structures */
         public array $children = [],
-    ) {
-    }
+    ) {}
 
     /**
      * Check if this field is a nested Data object (not a collection)
@@ -65,6 +64,6 @@ class FieldMetadata
      */
     public function hasChildren(): bool
     {
-        return !empty($this->children);
+        return ! empty($this->children);
     }
 }

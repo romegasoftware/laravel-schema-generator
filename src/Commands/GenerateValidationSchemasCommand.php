@@ -31,9 +31,9 @@ class GenerateValidationSchemasCommand extends Command
     ) {
         parent::__construct();
 
-        $this->packageDetector = $packageDetector ?? new PackageDetector();
+        $this->packageDetector = $packageDetector ?? new PackageDetector;
         $this->extractorManager = $extractorManager ?? new ExtractorManager($this->packageDetector);
-        $this->typeHandlerRegistry = $typeHandlerRegistry ?? new TypeHandlerRegistry();
+        $this->typeHandlerRegistry = $typeHandlerRegistry ?? new TypeHandlerRegistry;
         $this->generator = $generator ?? new ValidationSchemaGenerator($this->typeHandlerRegistry);
         $this->writer = $writer ?? config('laravel-schema-generator.writer', ZodTypeScriptWriter::class)::make();
     }

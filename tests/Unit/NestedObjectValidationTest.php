@@ -11,6 +11,7 @@ use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 class NestedObjectValidationTest extends TestCase
 {
     protected DataClassExtractor $extractor;
+
     protected ValidationSchemaGenerator $generator;
 
     protected function setUp(): void
@@ -28,15 +29,15 @@ class NestedObjectValidationTest extends TestCase
 
         // The song_meta_data_custom_name should be an object, not individual properties
         $this->assertStringContainsString('song_meta_data_custom_name: z.object({', $schema);
-        
+
         // The nested properties should be inside the object
         $this->assertStringContainsString('lengthInSeconds: z.number()', $schema);
         $this->assertStringContainsString('fileFormat: z.enum(["MP3", "WAV"])', $schema);
-        
+
         // These should NOT exist as separate top-level properties
         $this->assertStringNotContainsString('song_meta_data_custom_name.lengthInSeconds:', $schema);
         $this->assertStringNotContainsString('song_meta_data_custom_name.fileFormat:', $schema);
-        
+
         // The producers array should contain proper TestUserData objects
         $this->assertStringContainsString('producers: z.array(z.object({', $schema);
         $this->assertStringContainsString('email: z.email(', $schema);
@@ -54,7 +55,7 @@ class NestedObjectValidationTest extends TestCase
         $this->assertStringContainsString('Song length must be less than 5 minutes', $schema);
     }
 
-    #[Test] 
+    #[Test]
     public function it_maintains_proper_structure_for_mapped_names(): void
     {
         $extracted = $this->extractor->extract(new \ReflectionClass(SongData::class));
@@ -62,7 +63,7 @@ class NestedObjectValidationTest extends TestCase
 
         // The mapped name should be used as the property key
         $this->assertStringContainsString('song_meta_data_custom_name:', $schema);
-        
+
         // But the original property name should not appear
         $this->assertStringNotContainsString('metaData:', $schema);
     }

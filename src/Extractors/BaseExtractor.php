@@ -17,10 +17,9 @@ abstract class BaseExtractor implements ExtractorInterface
 
     public function __construct(
         protected LaravelValidationResolver $validationResolver,
-        protected ValidationRuleFactory $ruleFactory = new ValidationRuleFactory(),
-        protected NestedRuleGrouper $ruleGrouper = new NestedRuleGrouper()
-    ) {
-    }
+        protected ValidationRuleFactory $ruleFactory = new ValidationRuleFactory,
+        protected NestedRuleGrouper $ruleGrouper = new NestedRuleGrouper
+    ) {}
 
     /**
      * ex $rules = [

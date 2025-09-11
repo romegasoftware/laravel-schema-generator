@@ -23,7 +23,6 @@
   },
   "require-dev": {
     "spatie/laravel-data": "^3.0|^4.0",
-    "friendsofphp/php-cs-fixer": "^3.87",
     "orchestra/testbench": "^7.0|^8.0|^9.0",
     "phpunit/phpunit": "^9.5|^10.0|^11.0",
     "larastan/larastan": "^3.6",
@@ -53,7 +52,7 @@
   "scripts": {
     "test": "vendor/bin/phpunit",
     "test-coverage": "vendor/bin/phpunit --coverage-html coverage",
-    "format": "vendor/bin/php-cs-fixer fix src --allow-risky=yes",
+    "format": "vendor/bin/pint --parallel --preset laravel",
     "analyse": "vendor/bin/phpstan analyse --memory-limit=2G"
   },
   "config": {

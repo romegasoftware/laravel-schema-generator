@@ -22,8 +22,7 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
 
     public function __construct(
         protected ZodBuilderFactory $factory
-    ) {
-    }
+    ) {}
 
     public function setProperty(SchemaPropertyData $schemaProperty): self
     {

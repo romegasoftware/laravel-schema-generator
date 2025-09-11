@@ -16,9 +16,7 @@ abstract class BaseGenerator implements SchemaGeneratorInterface
 
     public array $schemaDependencies = [];
 
-    public function __construct(protected TypeHandlerRegistry $typeHandlerRegistry)
-    {
-    }
+    public function __construct(protected TypeHandlerRegistry $typeHandlerRegistry) {}
 
     /**
      * Check if we need to import App types

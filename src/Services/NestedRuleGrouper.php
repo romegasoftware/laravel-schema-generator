@@ -111,12 +111,13 @@ class NestedRuleGrouper
         $baseField = $parts[0];
         $remainingPath = $parts[1] ?? '';
 
-        if ($remainingPath && !str_contains($remainingPath, '.*')) {
+        if ($remainingPath && ! str_contains($remainingPath, '.*')) {
             // Check if this path corresponds to a nested object
-            $nestedObjectPath = $baseField . '.*.' . explode('.', ltrim($remainingPath, '.'))[0];
+            $nestedObjectPath = $baseField.'.*.'.explode('.', ltrim($remainingPath, '.'))[0];
             if (isset($nestedObjectFields[$nestedObjectPath])) {
                 // This is part of a nested object, handle it specially
                 $this->addNestedObjectInArray($grouped, $field, $ruleSet, $allRules, $nestedObjectFields);
+
                 return;
             }
         }
@@ -130,7 +131,7 @@ class NestedRuleGrouper
      */
     private function processRegularField(array &$grouped, string $field, string $ruleSet): void
     {
-        if (!isset($grouped[$field])) {
+        if (! isset($grouped[$field])) {
             $grouped[$field] = [
                 'rules' => $ruleSet,
                 'nested' => [],
@@ -158,19 +159,19 @@ class NestedRuleGrouper
             $propertyPath = $matches[3] ?? null;
 
             // Initialize structure
-            if (!isset($grouped[$baseArray])) {
+            if (! isset($grouped[$baseArray])) {
                 $grouped[$baseArray] = [
                     'rules' => null,
                     'nested' => [],
                 ];
             }
 
-            $nestedObjectPath = $baseArray . '.*.' . $objectField;
+            $nestedObjectPath = $baseArray.'.*.'.$objectField;
             if (isset($nestedObjectFields[$nestedObjectPath])) {
                 // This is a nested object
-                if (!isset($grouped[$baseArray]['nested'][$objectField])) {
+                if (! isset($grouped[$baseArray]['nested'][$objectField])) {
                     $grouped[$baseArray]['nested'][$objectField] = [
-                        'rules' => $allRules[$nestedObjectPath . '.__baseRules'] ?? 'object',
+                        'rules' => $allRules[$nestedObjectPath.'.__baseRules'] ?? 'object',
                         'nested' => [],
                         'isNestedObject' => true,
                     ];
@@ -179,7 +180,7 @@ class NestedRuleGrouper
                 if ($propertyPath) {
                     // Add the property to the nested object
                     $grouped[$baseArray]['nested'][$objectField]['nested'][$propertyPath] =
-                        $allRules[$nestedObjectPath . '.__nested.' . $propertyPath] ?? $ruleSet;
+                        $allRules[$nestedObjectPath.'.__nested.'.$propertyPath] ?? $ruleSet;
                 }
             } else {
                 // Regular nested field
@@ -200,7 +201,7 @@ class NestedRuleGrouper
         $remainingPath = $parts[1] ?? '';
 
         // Initialize base field if not exists
-        if (!isset($grouped[$baseField])) {
+        if (! isset($grouped[$baseField])) {
             $grouped[$baseField] = [
                 'rules' => null,
                 'nested' => [],
@@ -220,7 +221,7 @@ class NestedRuleGrouper
             } else {
                 // No more wildcards - this is a simple nested property
                 // But we need to make sure we don't overwrite existing structured data
-                if (!isset($grouped[$baseField]['nested'][$remainingPath])) {
+                if (! isset($grouped[$baseField]['nested'][$remainingPath])) {
                     $grouped[$baseField]['nested'][$remainingPath] = $ruleSet;
                 } elseif (is_array($grouped[$baseField]['nested'][$remainingPath]) &&
                          isset($grouped[$baseField]['nested'][$remainingPath]['rules'])) {
@@ -246,7 +247,7 @@ class NestedRuleGrouper
             $remainingPath = $parts[1] ?? '';
 
             // Initialize or convert nested field structure
-            if (!isset($nested[$currentField])) {
+            if (! isset($nested[$currentField])) {
                 $nested[$currentField] = [
                     'rules' => null,
                     'nested' => [],
@@ -290,7 +291,7 @@ class NestedRuleGrouper
             if (isset($fieldData['nested']) && empty($fieldData['nested'])) {
                 // Remove empty nested array
                 unset($fieldData['nested']);
-            } elseif (isset($fieldData['nested']) && !empty($fieldData['nested'])) {
+            } elseif (isset($fieldData['nested']) && ! empty($fieldData['nested'])) {
                 // Mark as having nested rules for further processing
                 $fieldData['hasNestedRules'] = true;
             }
