@@ -58,6 +58,11 @@ class ValidationSchemaGenerator extends BaseGenerator
         $zodProperties = [];
 
         foreach ($properties as $property) {
+            // Skip properties with dots in their names for cleaner TypeScript schemas
+            if (str_contains($property->name, '.')) {
+                continue;
+            }
+            
             $zodType = $this->buildZodType($property);
             $zodProperties[] = sprintf('    %s: %s', $property->name, $zodType);
         }

@@ -109,6 +109,9 @@ class DataClassExtractionTest extends TestCase
         if ($songsProperty->validations->nestedValidations->objectProperties ?? null) {
             $nestedProps = $songsProperty->validations->nestedValidations->objectProperties;
 
+            // Debug what we actually have (comment out for clean test run)
+            // echo "Available nested properties: " . implode(', ', array_keys($nestedProps)) . "\n";
+
             // These are the direct properties of SongData
             $this->assertArrayHasKey('title', $nestedProps, 'Should have nested title property');
             $this->assertArrayHasKey('artist', $nestedProps, 'Should have nested artist property');
@@ -127,14 +130,24 @@ class DataClassExtractionTest extends TestCase
             // in the objectProperties (e.g., 'song_meta_data_custom_name.lengthInSeconds')
             // This is actually correct for how the validation rules work in Laravel
 
-            // Check for the flattened nested properties
-            $this->assertArrayHasKey('song_meta_data_custom_name.lengthInSeconds', $nestedProps,
-                'Should have nested lengthInSeconds as dotted key');
-            $this->assertArrayHasKey('song_meta_data_custom_name.fileFormat', $nestedProps,
-                'Should have nested fileFormat as dotted key');
+            // Check if we can access nested properties through the nested object structure
+            $nestedObjectProps = $nestedProps['song_meta_data_custom_name'];
+            $this->assertNotNull($nestedObjectProps, 'song_meta_data_custom_name should exist');
+            
+            // The nested object is a ResolvedValidationSet, so access objectProperties directly
+            if ($nestedObjectProps->objectProperties) {
+                $songMetaProps = $nestedObjectProps->objectProperties;
+                
+                $this->assertArrayHasKey('lengthInSeconds', $songMetaProps, 'Should have lengthInSeconds in nested object');
+                $this->assertArrayHasKey('fileFormat', $songMetaProps, 'Should have fileFormat in nested object');
+                
+                // Use nested properties instead of flattened ones
+                $lengthProp = $songMetaProps['lengthInSeconds'];
+            } else {
+                $this->fail('objectProperties should not be empty for nested object');
+            }
 
             // Verify the deeply nested lengthInSeconds has correct validations
-            $lengthProp = $nestedProps['song_meta_data_custom_name.lengthInSeconds'];
             $this->assertTrue($lengthProp->hasValidation('Required'), 'lengthInSeconds should be required');
             $this->assertTrue($lengthProp->hasValidation('Min'), 'lengthInSeconds should have min validation');
             $this->assertTrue($lengthProp->hasValidation('Max'), 'lengthInSeconds should have max validation');

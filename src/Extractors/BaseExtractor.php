@@ -214,10 +214,41 @@ abstract class BaseExtractor implements ExtractorInterface
     public function groupRulesByBaseField(array $rules): array
     {
         $grouped = [];
+        
+        // First pass: handle special nested object markers
+        $nestedObjectFields = [];
+        foreach ($rules as $field => $ruleSet) {
+            if (str_ends_with($field, '.__isNestedObject') && $ruleSet === 'true') {
+                $baseField = substr($field, 0, -17); // Remove .__isNestedObject
+                $nestedObjectFields[$baseField] = true;
+            }
+        }
 
         foreach ($rules as $field => $ruleSet) {
+            // Skip special marker fields
+            if (str_contains($field, '.__isNestedObject') || 
+                str_contains($field, '.__baseRules') || 
+                str_contains($field, '.__nested.')) {
+                continue;
+            }
+            
             if (str_contains($field, '.*')) {
-                // This is a wildcard field - handle multi-level nesting recursively
+                // Check if this is a nested object within an array
+                $parts = explode('.*', $field, 2);
+                $baseField = $parts[0];
+                $remainingPath = $parts[1] ?? '';
+                
+                if ($remainingPath && !str_contains($remainingPath, '.*')) {
+                    // Check if this path corresponds to a nested object
+                    $nestedObjectPath = $baseField . '.*.' . explode('.', ltrim($remainingPath, '.'))[0];
+                    if (isset($nestedObjectFields[$nestedObjectPath])) {
+                        // This is part of a nested object, handle it specially
+                        $this->addNestedObjectInArray($grouped, $field, $ruleSet, $rules, $nestedObjectFields);
+                        continue;
+                    }
+                }
+                
+                // Regular wildcard field
                 $this->addNestedRule($grouped, $field, $ruleSet);
             } else {
                 // Regular field or base array field
@@ -237,6 +268,48 @@ abstract class BaseExtractor implements ExtractorInterface
         $this->cleanupGroupedRules($grouped);
 
         return $grouped;
+    }
+    
+    /**
+     * Add a nested object that's within an array context
+     */
+    protected function addNestedObjectInArray(array &$grouped, string $field, string $ruleSet, array $allRules, array $nestedObjectFields): void
+    {
+        // Extract the parts: baseArray.*.objectField.property
+        if (preg_match('/^(.+?)\.\*\.([^.]+)(?:\.(.+))?$/', $field, $matches)) {
+            $baseArray = $matches[1];
+            $objectField = $matches[2];
+            $propertyPath = $matches[3] ?? null;
+            
+            // Initialize structure
+            if (!isset($grouped[$baseArray])) {
+                $grouped[$baseArray] = [
+                    'rules' => null,
+                    'nested' => [],
+                ];
+            }
+            
+            $nestedObjectPath = $baseArray . '.*.' . $objectField;
+            if (isset($nestedObjectFields[$nestedObjectPath])) {
+                // This is a nested object
+                if (!isset($grouped[$baseArray]['nested'][$objectField])) {
+                    $grouped[$baseArray]['nested'][$objectField] = [
+                        'rules' => $allRules[$nestedObjectPath . '.__baseRules'] ?? 'object',
+                        'nested' => [],
+                        'isNestedObject' => true,
+                    ];
+                }
+                
+                if ($propertyPath) {
+                    // Add the property to the nested object
+                    $grouped[$baseArray]['nested'][$objectField]['nested'][$propertyPath] = 
+                        $allRules[$nestedObjectPath . '.__nested.' . $propertyPath] ?? $ruleSet;
+                }
+            } else {
+                // Regular nested field
+                $this->addNestedRule($grouped, $field, $ruleSet);
+            }
+        }
     }
 
     /**
@@ -410,21 +483,51 @@ abstract class BaseExtractor implements ExtractorInterface
 
         foreach ($nestedRules as $property => $rules) {
             if (is_array($rules) && isset($rules['nested'])) {
-                // This property is itself a nested array structure
-                $nestedValidationSet = $this->resolveArrayFieldWithNestedRules(
-                    $baseField.'.*.'.$property,
-                    $rules,
-                    $validator
-                );
-                $objectProperties[$property] = $nestedValidationSet;
+                // Check if this is a nested object (not an array)
+                if (isset($rules['isNestedObject']) && $rules['isNestedObject']) {
+                    // This is a nested object within the array item
+                    $nestedObjectValidationSet = $this->createNestedObjectValidation(
+                        $baseField.'.*.'.$property,
+                        $rules['nested'],
+                        $validator
+                    );
+                    
+                    // Strip the .* suffix from the property key for cleaner names in TypeScript
+                    $cleanPropertyKey = str_replace('.*', '', $property);
+                    
+                    // Override the inferred type to be 'object' instead of array
+                    $objectProperties[$cleanPropertyKey] = ResolvedValidationSet::make(
+                        fieldName: $baseField.'.*.'.$property,
+                        validations: $nestedObjectValidationSet->validations->all(),
+                        inferredType: 'object',
+                        nestedValidations: null,
+                        objectProperties: $nestedObjectValidationSet->objectProperties
+                    );
+                } else {
+                    // This property is itself a nested array structure
+                    $nestedValidationSet = $this->resolveArrayFieldWithNestedRules(
+                        $baseField.'.*.'.$property,
+                        $rules,
+                        $validator
+                    );
+                    
+                    // Strip the .* suffix from the property key for cleaner names in TypeScript
+                    $cleanPropertyKey = str_replace('.*', '', $property);
+                    $objectProperties[$cleanPropertyKey] = $nestedValidationSet;
+                }
             } else {
-                // Simple property
+                // Simple property - ensure rules is a string
+                $rulesString = is_array($rules) ? (isset($rules['rules']) ? $rules['rules'] : '') : $rules;
+                
+                // Strip the .* suffix from the property key for cleaner names in TypeScript
+                $cleanPropertyKey = str_replace('.*', '', $property);
+                
                 $propertyValidationSet = $this->validationResolver->resolve(
                     $baseField.'.*.'.$property,
-                    $rules,
+                    $rulesString,
                     $validator
                 );
-                $objectProperties[$property] = $propertyValidationSet;
+                $objectProperties[$cleanPropertyKey] = $propertyValidationSet;
             }
         }
 

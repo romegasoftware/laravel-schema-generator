@@ -63,6 +63,12 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
         // Check if we have objectProperties to add
         if ($this->property->validations?->objectProperties) {
             foreach ($this->property->validations->objectProperties as $propName => $propValidation) {
+                // Skip flattened properties with dots in their names for TypeScript generation
+                // These are used for internal validation structure but shouldn't appear in the schema
+                if (str_contains($propName, '.')) {
+                    continue;
+                }
+                
                 // Create a new SchemaPropertyData for the nested property
                 $nestedProperty = new \RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData(
                     name: $propName,

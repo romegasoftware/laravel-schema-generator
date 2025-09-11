@@ -71,10 +71,6 @@ class RequestClassExtractor extends BaseExtractor
         // Generate default name
         $className = $class->getShortName();
 
-        if (str_ends_with($className, 'Request')) {
-            return substr($className, 0, -7).'Schema';
-        }
-
         return $className.'Schema';
     }
 
