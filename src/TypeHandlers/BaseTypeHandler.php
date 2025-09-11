@@ -43,7 +43,7 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
             $type === 'number' => $this->factory->createNumberBuilder(),
             $type === 'array' => $this->factory->createArrayBuilder()
                 ->setProperty($this->property)
-                ->createArrayBuilder(),
+                ->setup(),
             $type === 'object' => $this->createObjectBuilderFromProperty(),
             $type === 'email' => $this->factory->createEmailBuilder(),
             str_starts_with($type, 'enum:') => $this->factory->createEnumBuilder()->setValues($type),

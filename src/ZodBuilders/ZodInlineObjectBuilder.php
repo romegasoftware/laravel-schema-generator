@@ -2,6 +2,7 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
 
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
 
@@ -20,7 +21,7 @@ class ZodInlineObjectBuilder extends ZodBuilder
     /**
      * Add a property to the object
      */
-    public function property(string $name, ZodBuilder $builder): self
+    public function property(string $name, BuilderInterface $builder): self
     {
         $this->properties[$name] = $builder;
 
@@ -29,14 +30,12 @@ class ZodInlineObjectBuilder extends ZodBuilder
 
     /**
      * Create an object builder from resolved validation sets for object properties
-     *
-     * @param  array<string, ResolvedValidationSet>  $objectProperties
      */
     public function createObjectBuilderFromProperty(): ZodInlineObjectBuilder
     {
         $objectBuilder = new ZodInlineObjectBuilder;
 
-        foreach ($this->property as $propertyName => $validationSet) {
+        foreach ($this->property->toArray() as $propertyName => $validationSet) {
             /** @var ResolvedValidationSet $validationSet */
             if ($this->universalTypeHandler === null) {
                 throw new \RuntimeException('UniversalTypeHandler must be injected to create object properties');
@@ -46,7 +45,7 @@ class ZodInlineObjectBuilder extends ZodBuilder
             $universalTypeHandler->builder->setFieldName($validationSet->fieldName);
 
             // Apply validations to the property builder
-            $universalTypeHandler->applyValidations($validationSet);
+            $universalTypeHandler->applyValidations();
 
             // Handle optional properties
             if (! $validationSet->isFieldRequired()) {

@@ -18,7 +18,6 @@ class PackageDetector
     public function hasTypeScriptTransformer(): bool
     {
         /** @disregard **/
-        // @phpstan-ignore-next-line
         return class_exists(\Spatie\TypeScriptTransformer\TypeScriptTransformer::class);
     }
 
@@ -28,8 +27,7 @@ class PackageDetector
     public function hasLaravelTypeScriptTransformer(): bool
     {
         /** @disregard **/
-        // @phpstan-ignore-next-line
-        return class_exists(\Spatie\LaravelTypeScriptTransformer\Commands\TypeScriptTransformCommand::class); // @phpstan-ignore-line
+        return class_exists(\Spatie\LaravelTypeScriptTransformer\Commands\TypeScriptTransformCommand::class);
     }
 
     /**

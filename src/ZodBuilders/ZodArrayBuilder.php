@@ -2,6 +2,7 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
 
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory;
@@ -11,7 +12,7 @@ class ZodArrayBuilder extends ZodBuilder
 {
     protected string $itemType;
 
-    protected ?ZodBuilder $itemBuilder = null;
+    protected ?BuilderInterface $itemBuilder = null;
 
     public function __construct(
         string $itemType,
@@ -21,7 +22,11 @@ class ZodArrayBuilder extends ZodBuilder
         $this->itemType = $itemType;
     }
 
-    public function createArrayBuilder(): ZodArrayBuilder
+    /**
+     * Logic to setup the builder. (i.e.: The nesting logic for an array)
+     */
+    #[\Override]
+    public function setup(): self
     {
         $arrayBuilder = $this->factory->createArrayBuilder();
         $nestedValidations = $this->property->validations->getNestedValidations();
@@ -114,7 +119,7 @@ class ZodArrayBuilder extends ZodBuilder
     /**
      * Set the array item using a ZodBuilder
      */
-    public function ofBuilder(ZodBuilder $itemBuilder): self
+    public function ofBuilder(BuilderInterface $itemBuilder): self
     {
         $this->itemBuilder = $itemBuilder;
         $this->itemType = 'z.any()'; // Fallback, though builder takes precedence
@@ -130,7 +135,9 @@ class ZodArrayBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($message);
         $rule = ".min({$length}{$messageStr})";
 
-        return $this->replaceRule('min', $rule);
+        $this->replaceRule('min', $rule);
+
+        return $this;
     }
 
     /**
@@ -141,7 +148,9 @@ class ZodArrayBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($message);
         $rule = ".max({$length}{$messageStr})";
 
-        return $this->replaceRule('max', $rule);
+        $this->replaceRule('max', $rule);
+
+        return $this;
     }
 
     /**
@@ -152,7 +161,9 @@ class ZodArrayBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($message);
         $rule = ".length({$length}{$messageStr})";
 
-        return $this->replaceRule('length', $rule);
+        $this->replaceRule('length', $rule);
+
+        return $this;
     }
 
     /**
@@ -160,7 +171,9 @@ class ZodArrayBuilder extends ZodBuilder
      */
     public function nonEmpty(?string $message = null): self
     {
-        return $this->min(1, $message);
+        $this->min(1, $message);
+
+        return $this;
     }
 
     /**
@@ -169,12 +182,13 @@ class ZodArrayBuilder extends ZodBuilder
     public function getItemType(): string
     {
         return $this->itemType;
+
     }
 
     /**
      * Get the current item builder if set
      */
-    public function getItemBuilder(): ?ZodBuilder
+    public function getItemBuilder(): ?BuilderInterface
     {
         return $this->itemBuilder;
     }

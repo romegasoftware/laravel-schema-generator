@@ -64,7 +64,9 @@ class ZodNumberBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($message);
         $rule = ".min({$value}{$messageStr})";
 
-        return $this->replaceRule('min', $rule);
+        $this->replaceRule('min', $rule);
+
+        return $this;
     }
 
     /**
@@ -75,7 +77,9 @@ class ZodNumberBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($message);
         $rule = ".max({$value}{$messageStr})";
 
-        return $this->replaceRule('max', $rule);
+        $this->replaceRule('max', $rule);
+
+        return $this;
     }
 
     /**
@@ -86,7 +90,9 @@ class ZodNumberBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($message);
         $rule = ".gt({$value}{$messageStr})";
 
-        return $this->replaceRule('gt', $rule);
+        $this->replaceRule('gt', $rule);
+
+        return $this;
     }
 
     /**
@@ -97,7 +103,9 @@ class ZodNumberBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($message);
         $rule = ".gte({$value}{$messageStr})";
 
-        return $this->replaceRule('gte', $rule);
+        $this->replaceRule('gte', $rule);
+
+        return $this;
     }
 
     /**
@@ -108,7 +116,9 @@ class ZodNumberBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($message);
         $rule = ".lt({$value}{$messageStr})";
 
-        return $this->replaceRule('lt', $rule);
+        $this->replaceRule('lt', $rule);
+
+        return $this;
     }
 
     /**
@@ -119,7 +129,9 @@ class ZodNumberBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($message);
         $rule = ".lte({$value}{$messageStr})";
 
-        return $this->replaceRule('lte', $rule);
+        $this->replaceRule('lte', $rule);
+
+        return $this;
     }
 
     /**
@@ -130,7 +142,9 @@ class ZodNumberBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($message);
         $rule = ".multipleOf({$value}{$messageStr})";
 
-        return $this->replaceRule('multipleOf', $rule);
+        $this->replaceRule('multipleOf', $rule);
+
+        return $this;
     }
 
     /**
@@ -146,7 +160,9 @@ class ZodNumberBuilder extends ZodBuilder
             $rule = ".positive('{$escapedMessage}')";
         }
 
-        return $this->replaceRule('positive', $rule);
+        $this->replaceRule('positive', $rule);
+
+        return $this;
     }
 
     /**
@@ -162,7 +178,9 @@ class ZodNumberBuilder extends ZodBuilder
             $rule = ".nonnegative('{$escapedMessage}')";
         }
 
-        return $this->replaceRule('nonnegative', $rule);
+        $this->replaceRule('nonnegative', $rule);
+
+        return $this;
     }
 
     /**
@@ -178,7 +196,9 @@ class ZodNumberBuilder extends ZodBuilder
             $rule = ".negative('{$escapedMessage}')";
         }
 
-        return $this->replaceRule('negative', $rule);
+        $this->replaceRule('negative', $rule);
+
+        return $this;
     }
 
     /**
@@ -194,7 +214,9 @@ class ZodNumberBuilder extends ZodBuilder
             $rule = ".nonpositive('{$escapedMessage}')";
         }
 
-        return $this->replaceRule('nonpositive', $rule);
+        $this->replaceRule('nonpositive', $rule);
+
+        return $this;
     }
 
     /**
@@ -210,7 +232,9 @@ class ZodNumberBuilder extends ZodBuilder
             $rule = ".finite('{$escapedMessage}')";
         }
 
-        return $this->replaceRule('finite', $rule);
+        $this->replaceRule('finite', $rule);
+
+        return $this;
     }
 
     /**
@@ -240,7 +264,9 @@ class ZodNumberBuilder extends ZodBuilder
                 "}, { message: '{$escapedMessage}' })";
         }
 
-        return $this->addRule($rule);
+        $this->addRule($rule);
+
+        return $this;
     }
 
     /**
@@ -257,7 +283,9 @@ class ZodNumberBuilder extends ZodBuilder
             "return str.length === {$value}; ".
             "}, { message: '{$escapedMessage}' })";
 
-        return $this->addRule($rule);
+        $this->addRule($rule);
+
+        return $this;
     }
 
     /**
@@ -275,7 +303,9 @@ class ZodNumberBuilder extends ZodBuilder
             "return len >= {$min} && len <= {$max}; ".
             "}, { message: '{$escapedMessage}' })";
 
-        return $this->addRule($rule);
+        $this->addRule($rule);
+
+        return $this;
     }
 
     /**
@@ -292,7 +322,9 @@ class ZodNumberBuilder extends ZodBuilder
             "return str.length <= {$value}; ".
             "}, { message: '{$escapedMessage}' })";
 
-        return $this->addRule($rule);
+        $this->addRule($rule);
+
+        return $this;
     }
 
     /**
@@ -309,7 +341,9 @@ class ZodNumberBuilder extends ZodBuilder
             "return str.length >= {$value}; ".
             "}, { message: '{$escapedMessage}' })";
 
-        return $this->addRule($rule);
+        $this->addRule($rule);
+
+        return $this;
     }
 
     /**

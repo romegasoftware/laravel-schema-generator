@@ -37,7 +37,7 @@ abstract class BaseGenerator implements SchemaGeneratorInterface
 
             // Check for enum types
             foreach ($schema->properties ?? [] as $property) {
-                $type = $property->validations?->inferredType ?? 'string';
+                $type = $property->validations->inferredType ?? 'string';
                 if (str_starts_with($type, 'enum:')) {
                     return true;
                 }

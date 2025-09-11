@@ -34,6 +34,15 @@ abstract class ZodBuilder implements BuilderInterface
         return $this;
     }
 
+    /**
+     * Logic to setup the builder. By default we just return $this.
+     * Extending classes can override this.
+     */
+    public function setup(): self
+    {
+        return $this;
+    }
+
     public function setProperty(SchemaPropertyData $schemaProperty): self
     {
         $this->property = $schemaProperty;

@@ -79,7 +79,7 @@ class MessageResolutionService
         );
 
         // Restore original data if we modified it
-        if ($isNumericField && in_array(strtolower($ruleName), ['min', 'max'])) {
+        if ($isNumericField && in_array(strtolower($ruleName), ['min', 'max']) && isset($originalData)) {
             $validator->setData($originalData);
         }
 

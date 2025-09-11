@@ -2,6 +2,7 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Contracts;
 
+use Illuminate\Contracts\Translation\Translator;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 
 interface BuilderInterface
@@ -32,4 +33,14 @@ interface BuilderInterface
      * Escape string for JavaScript
      */
     public function escapeForJS(string $str): string;
+
+    /**
+     * Set the translator instance
+     */
+    public function setTranslator(?Translator $translator): self;
+
+    /**
+     * Logic to setup the builder. (i.e.: The nesting logic for an array)
+     */
+    public function setup(): self;
 }

@@ -40,7 +40,7 @@ class FieldMetadataFactory
             } elseif ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataArray) {
                 $fieldType = FieldType::DataCollection;
                 $dataClass = $property->type->dataClass;
-            } elseif ($property->type->type === 'array') {
+            } elseif ($property->type->type == 'array') {
                 $fieldType = FieldType::Array;
             }
 

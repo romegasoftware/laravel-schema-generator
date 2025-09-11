@@ -263,156 +263,6 @@ class DataClassExtractor extends BaseExtractor
     }
 
     /**
-     * Extract properties from the Data class constructor
-     *
-     * @param  ReflectionClass  $class  The Data class to extract from
-     * @param  string  $prefix  The field prefix for nested properties
-     * @return array<string, string>|SchemaPropertyData[] Returns flat array of rules when nested, SchemaPropertyData[] at root
-     */
-    protected function recursivelyExtractProperties(ReflectionClass $class, string $prefix = ''): array
-    {
-        $rules = collect($this->extractRules($class));
-        $parentProperties = app(DataConfig::class)->getDataClass($class->getName())->properties;
-        $allRules = [];
-
-        // Detect nested Data objects that aren't handled as NestedRules
-        // These will appear as regular fields with dot notation in the flattened rules
-        $nestedDataObjects = [];
-        foreach ($parentProperties as $property) {
-            if ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataObject) {
-                // Use the mapped name if available, otherwise use the property name
-                $fieldName = $property->inputMappedName ?? $property->name;
-                $nestedDataObjects[$fieldName] = $property;
-            }
-        }
-
-        // If we're in an array context (has .* prefix) and have nested Data objects,
-        // we need to handle them specially to avoid flattening
-        if (str_contains($prefix, '.*') && ! empty($nestedDataObjects)) {
-            // Group rules by nested objects first
-            $groupedByObject = [];
-            $regularRules = [];
-
-            foreach ($rules as $field => $rule) {
-                $handled = false;
-                foreach ($nestedDataObjects as $nestedFieldName => $nestedProperty) {
-                    if ($field === $nestedFieldName || str_starts_with($field, $nestedFieldName.'.')) {
-                        $groupedByObject[$nestedFieldName][$field] = $rule;
-                        $handled = true;
-                        break;
-                    }
-                }
-                if (! $handled) {
-                    $regularRules[$field] = $rule;
-                }
-            }
-
-            // Process regular rules first
-            foreach ($regularRules as $field => $rule) {
-                $fullField = $prefix ? $prefix.'.'.$field : $field;
-
-                if ($rule instanceof NestedRules) {
-                    // This is a DataCollection/array with nested Data class
-                    $parentProperty = substr($field, 0, -2); // Remove .* suffix
-                    $property = $parentProperties->get($parentProperty);
-
-                    if ($property && $property->type->dataClass) {
-                        // Add the array rule for the parent field
-                        $parentField = $prefix ? $prefix.'.'.$parentProperty : $parentProperty;
-
-                        // Recursively get rules from the nested Data class
-                        $nestedPrefix = $parentField.'.*';
-                        $reflectedDataChildClass = new ReflectionClass($property->type->dataClass);
-                        $nestedRules = $this->recursivelyExtractProperties($reflectedDataChildClass, $nestedPrefix);
-
-                        // Merge nested rules into our collection
-                        $allRules = array_merge($allRules, $nestedRules);
-                    }
-                } else {
-                    $allRules[$fullField] = $this->ruleFactory->normalizeRule($rule);
-                }
-            }
-
-            // Now process grouped nested objects
-            foreach ($groupedByObject as $nestedFieldName => $objectRules) {
-                $nestedProperty = $nestedDataObjects[$nestedFieldName];
-                $fullField = $prefix ? $prefix.'.'.$nestedFieldName : $nestedFieldName;
-
-                // Mark this as a nested object structure
-                $allRules[$fullField] = 'object';
-                $allRules[$fullField.'.__isNestedObject'] = 'true';
-
-                // Process the nested object's properties
-                foreach ($objectRules as $field => $rule) {
-                    if ($field === $nestedFieldName) {
-                        // This is the base rule for the object itself
-                        $allRules[$fullField.'.__baseRules'] = $this->ruleFactory->normalizeRule($rule);
-                    } else {
-                        // This is a property of the nested object
-                        $propertyName = substr($field, strlen($nestedFieldName) + 1);
-                        $allRules[$fullField.'.__nested.'.$propertyName] = $this->ruleFactory->normalizeRule($rule);
-                    }
-                }
-            }
-        } else {
-            // Original logic for non-array contexts or when no nested objects
-            foreach ($rules as $field => $rule) {
-                $fullField = $prefix ? $prefix.'.'.$field : $field;
-
-                if ($rule instanceof NestedRules) {
-                    // This is a DataCollection/array with nested Data class
-                    $parentProperty = substr($field, 0, -2); // Remove .* suffix
-                    $property = $parentProperties->get($parentProperty);
-
-                    if ($property && $property->type->dataClass) {
-                        // Add the array rule for the parent field
-                        $parentField = $prefix ? $prefix.'.'.$parentProperty : $parentProperty;
-
-                        // Recursively get rules from the nested Data class
-                        $nestedPrefix = $parentField.'.*';
-                        $reflectedDataChildClass = new ReflectionClass($property->type->dataClass);
-                        $nestedRules = $this->recursivelyExtractProperties($reflectedDataChildClass, $nestedPrefix);
-
-                        // Merge nested rules into our collection
-                        $allRules = array_merge($allRules, $nestedRules);
-                    }
-                } else {
-                    // Check if this field is part of a nested Data object (only at root level)
-                    $isNestedObjectField = false;
-                    if ($prefix === '') {
-                        foreach ($nestedDataObjects as $nestedFieldName => $nestedProperty) {
-                            if (str_starts_with($field, $nestedFieldName.'.')) {
-                                $isNestedObjectField = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    // Always add the rule
-                    $allRules[$fullField] = $this->ruleFactory->normalizeRule($rule);
-                }
-            }
-        }
-
-        // If this is the root call (no prefix), resolve the rules using validator
-        if ($prefix === '') {
-            $validator = $this->dataValidatorResolver->execute($class->getName(), []);
-
-            // Merge inherited validation messages
-            $this->mergeInheritedMessages($class, $validator);
-
-            // Collect and merge nested custom messages
-            $nestedMessages = $this->collectNestedMessages($class);
-            $this->messageService->mergeNestedMessages($nestedMessages, $validator);
-
-            return $this->resolveRulesFromValidatorWithNestedObjects($validator, $allRules, $nestedDataObjects);
-        }
-
-        // For nested calls, return the raw rules array
-        return $allRules;
-    }
-
-    /**
      * Collect custom messages from nested Data classes
      */
     protected function collectNestedMessages(ReflectionClass $class, string $prefix = ''): array
@@ -443,7 +293,7 @@ class DataClassExtractor extends BaseExtractor
                 // If we're already in an array context (prefix contains .*), nested objects get an extra .*
                 // because Laravel Data treats nested objects within arrays as potentially having array-like validation paths
                 if (str_contains($prefix, '.*')) {
-                    $nestedPrefix = $prefix ? $prefix.'.'.$fieldName.'.*' : $fieldName.'.*';
+                    $nestedPrefix = $prefix.'.'.$fieldName.'.*';
                 } else {
                     $nestedPrefix = $prefix ? $prefix.'.'.$fieldName : $fieldName;
                 }
@@ -785,97 +635,6 @@ class DataClassExtractor extends BaseExtractor
     }
 
     /**
-     * Resolve rules from validator with special handling for nested Data objects
-     *
-     * @param  Validator  $validator
-     * @param  array  $nestedDataObjects  Array of nested Data object properties keyed by mapped field name
-     * @return SchemaPropertyData[]
-     */
-    protected function resolveRulesFromValidatorWithNestedObjects($validator, array $rules, array $nestedDataObjects): array
-    {
-        // First, normalize all rules to string format
-        $normalizedRules = [];
-        foreach ($rules as $field => $rule) {
-            // Skip special marker fields
-            if (str_contains($field, '.__isNestedObject') ||
-                str_contains($field, '.__baseRules') ||
-                str_contains($field, '.__nested.')) {
-                continue;
-            }
-            $normalizedRules[$field] = $this->ruleFactory->normalizeRule($rule);
-        }
-
-        // Group rules by base field for nested array handling
-        // Special handling for rules that come from array contexts with nested objects
-        $groupedRules = $this->groupRulesByBaseFieldWithNestedObjectHandling($normalizedRules);
-
-        // Now handle nested Data objects that were flattened (only at root level)
-        foreach ($nestedDataObjects as $fieldName => $property) {
-            // Find all rules that belong to this nested object
-            $nestedObjectRules = [];
-            $keysToRemove = [];
-
-            foreach ($groupedRules as $field => $fieldRules) {
-                if (str_starts_with($field, $fieldName.'.')) {
-                    // This is a property of the nested object
-                    $nestedPropertyName = substr($field, strlen($fieldName) + 1);
-                    $nestedObjectRules[$nestedPropertyName] = $fieldRules;
-                    $keysToRemove[] = $field;
-                }
-            }
-
-            // Remove the individual nested properties from grouped rules
-            foreach ($keysToRemove as $key) {
-                unset($groupedRules[$key]);
-            }
-
-            // Add the nested object as a single property with nested structure
-            if (! empty($nestedObjectRules)) {
-                // Mark that this is a nested object, not an array
-                $groupedRules[$fieldName]['isNestedObject'] = true;
-                $groupedRules[$fieldName]['nested'] = [];
-                foreach ($nestedObjectRules as $nestedProp => $nestedRule) {
-                    $groupedRules[$fieldName]['nested'][$nestedProp] = $nestedRule['rules'] ?? '';
-                }
-            }
-        }
-
-        $properties = [];
-
-        foreach ($groupedRules as $baseField => $fieldRules) {
-            if (isset($fieldRules['nested'])) {
-                if (isset($fieldRules['isNestedObject']) && $fieldRules['isNestedObject']) {
-                    // This is a nested Data object - resolve as an object, not an array
-                    $resolvedValidationSet = $this->resolveNestedObjectRules(
-                        $baseField,
-                        $fieldRules,
-                        $validator
-                    );
-                } else {
-                    // This is an array field with nested rules
-                    $resolvedValidationSet = $this->resolveArrayFieldWithNestedRules(
-                        $baseField,
-                        $fieldRules,
-                        $validator
-                    );
-                }
-            } else {
-                // Regular field without nesting
-                $resolvedValidationSet = $this->validationResolver->resolve($baseField, $fieldRules['rules'], $validator);
-            }
-
-            $properties[] = new SchemaPropertyData(
-                name: $baseField,
-                validator: $validator,
-                isOptional: ! $resolvedValidationSet->isFieldRequired(),
-                validations: $resolvedValidationSet,
-            );
-        }
-
-        return $properties;
-    }
-
-    /**
      * Resolve nested object rules (not an array of objects, just a single nested object)
      */
     protected function resolveNestedObjectRules(string $baseField, array $fieldRules, $validator): \RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet
@@ -917,7 +676,7 @@ class DataClassExtractor extends BaseExtractor
         $dependencies = [];
 
         foreach ($properties as $property) {
-            $type = $property->validations?->inferredType ?? 'string';
+            $type = $property->validations->inferredType ?? 'string';
 
             if (str_starts_with($type, 'DataCollection:')) {
                 $dataClass = substr($type, 15);

@@ -31,7 +31,7 @@ class ZodEmailBuilder extends ZodBuilder
     public function trim(): self
     {
         if (! $this->hasRule('trim')) {
-            return $this->addRule('.trim()');
+            $this->addRule('.trim()');
         }
 
         return $this;
@@ -45,7 +45,9 @@ class ZodEmailBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($message);
         $rule = ".min({$length}{$messageStr})";
 
-        return $this->replaceRule('min', $rule);
+        $this->replaceRule('min', $rule);
+
+        return $this;
     }
 
     /**
@@ -65,7 +67,9 @@ class ZodEmailBuilder extends ZodBuilder
 
         $rule = ".min({$length}{$messageStr})";
 
-        return $this->replaceRule('min', $rule);
+        $this->replaceRule('min', $rule);
+
+        return $this;
     }
 
     /**
@@ -91,7 +95,9 @@ class ZodEmailBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($message);
         $rule = ".max({$length}{$messageStr})";
 
-        return $this->replaceRule('max', $rule);
+        $this->replaceRule('max', $rule);
+
+        return $this;
     }
 
     /**
@@ -104,7 +110,9 @@ class ZodEmailBuilder extends ZodBuilder
         $escapedMessage = str_replace("'", "\\'", $message);
         $rule = ".email('{$escapedMessage}')";
 
-        return $this->replaceRule('email', $rule);
+        $this->replaceRule('email', $rule);
+
+        return $this;
     }
 
     /**
@@ -112,7 +120,9 @@ class ZodEmailBuilder extends ZodBuilder
      */
     public function nonEmpty(?string $message = null): self
     {
-        return $this->min(1, $message);
+        $this->min(1, $message);
+
+        return $this;
     }
 
     /**

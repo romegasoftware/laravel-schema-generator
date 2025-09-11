@@ -3,6 +3,7 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Factories;
 
 use Illuminate\Contracts\Translation\Translator;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
 use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodAnyBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodArrayBuilder;
@@ -36,11 +37,9 @@ class ZodBuilderFactory
     /**
      * Helper method to set translator on builders
      */
-    private function setTranslatorOnBuilder($builder)
+    private function setTranslatorOnBuilder(BuilderInterface $builder)
     {
-        if (method_exists($builder, 'setTranslator')) {
-            $builder->setTranslator($this->translator);
-        }
+        $builder->setTranslator($this->translator);
 
         return $builder;
     }

@@ -24,7 +24,7 @@ class LaravelValidationResolver
     public function resolve(string $field, string $rules, Validator $validator): ResolvedValidationSet
     {
         $explodedRules = (new ValidationRuleParser($validator->getData()))
-            ->explode(ValidationRuleParser::filterConditionalRules($rules, $validator->getData()));
+            ->explode(ValidationRuleParser::filterConditionalRules([$rules], $validator->getData()));
 
         // Convert rules to ResolvedValidation objects
         $resolvedValidations = $this->resolveValidationRules($explodedRules->rules[0], $field, $validator);
@@ -58,7 +58,7 @@ class LaravelValidationResolver
     /**
      * Resolve wildcard field rules into nested validation structure
      */
-    private function resolveWildcardField(string $field, array $rules, Validator $validator): ?ResolvedValidationSet
+    private function resolveWildcardField(string $field, array $rules, Validator $validator): ResolvedValidationSet
     {
         // Extract the item field name by removing the wildcard
         // e.g., "tags.*" becomes "tags.*[item]"

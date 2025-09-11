@@ -2,6 +2,8 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Contracts;
 
+use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
+
 interface SchemaTypeScriptWriter
 {
     public function generateContent(array $schemas): string;

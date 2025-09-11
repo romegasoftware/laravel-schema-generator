@@ -47,7 +47,7 @@ class ValidationSchemaGenerator extends BaseGenerator
     /**
      * Build a Zod schema string from properties
      *
-     * @param  SchemaPropertyData[]  $properties
+     * @param  DataCollection<SchemaPropertyData>  $properties
      */
     protected function buildValidationSchema(?DataCollection $properties): string
     {
@@ -80,7 +80,7 @@ class ValidationSchemaGenerator extends BaseGenerator
 
         if (! $handler) {
             // This shouldn't happen with UniversalTypeHandler, but just in case
-            $type = $property->validations?->inferredType ?? 'unknown';
+            $type = $property->validations->inferredType ?? 'unknown';
             throw new \RuntimeException("No handler found for property: {$property->name} with type: {$type}");
         }
 

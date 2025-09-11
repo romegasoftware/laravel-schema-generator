@@ -23,7 +23,7 @@ class ZodStringBuilder extends ZodBuilder
     public function trim(): self
     {
         if (! $this->hasRule('trim')) {
-            return $this->addRule('.trim()');
+            $this->addRule('.trim()');
         }
 
         return $this;
@@ -38,7 +38,9 @@ class ZodStringBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($resolvedMessage);
         $rule = ".min({$length}{$messageStr})";
 
-        return $this->replaceRule('min', $rule);
+        $this->replaceRule('min', $rule);
+
+        return $this;
     }
 
     /**
@@ -58,7 +60,9 @@ class ZodStringBuilder extends ZodBuilder
 
         $rule = ".min({$length}{$messageStr})";
 
-        return $this->replaceRule('min', $rule);
+        $this->replaceRule('min', $rule);
+
+        return $this;
     }
 
     /**
@@ -70,7 +74,9 @@ class ZodStringBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($resolvedMessage);
         $rule = ".max({$length}{$messageStr})";
 
-        return $this->replaceRule('max', $rule);
+        $this->replaceRule('max', $rule);
+
+        return $this;
     }
 
     /**
@@ -82,7 +88,9 @@ class ZodStringBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($resolvedMessage);
         $rule = ".regex({$pattern}{$messageStr})";
 
-        return $this->replaceRule('regex', $rule);
+        $this->replaceRule('regex', $rule);
+
+        return $this;
     }
 
     /**
@@ -100,7 +108,9 @@ class ZodStringBuilder extends ZodBuilder
             $rule = ".url('{$escapedMessage}')";
         }
 
-        return $this->replaceRule('url', $rule);
+        $this->replaceRule('url', $rule);
+
+        return $this;
     }
 
     /**
@@ -118,7 +128,9 @@ class ZodStringBuilder extends ZodBuilder
             $rule = ".uuid('{$escapedMessage}')";
         }
 
-        return $this->replaceRule('uuid', $rule);
+        $this->replaceRule('uuid', $rule);
+
+        return $this;
     }
 
     /**
@@ -130,7 +142,9 @@ class ZodStringBuilder extends ZodBuilder
         $messageStr = $this->formatMessage($resolvedMessage);
         $rule = ".length({$length}{$messageStr})";
 
-        return $this->replaceRule('length', $rule);
+        $this->replaceRule('length', $rule);
+
+        return $this;
     }
 
     /**
@@ -138,6 +152,8 @@ class ZodStringBuilder extends ZodBuilder
      */
     public function nonEmpty(?string $message = null): self
     {
-        return $this->min(1, $message);
+        $this->min(1, $message);
+
+        return $this;
     }
 }

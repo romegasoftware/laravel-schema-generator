@@ -83,7 +83,7 @@ class ZodArrayBuilderDependencyInjectionTest extends TestCase
         $property->validations = $mockValidations;
 
         // Call the method that should use the factory
-        $result = $arrayBuilder->createArrayBuilder();
+        $result = $arrayBuilder->setup();
 
         // Verify the factory was used
         $this->assertSame($mockArrayBuilder, $result);
