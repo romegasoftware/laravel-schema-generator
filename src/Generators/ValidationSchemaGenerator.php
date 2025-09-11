@@ -62,7 +62,7 @@ class ValidationSchemaGenerator extends BaseGenerator
             if (str_contains($property->name, '.')) {
                 continue;
             }
-            
+
             $zodType = $this->buildZodType($property);
             $zodProperties[] = sprintf('    %s: %s', $property->name, $zodType);
         }

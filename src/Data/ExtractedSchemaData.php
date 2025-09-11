@@ -16,5 +16,6 @@ class ExtractedSchemaData extends Data
         public string $type,
         /** @var string[] */
         public array $dependencies = [],
-    ) {}
+    ) {
+    }
 }

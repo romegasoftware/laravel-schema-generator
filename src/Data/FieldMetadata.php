@@ -10,23 +10,24 @@ class FieldMetadata
     public function __construct(
         /** The field name (may include prefix like songs.*) */
         public readonly string $fieldName,
-        
+
         /** The original property name without prefix */
         public readonly string $propertyName,
-        
+
         /** The type of field */
         public readonly FieldType $type,
-        
+
         /** For Data objects and DataCollections, the class name */
         public readonly ?string $dataClass = null,
-        
+
         /** The mapped input name if different from property name */
         public readonly ?string $mappedName = null,
-        
+
         /** Child field metadata for nested structures */
         public array $children = [],
-    ) {}
-    
+    ) {
+    }
+
     /**
      * Check if this field is a nested Data object (not a collection)
      */
@@ -34,7 +35,7 @@ class FieldMetadata
     {
         return $this->type === FieldType::DataObject && $this->dataClass !== null;
     }
-    
+
     /**
      * Check if this field is a Data collection/array
      */
@@ -42,7 +43,7 @@ class FieldMetadata
     {
         return $this->type === FieldType::DataCollection && $this->dataClass !== null;
     }
-    
+
     /**
      * Add child metadata
      */
@@ -50,7 +51,7 @@ class FieldMetadata
     {
         $this->children[$child->propertyName] = $child;
     }
-    
+
     /**
      * Get child metadata by property name
      */
@@ -58,7 +59,7 @@ class FieldMetadata
     {
         return $this->children[$propertyName] ?? null;
     }
-    
+
     /**
      * Check if this field has children (nested properties)
      */

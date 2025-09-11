@@ -13,7 +13,8 @@ class ZodInlineObjectBuilder extends ZodBuilder
 {
     public function __construct(
         private ?UniversalTypeHandler $universalTypeHandler = null
-    ) {}
+    ) {
+    }
 
     protected array $properties = [];
 
@@ -34,7 +35,7 @@ class ZodInlineObjectBuilder extends ZodBuilder
      */
     public function createObjectBuilderFromProperty(): ZodInlineObjectBuilder
     {
-        $objectBuilder = new ZodInlineObjectBuilder;
+        $objectBuilder = new ZodInlineObjectBuilder();
 
         foreach ($this->property as $propertyName => $validationSet) {
             /** @var ResolvedValidationSet $validationSet */

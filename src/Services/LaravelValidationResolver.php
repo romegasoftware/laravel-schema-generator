@@ -14,9 +14,10 @@ use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 class LaravelValidationResolver
 {
     public function __construct(
-        private MessageResolutionService $messageService = new MessageResolutionService,
-        private TypeInferenceService $typeInferenceService = new TypeInferenceService
-    ) {}
+        private MessageResolutionService $messageService = new MessageResolutionService(),
+        private TypeInferenceService $typeInferenceService = new TypeInferenceService()
+    ) {
+    }
 
     /**
      * Resolve Laravel validation rules into structured format

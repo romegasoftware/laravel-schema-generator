@@ -7,7 +7,7 @@ use ReflectionClass;
 
 /**
  * Service for resolving and managing validation messages
- * 
+ *
  * Handles custom message resolution, merging, and nested value operations
  * for validation message handling across the application.
  */
@@ -24,15 +24,15 @@ class MessageResolutionService
      * @return string  The resolved message
      */
     public function resolveCustomMessage(
-        string $field, 
-        string $ruleName, 
-        Validator $validator, 
-        array $parameters = [], 
+        string $field,
+        string $ruleName,
+        Validator $validator,
+        array $parameters = [],
         bool $isNumericField = false
     ): string {
         // Check for custom message first
         $customMessageKey = $field . '.' . lcfirst($ruleName);
-        
+
         if (isset($validator->customMessages[$customMessageKey])) {
             return $validator->customMessages[$customMessageKey];
         }

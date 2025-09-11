@@ -53,8 +53,7 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
 
         // Register type handlers with their factory dependencies
         $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\BaseTypeHandler::class, function ($app) {
-            return new class($app->make(ZodBuilderFactory::class)) extends \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\BaseTypeHandler
-            {
+            return new class ($app->make(ZodBuilderFactory::class)) extends \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\BaseTypeHandler {
                 public function canHandle(string $type): bool
                 {
                     return false;
@@ -118,7 +117,7 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
 
         // Register type handler registry as singleton
         $this->app->singleton(TypeHandlerRegistry::class, function ($app) {
-            $registry = new TypeHandlerRegistry;
+            $registry = new TypeHandlerRegistry();
 
             // First, register the default built-in handlers using proper injection
             $registry->registerMany([

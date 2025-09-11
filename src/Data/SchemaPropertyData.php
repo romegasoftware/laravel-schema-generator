@@ -12,5 +12,6 @@ class SchemaPropertyData extends Data
         public ?Validator $validator,
         public bool $isOptional,
         public ?ResolvedValidationSet $validations,
-    ) {}
+    ) {
+    }
 }

@@ -27,8 +27,8 @@ class DataClassExtractor extends BaseExtractor
     public function __construct(
         protected LaravelValidationResolver $validationResolver,
         protected DataValidatorResolver $dataValidatorResolver,
-        protected MessageResolutionService $messageService = new MessageResolutionService,
-        protected FieldMetadataFactory $metadataFactory = new FieldMetadataFactory
+        protected MessageResolutionService $messageService = new MessageResolutionService(),
+        protected FieldMetadataFactory $metadataFactory = new FieldMetadataFactory()
     ) {
         parent::__construct($validationResolver);
     }

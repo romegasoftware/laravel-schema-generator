@@ -24,7 +24,8 @@ class ResolvedValidation extends Data
 
         /** Whether this validation makes the field nullable */
         public bool $isNullable = false,
-    ) {}
+    ) {
+    }
 
     /**
      * Check if this validation has a message

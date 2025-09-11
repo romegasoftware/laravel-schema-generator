@@ -23,7 +23,8 @@ class ZodBuilderFactory
 
     public function __construct(
         private ?Translator $translator = null
-    ) {}
+    ) {
+    }
 
     /**
      * Set the universal type handler for complex builders
@@ -70,7 +71,7 @@ class ZodBuilderFactory
      */
     public function createBooleanBuilder(): ZodBooleanBuilder
     {
-        return $this->setTranslatorOnBuilder(new ZodBooleanBuilder);
+        return $this->setTranslatorOnBuilder(new ZodBooleanBuilder());
     }
 
     /**
@@ -78,7 +79,7 @@ class ZodBuilderFactory
      */
     public function createStringBuilder(): ZodStringBuilder
     {
-        return $this->setTranslatorOnBuilder(new ZodStringBuilder);
+        return $this->setTranslatorOnBuilder(new ZodStringBuilder());
     }
 
     /**
@@ -86,7 +87,7 @@ class ZodBuilderFactory
      */
     public function createNumberBuilder(): ZodNumberBuilder
     {
-        return $this->setTranslatorOnBuilder(new ZodNumberBuilder);
+        return $this->setTranslatorOnBuilder(new ZodNumberBuilder());
     }
 
     /**
@@ -94,7 +95,7 @@ class ZodBuilderFactory
      */
     public function createEnumBuilder(): ZodEnumBuilder
     {
-        return $this->setTranslatorOnBuilder(new ZodEnumBuilder);
+        return $this->setTranslatorOnBuilder(new ZodEnumBuilder());
     }
 
     /**
@@ -102,7 +103,7 @@ class ZodBuilderFactory
      */
     public function createEmailBuilder(): ZodEmailBuilder
     {
-        return $this->setTranslatorOnBuilder(new ZodEmailBuilder);
+        return $this->setTranslatorOnBuilder(new ZodEmailBuilder());
     }
 
     /**
@@ -110,7 +111,7 @@ class ZodBuilderFactory
      */
     public function createAnyBuilder(): ZodAnyBuilder
     {
-        return $this->setTranslatorOnBuilder(new ZodAnyBuilder);
+        return $this->setTranslatorOnBuilder(new ZodAnyBuilder());
     }
 
     /**

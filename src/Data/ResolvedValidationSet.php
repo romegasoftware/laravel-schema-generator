@@ -33,7 +33,8 @@ class ResolvedValidationSet extends Data
 
         /** @var array<string, ResolvedValidationSet> Object properties for nested objects (for fields like categories.*.title) */
         public readonly array $objectProperties = [],
-    ) {}
+    ) {
+    }
 
     /**
      * Create a new validation set from an array of ResolvedValidation objects
