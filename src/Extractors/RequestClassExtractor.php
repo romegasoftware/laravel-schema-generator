@@ -7,6 +7,7 @@ use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Support\SchemaNameGenerator;
 use Spatie\LaravelData\DataCollection;
 
 class RequestClassExtractor extends BaseExtractor
@@ -35,7 +36,7 @@ class RequestClassExtractor extends BaseExtractor
      */
     public function extract(ReflectionClass $class): ExtractedSchemaData
     {
-        $schemaName = $this->getSchemaName($class);
+        $schemaName = SchemaNameGenerator::fromClass($class);
         $properties = $this->transformRulesToProperties($class);
 
         return new ExtractedSchemaData(
@@ -54,25 +55,6 @@ class RequestClassExtractor extends BaseExtractor
         return 10; // Lower priority than DataClassExtractor
     }
 
-    /**
-     * Get the schema name from the attribute or generate one
-     */
-    protected function getSchemaName(ReflectionClass $class): string
-    {
-        $attributes = $class->getAttributes(ValidationSchema::class);
-
-        if (! empty($attributes)) {
-            $zodAttribute = $attributes[0]->newInstance();
-            if ($zodAttribute->name) {
-                return $zodAttribute->name;
-            }
-        }
-
-        // Generate default name
-        $className = $class->getShortName();
-
-        return $className.'Schema';
-    }
 
     /**
      * Transform Laravel validation rules to properties array

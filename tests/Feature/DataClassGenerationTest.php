@@ -265,7 +265,7 @@ class DataClassGenerationTest extends TestCase
         // First schema depends on second
         $schema1 = new ExtractedSchemaData(
             name: 'UserSchema',
-            dependencies: ['ProfileData'],
+            dependencies: ['ProfileSchema'],
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'profile',

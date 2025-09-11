@@ -7,14 +7,18 @@ use Illuminate\Validation\Validator;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\ExtractorInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Factories\ValidationRuleFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver;
+use RomegaSoftware\LaravelSchemaGenerator\Services\NestedRuleGrouper;
 
 abstract class BaseExtractor implements ExtractorInterface
 {
     use Macroable;
 
     public function __construct(
-        protected LaravelValidationResolver $validationResolver
+        protected LaravelValidationResolver $validationResolver,
+        protected ValidationRuleFactory $ruleFactory = new ValidationRuleFactory,
+        protected NestedRuleGrouper $ruleGrouper = new NestedRuleGrouper
     ) {}
 
     /**
@@ -32,11 +36,11 @@ abstract class BaseExtractor implements ExtractorInterface
         // First, normalize all rules to string format
         $normalizedRules = [];
         foreach ($rules as $field => $rule) {
-            $normalizedRules[$field] = $this->normalizeRule($rule);
+            $normalizedRules[$field] = $this->ruleFactory->normalizeRule($rule);
         }
 
         // Group rules by base field for nested array handling
-        $groupedRules = $this->groupRulesByBaseField($normalizedRules);
+        $groupedRules = $this->ruleGrouper->groupRulesByBaseField($normalizedRules);
         $properties = [];
 
         foreach ($groupedRules as $baseField => $fieldRules) {
@@ -61,121 +65,6 @@ abstract class BaseExtractor implements ExtractorInterface
         }
 
         return $properties;
-    }
-
-    /**
-     * Normalize a rule to string format
-     * Handles strings, arrays, and Laravel rule objects
-     *
-     * @param  mixed  $rule
-     */
-    protected function normalizeRule($rule): string
-    {
-        if (is_string($rule)) {
-            return $rule;
-        }
-
-        if (is_array($rule)) {
-            $normalizedRules = [];
-            foreach ($rule as $singleRule) {
-                if (is_string($singleRule)) {
-                    $normalizedRules[] = $singleRule;
-                } elseif (is_object($singleRule)) {
-                    // Handle Laravel rule objects
-                    $normalizedRules[] = $this->resolveRuleObject($singleRule);
-                } else {
-                    // Skip non-string, non-object rules
-                    continue;
-                }
-            }
-
-            return implode('|', $normalizedRules);
-        }
-
-        if (is_object($rule)) {
-            return $this->resolveRuleObject($rule);
-        }
-
-        // Default to empty string for unhandled types
-        return '';
-    }
-
-    /**
-     * Resolve a Laravel rule object to its string representation
-     *
-     * @param  object  $rule
-     */
-    protected function resolveRuleObject($rule): string
-    {
-        // Check if it's a Laravel validation rule object that implements __toString
-        if (method_exists($rule, '__toString')) {
-            return (string) $rule;
-        }
-
-        // Special handling for Enum rule which doesn't have __toString
-        if ($rule instanceof \Illuminate\Validation\Rules\Enum) {
-            // Try to extract the enum values from the Enum rule
-            $enumValues = $this->extractEnumValues($rule);
-            if (! empty($enumValues)) {
-                // Convert to 'in' rule with the enum values
-                return 'in:'.implode(',', $enumValues);
-            }
-
-            // Fallback to generic enum rule
-            return 'enum';
-        }
-
-        // For other rule objects, try to get the class name as a fallback
-        $className = get_class($rule);
-        $shortName = substr($className, strrpos($className, '\\') + 1);
-
-        return strtolower($shortName);
-    }
-
-    /**
-     * Extract enum values from an Enum rule object
-     */
-    protected function extractEnumValues(\Illuminate\Validation\Rules\Enum $enumRule): array
-    {
-        try {
-            // Use reflection to access the protected type property
-            $reflection = new \ReflectionClass($enumRule);
-            $typeProperty = $reflection->getProperty('type');
-            $typeProperty->setAccessible(true);
-            $enumClass = $typeProperty->getValue($enumRule);
-
-            // Check if there's an 'only' property for filtered values
-            if ($reflection->hasProperty('only')) {
-                $onlyProperty = $reflection->getProperty('only');
-                $onlyProperty->setAccessible(true);
-                $onlyValues = $onlyProperty->getValue($enumRule);
-
-                if (! empty($onlyValues)) {
-                    // Return the filtered enum values
-                    $values = [];
-                    foreach ($onlyValues as $enumCase) {
-                        $values[] = $enumCase->value ?? $enumCase->name;
-                    }
-
-                    return $values;
-                }
-            }
-
-            // Get all enum cases if it's a valid enum class
-            if (enum_exists($enumClass)) {
-                $values = [];
-                foreach ($enumClass::cases() as $case) {
-                    // For backed enums, use the value; for pure enums, use the name
-                    $values[] = $case->value ?? $case->name;
-                }
-
-                return $values;
-            }
-        } catch (\Exception $e) {
-            // If we can't extract values, return empty array
-        }
-
-        return [];
     }
 
     /**
@@ -214,7 +103,7 @@ abstract class BaseExtractor implements ExtractorInterface
     public function groupRulesByBaseField(array $rules): array
     {
         $grouped = [];
-        
+
         // First pass: handle special nested object markers
         $nestedObjectFields = [];
         foreach ($rules as $field => $ruleSet) {
@@ -226,28 +115,29 @@ abstract class BaseExtractor implements ExtractorInterface
 
         foreach ($rules as $field => $ruleSet) {
             // Skip special marker fields
-            if (str_contains($field, '.__isNestedObject') || 
-                str_contains($field, '.__baseRules') || 
+            if (str_contains($field, '.__isNestedObject') ||
+                str_contains($field, '.__baseRules') ||
                 str_contains($field, '.__nested.')) {
                 continue;
             }
-            
+
             if (str_contains($field, '.*')) {
                 // Check if this is a nested object within an array
                 $parts = explode('.*', $field, 2);
                 $baseField = $parts[0];
                 $remainingPath = $parts[1] ?? '';
-                
-                if ($remainingPath && !str_contains($remainingPath, '.*')) {
+
+                if ($remainingPath && ! str_contains($remainingPath, '.*')) {
                     // Check if this path corresponds to a nested object
-                    $nestedObjectPath = $baseField . '.*.' . explode('.', ltrim($remainingPath, '.'))[0];
+                    $nestedObjectPath = $baseField.'.*.'.explode('.', ltrim($remainingPath, '.'))[0];
                     if (isset($nestedObjectFields[$nestedObjectPath])) {
                         // This is part of a nested object, handle it specially
                         $this->addNestedObjectInArray($grouped, $field, $ruleSet, $rules, $nestedObjectFields);
+
                         continue;
                     }
                 }
-                
+
                 // Regular wildcard field
                 $this->addNestedRule($grouped, $field, $ruleSet);
             } else {
@@ -269,7 +159,7 @@ abstract class BaseExtractor implements ExtractorInterface
 
         return $grouped;
     }
-    
+
     /**
      * Add a nested object that's within an array context
      */
@@ -280,30 +170,30 @@ abstract class BaseExtractor implements ExtractorInterface
             $baseArray = $matches[1];
             $objectField = $matches[2];
             $propertyPath = $matches[3] ?? null;
-            
+
             // Initialize structure
-            if (!isset($grouped[$baseArray])) {
+            if (! isset($grouped[$baseArray])) {
                 $grouped[$baseArray] = [
                     'rules' => null,
                     'nested' => [],
                 ];
             }
-            
-            $nestedObjectPath = $baseArray . '.*.' . $objectField;
+
+            $nestedObjectPath = $baseArray.'.*.'.$objectField;
             if (isset($nestedObjectFields[$nestedObjectPath])) {
                 // This is a nested object
-                if (!isset($grouped[$baseArray]['nested'][$objectField])) {
+                if (! isset($grouped[$baseArray]['nested'][$objectField])) {
                     $grouped[$baseArray]['nested'][$objectField] = [
-                        'rules' => $allRules[$nestedObjectPath . '.__baseRules'] ?? 'object',
+                        'rules' => $allRules[$nestedObjectPath.'.__baseRules'] ?? 'object',
                         'nested' => [],
                         'isNestedObject' => true,
                     ];
                 }
-                
+
                 if ($propertyPath) {
                     // Add the property to the nested object
-                    $grouped[$baseArray]['nested'][$objectField]['nested'][$propertyPath] = 
-                        $allRules[$nestedObjectPath . '.__nested.' . $propertyPath] ?? $ruleSet;
+                    $grouped[$baseArray]['nested'][$objectField]['nested'][$propertyPath] =
+                        $allRules[$nestedObjectPath.'.__nested.'.$propertyPath] ?? $ruleSet;
                 }
             } else {
                 // Regular nested field
@@ -491,10 +381,10 @@ abstract class BaseExtractor implements ExtractorInterface
                         $rules['nested'],
                         $validator
                     );
-                    
+
                     // Strip the .* suffix from the property key for cleaner names in TypeScript
                     $cleanPropertyKey = str_replace('.*', '', $property);
-                    
+
                     // Override the inferred type to be 'object' instead of array
                     $objectProperties[$cleanPropertyKey] = ResolvedValidationSet::make(
                         fieldName: $baseField.'.*.'.$property,
@@ -510,7 +400,7 @@ abstract class BaseExtractor implements ExtractorInterface
                         $rules,
                         $validator
                     );
-                    
+
                     // Strip the .* suffix from the property key for cleaner names in TypeScript
                     $cleanPropertyKey = str_replace('.*', '', $property);
                     $objectProperties[$cleanPropertyKey] = $nestedValidationSet;
@@ -518,10 +408,10 @@ abstract class BaseExtractor implements ExtractorInterface
             } else {
                 // Simple property - ensure rules is a string
                 $rulesString = is_array($rules) ? (isset($rules['rules']) ? $rules['rules'] : '') : $rules;
-                
+
                 // Strip the .* suffix from the property key for cleaner names in TypeScript
                 $cleanPropertyKey = str_replace('.*', '', $property);
-                
+
                 $propertyValidationSet = $this->validationResolver->resolve(
                     $baseField.'.*.'.$property,
                     $rulesString,

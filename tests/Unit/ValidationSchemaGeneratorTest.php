@@ -231,15 +231,15 @@ class ValidationSchemaGeneratorTest extends TestCase
     {
         // Schema with dependency
         $schema1 = new ExtractedSchemaData(
-            name: 'OrderSchema',
-            dependencies: ['CustomerData'],
+            name: 'OrderDataSchema',
+            dependencies: ['CustomerDataSchema'],
             properties: new DataCollection(SchemaPropertyData::class, []),
             type: '',
             className: ''
         );
 
         $schema2 = new ExtractedSchemaData(
-            name: 'CustomerSchema',
+            name: 'CustomerDataSchema',
             dependencies: [],
             properties: new DataCollection(SchemaPropertyData::class, []),
             type: '',
@@ -252,8 +252,8 @@ class ValidationSchemaGeneratorTest extends TestCase
         $sorted = $this->generator->sortSchemasByDependencies();
 
         // Customer should come before Order since Order depends on Customer
-        $this->assertEquals('CustomerSchema', $sorted[0]->name);
-        $this->assertEquals('OrderSchema', $sorted[1]->name);
+        $this->assertEquals('CustomerDataSchema', $sorted[0]->name);
+        $this->assertEquals('OrderDataSchema', $sorted[1]->name);
     }
 
     #[Test]

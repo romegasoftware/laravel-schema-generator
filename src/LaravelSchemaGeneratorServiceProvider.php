@@ -83,12 +83,6 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\BooleanTypeHandler::class, function ($app) {
-            return new \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\BooleanTypeHandler(
-                $app->make(ZodBuilderFactory::class)
-            );
-        });
-
         $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler::class, function ($app) {
             $factory = $app->make(ZodBuilderFactory::class);
             $handler = new \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler($factory);
@@ -97,12 +91,6 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
             $factory->setUniversalTypeHandler($handler);
 
             return $handler;
-        });
-
-        $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\DataClassTypeHandler::class, function ($app) {
-            return new \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\DataClassTypeHandler(
-                $app->make(ZodBuilderFactory::class)
-            );
         });
 
         // Register extractors with their dependencies
@@ -135,7 +123,6 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
             // First, register the default built-in handlers using proper injection
             $registry->registerMany([
                 $app->make(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\EnumTypeHandler::class),
-                $app->make(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\DataClassTypeHandler::class),
                 $app->make(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler::class),
             ]);
 

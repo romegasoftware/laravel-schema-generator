@@ -9,9 +9,11 @@ use RomegaSoftware\LaravelSchemaGenerator\Attributes\InheritValidationFrom;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\FieldMetadata;
-use RomegaSoftware\LaravelSchemaGenerator\Data\FieldType;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Factories\FieldMetadataFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver;
+use RomegaSoftware\LaravelSchemaGenerator\Services\MessageResolutionService;
+use RomegaSoftware\LaravelSchemaGenerator\Support\SchemaNameGenerator;
 use Spatie\LaravelData\DataCollection;
 use Spatie\LaravelData\Resolvers\DataValidatorResolver;
 use Spatie\LaravelData\Support\DataConfig;
@@ -24,8 +26,12 @@ class DataClassExtractor extends BaseExtractor
 {
     public function __construct(
         protected LaravelValidationResolver $validationResolver,
-        protected DataValidatorResolver $dataValidatorResolver
-    ) {}
+        protected DataValidatorResolver $dataValidatorResolver,
+        protected MessageResolutionService $messageService = new MessageResolutionService,
+        protected FieldMetadataFactory $metadataFactory = new FieldMetadataFactory
+    ) {
+        parent::__construct($validationResolver);
+    }
 
     /**
      * Check if this extractor can handle the given class
@@ -51,10 +57,10 @@ class DataClassExtractor extends BaseExtractor
      */
     public function extract(ReflectionClass $class): ExtractedSchemaData
     {
-        $schemaName = $this->getSchemaName($class);
+        $schemaName = SchemaNameGenerator::fromClass($class);
 
         // Build metadata for all fields
-        $metadata = $this->buildFieldMetadata($class);
+        $metadata = $this->metadataFactory->buildFieldMetadata($class);
 
         // Extract properties with metadata
         $properties = $this->recursivelyExtractPropertiesWithMetadata($class, '', $metadata);
@@ -76,26 +82,6 @@ class DataClassExtractor extends BaseExtractor
     public function getPriority(): int
     {
         return 20; // Higher priority than RequestClassExtractor
-    }
-
-    /**
-     * Get the schema name from the attribute or generate one
-     */
-    protected function getSchemaName(ReflectionClass $class): string
-    {
-        $attributes = $class->getAttributes(ValidationSchema::class);
-
-        if (! empty($attributes)) {
-            $zodAttribute = $attributes[0]->newInstance();
-            if ($zodAttribute->name) {
-                return $zodAttribute->name;
-            }
-        }
-
-        // Generate default name
-        $className = $class->getShortName();
-
-        return $className.'Schema';
     }
 
     /**
@@ -137,131 +123,6 @@ class DataClassExtractor extends BaseExtractor
     }
 
     /**
-     * Build field metadata for a Data class
-     */
-    protected function buildFieldMetadata(ReflectionClass $class, string $prefix = ''): array
-    {
-        $metadata = [];
-        $dataConfig = app(DataConfig::class)->getDataClass($class->getName());
-
-        foreach ($dataConfig->properties as $property) {
-            $fieldName = $property->inputMappedName ?? $property->name;
-            $fullFieldName = $prefix ? $prefix.'.'.$fieldName : $fieldName;
-
-            // Determine field type
-            $fieldType = FieldType::Regular;
-            $dataClass = null;
-
-            if ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataObject) {
-                $fieldType = FieldType::DataObject;
-                $dataClass = $property->type->dataClass;
-            } elseif ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataCollection) {
-                $fieldType = FieldType::DataCollection;
-                $dataClass = $property->type->dataClass;
-            } elseif ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataArray) {
-                $fieldType = FieldType::DataCollection;
-                $dataClass = $property->type->dataClass;
-            } elseif ($property->type->type === 'array') {
-                $fieldType = FieldType::Array;
-            }
-
-            $fieldMeta = new FieldMetadata(
-                fieldName: $fullFieldName,
-                propertyName: $property->name,
-                type: $fieldType,
-                dataClass: $dataClass,
-                mappedName: $property->inputMappedName,
-            );
-
-            // Recursively build metadata for nested Data objects
-            if ($fieldType === FieldType::DataObject && $dataClass) {
-                $nestedClass = new ReflectionClass($dataClass);
-                $nestedMetadata = $this->buildFieldMetadata($nestedClass, $fullFieldName);
-                foreach ($nestedMetadata as $child) {
-                    $fieldMeta->addChild($child);
-                }
-            } elseif ($fieldType === FieldType::DataCollection && $dataClass) {
-                // For collections, build metadata with .* prefix
-                $nestedClass = new ReflectionClass($dataClass);
-                $nestedMetadata = $this->buildFieldMetadata($nestedClass, $fullFieldName.'.*');
-                foreach ($nestedMetadata as $child) {
-                    $fieldMeta->addChild($child);
-                }
-            }
-
-            // Store metadata by both property name and mapped name (if different)
-            $metadata[$property->name] = $fieldMeta;
-            if ($property->inputMappedName && $property->inputMappedName !== $property->name) {
-                $metadata[$property->inputMappedName] = $fieldMeta;
-            }
-        }
-
-        return $metadata;
-    }
-
-    /**
-     * Find field metadata in parent metadata when in array context
-     */
-    protected function findFieldMetadataInParent(string $field, array $metadata): ?FieldMetadata
-    {
-        // Search through all metadata entries to find a match
-        foreach ($metadata as $meta) {
-            if ($meta instanceof FieldMetadata) {
-                // Check if this metadata has the field as a child
-                $child = $meta->getChild($field);
-                if ($child) {
-                    return $child;
-                }
-
-                // Also check by mapped name if it exists
-                if ($meta->mappedName === $field || $meta->propertyName === $field) {
-                    return $meta;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Flatten metadata to include all nested fields
-     */
-    protected function flattenMetadata(array $metadata): array
-    {
-        $flattened = [];
-
-        foreach ($metadata as $key => $meta) {
-            if ($meta instanceof FieldMetadata) {
-                $flattened[$key] = $meta;
-                $flattened[$meta->fieldName] = $meta;
-
-                // Add all children recursively
-                $this->addChildrenToFlattened($meta, $flattened);
-            }
-        }
-
-        return $flattened;
-    }
-
-    /**
-     * Add children metadata to flattened array recursively
-     */
-    protected function addChildrenToFlattened(FieldMetadata $parent, array &$flattened): void
-    {
-        foreach ($parent->children as $child) {
-            $flattened[$child->propertyName] = $child;
-            $flattened[$child->fieldName] = $child;
-
-            if ($child->mappedName) {
-                $flattened[$child->mappedName] = $child;
-            }
-
-            // Recursively add children
-            $this->addChildrenToFlattened($child, $flattened);
-        }
-    }
-
-    /**
      * Extract properties using field metadata
      */
     protected function recursivelyExtractPropertiesWithMetadata(ReflectionClass $class, string $prefix, array $metadata): array
@@ -279,7 +140,7 @@ class DataClassExtractor extends BaseExtractor
             // If not found and we're in an array context, try without the array prefix
             if (! $fieldMeta && str_contains($prefix, '.*')) {
                 // Look for field metadata in parent metadata structure
-                $fieldMeta = $this->findFieldMetadataInParent($field, $metadata);
+                $fieldMeta = $this->metadataFactory->findFieldMetadataInParent($field, $metadata);
             }
 
             if ($rule instanceof NestedRules) {
@@ -336,9 +197,9 @@ class DataClassExtractor extends BaseExtractor
                         if (empty($baseRules)) {
                             $baseRules = ['required']; // Default to required if no other rules
                         }
-                        $allRules[$fullF] = $this->normalizeRule($baseRules);
+                        $allRules[$fullF] = $this->ruleFactory->normalizeRule($baseRules);
                     } else {
-                        $allRules[$fullF] = $this->normalizeRule($r);
+                        $allRules[$fullF] = $this->ruleFactory->normalizeRule($r);
                     }
                 }
             } elseif ($fieldMeta && $fieldMeta->isNestedDataObject() && str_contains($prefix, '.*')) {
@@ -350,16 +211,16 @@ class DataClassExtractor extends BaseExtractor
                     if (empty($baseRules)) {
                         $baseRules = ['required']; // Default to required if no other rules
                     }
-                    $allRules[$fullField] = $this->normalizeRule($baseRules);
+                    $allRules[$fullField] = $this->ruleFactory->normalizeRule($baseRules);
                 } else {
-                    $allRules[$fullField] = $this->normalizeRule($rule);
+                    $allRules[$fullField] = $this->ruleFactory->normalizeRule($rule);
                 }
             } else {
                 // Check if this field is part of a nested object by looking for flattened properties
                 $isPartOfNestedObject = false;
                 if (str_contains($field, '.')) {
                     $baseField = substr($field, 0, strpos($field, '.'));
-                    $baseMeta = $metadata[$baseField] ?? $this->findFieldMetadataInParent($baseField, $metadata);
+                    $baseMeta = $metadata[$baseField] ?? $this->metadataFactory->findFieldMetadataInParent($baseField, $metadata);
 
                     if ($baseMeta && $baseMeta->isNestedDataObject()) {
                         $isPartOfNestedObject = true;
@@ -372,13 +233,13 @@ class DataClassExtractor extends BaseExtractor
                         }
 
                         // Add this flattened property to the nested object
-                        $allRules[$fullField] = $this->normalizeRule($rule);
+                        $allRules[$fullField] = $this->ruleFactory->normalizeRule($rule);
                     }
                 }
 
                 if (! $isPartOfNestedObject) {
                     // Regular field
-                    $allRules[$fullField] = $this->normalizeRule($rule);
+                    $allRules[$fullField] = $this->ruleFactory->normalizeRule($rule);
                 }
             }
         }
@@ -388,8 +249,12 @@ class DataClassExtractor extends BaseExtractor
             $validator = $this->dataValidatorResolver->execute($class->getName(), []);
             $this->mergeInheritedMessages($class, $validator);
 
+            // Collect and merge nested custom messages
+            $nestedMessages = $this->collectNestedMessages($class);
+            $this->messageService->mergeNestedMessages($nestedMessages, $validator);
+
             // Build a flattened metadata dictionary for all nested fields
-            $flattenedMetadata = $this->flattenMetadata($metadata);
+            $flattenedMetadata = $this->metadataFactory->flattenMetadata($metadata);
 
             return $this->resolveRulesFromValidatorWithMetadata($validator, $allRules, $flattenedMetadata);
         }
@@ -464,7 +329,7 @@ class DataClassExtractor extends BaseExtractor
                         $allRules = array_merge($allRules, $nestedRules);
                     }
                 } else {
-                    $allRules[$fullField] = $this->normalizeRule($rule);
+                    $allRules[$fullField] = $this->ruleFactory->normalizeRule($rule);
                 }
             }
 
@@ -481,11 +346,11 @@ class DataClassExtractor extends BaseExtractor
                 foreach ($objectRules as $field => $rule) {
                     if ($field === $nestedFieldName) {
                         // This is the base rule for the object itself
-                        $allRules[$fullField.'.__baseRules'] = $this->normalizeRule($rule);
+                        $allRules[$fullField.'.__baseRules'] = $this->ruleFactory->normalizeRule($rule);
                     } else {
                         // This is a property of the nested object
                         $propertyName = substr($field, strlen($nestedFieldName) + 1);
-                        $allRules[$fullField.'.__nested.'.$propertyName] = $this->normalizeRule($rule);
+                        $allRules[$fullField.'.__nested.'.$propertyName] = $this->ruleFactory->normalizeRule($rule);
                     }
                 }
             }
@@ -524,7 +389,7 @@ class DataClassExtractor extends BaseExtractor
                     }
 
                     // Always add the rule
-                    $allRules[$fullField] = $this->normalizeRule($rule);
+                    $allRules[$fullField] = $this->ruleFactory->normalizeRule($rule);
                 }
             }
         }
@@ -536,11 +401,66 @@ class DataClassExtractor extends BaseExtractor
             // Merge inherited validation messages
             $this->mergeInheritedMessages($class, $validator);
 
+            // Collect and merge nested custom messages
+            $nestedMessages = $this->collectNestedMessages($class);
+            $this->messageService->mergeNestedMessages($nestedMessages, $validator);
+
             return $this->resolveRulesFromValidatorWithNestedObjects($validator, $allRules, $nestedDataObjects);
         }
 
         // For nested calls, return the raw rules array
         return $allRules;
+    }
+
+    /**
+     * Collect custom messages from nested Data classes
+     */
+    protected function collectNestedMessages(ReflectionClass $class, string $prefix = ''): array
+    {
+        $messages = [];
+
+        // Get messages from the current class
+        if (method_exists($class->getName(), 'messages')) {
+            $classMessages = $class->getName()::messages();
+            foreach ($classMessages as $key => $message) {
+                // Add prefix to the message key
+                $fullKey = $prefix ? $prefix.'.'.$key : $key;
+                $messages[$fullKey] = $message;
+            }
+        }
+
+        // Get DataConfig to access properties
+        $dataConfig = app(DataConfig::class)->getDataClass($class->getName());
+
+        // Process nested Data objects
+        foreach ($dataConfig->properties as $property) {
+            // Use the mapped name if available for the field path, but keep using property name for processing
+            $fieldName = $property->inputMappedName ?? $property->name;
+
+            if ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataObject && $property->type->dataClass) {
+                // Nested Data object
+                $nestedClass = new ReflectionClass($property->type->dataClass);
+                // If we're already in an array context (prefix contains .*), nested objects get an extra .*
+                // because Laravel Data treats nested objects within arrays as potentially having array-like validation paths
+                if (str_contains($prefix, '.*')) {
+                    $nestedPrefix = $prefix ? $prefix.'.'.$fieldName.'.*' : $fieldName.'.*';
+                } else {
+                    $nestedPrefix = $prefix ? $prefix.'.'.$fieldName : $fieldName;
+                }
+                $nestedMessages = $this->collectNestedMessages($nestedClass, $nestedPrefix);
+                $messages = array_merge($messages, $nestedMessages);
+            } elseif (($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataCollection ||
+                       $property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataArray) &&
+                      $property->type->dataClass) {
+                // Collection of Data objects
+                $nestedClass = new ReflectionClass($property->type->dataClass);
+                $nestedPrefix = $prefix ? $prefix.'.'.$fieldName.'.*' : $fieldName.'.*';
+                $nestedMessages = $this->collectNestedMessages($nestedClass, $nestedPrefix);
+                $messages = array_merge($messages, $nestedMessages);
+            }
+        }
+
+        return $messages;
     }
 
     /**
@@ -702,7 +622,7 @@ class DataClassExtractor extends BaseExtractor
 
                     // Handle nested arrays within the object
                     if (str_contains($propertyName, '.*')) {
-                        $this->addNestedRuleRecursively($grouped[$objectField]['nested'], $propertyName, $ruleSet);
+                        $this->ruleGrouper->addNestedRuleRecursively($grouped[$objectField]['nested'], $propertyName, $ruleSet);
                     } else {
                         $grouped[$objectField]['nested'][$propertyName] = $ruleSet;
                     }
@@ -760,7 +680,7 @@ class DataClassExtractor extends BaseExtractor
         }
 
         // Clean up empty nested arrays
-        $this->cleanupGroupedRules($grouped);
+        $this->ruleGrouper->cleanupGroupedRules($grouped);
 
         return $grouped;
     }
@@ -797,7 +717,7 @@ class DataClassExtractor extends BaseExtractor
 
             if (str_contains($remainingPath, '.*')) {
                 // Still has wildcards - need to handle nested arrays recursively
-                $this->addNestedRuleRecursively($grouped[$baseField]['nested'], $remainingPath, $ruleSet);
+                $this->ruleGrouper->addNestedRuleRecursively($grouped[$baseField]['nested'], $remainingPath, $ruleSet);
             } else {
                 // No more wildcards - this is a simple nested property
                 // Check if this field is part of a nested object (like song_meta_data_custom_name.lengthInSeconds)
@@ -882,7 +802,7 @@ class DataClassExtractor extends BaseExtractor
                 str_contains($field, '.__nested.')) {
                 continue;
             }
-            $normalizedRules[$field] = $this->normalizeRule($rule);
+            $normalizedRules[$field] = $this->ruleFactory->normalizeRule($rule);
         }
 
         // Group rules by base field for nested array handling

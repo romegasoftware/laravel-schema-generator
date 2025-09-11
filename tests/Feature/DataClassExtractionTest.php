@@ -30,7 +30,7 @@ class DataClassExtractionTest extends TestCase
         $result = $this->extractor->extract($reflection);
 
         // Verify schema name
-        $this->assertEquals('SongSchema', $result->name);
+        $this->assertEquals('SongDataSchema', $result->name);
         $this->assertEquals(SongData::class, $result->className);
         $this->assertEquals('data', $result->type);
 
@@ -68,7 +68,7 @@ class DataClassExtractionTest extends TestCase
         $result = $this->extractor->extract($reflection);
 
         // Verify schema name
-        $this->assertEquals('AlbumSchema', $result->name);
+        $this->assertEquals('AlbumDataSchema', $result->name);
         $this->assertEquals(AlbumData::class, $result->className);
         $this->assertEquals('data', $result->type);
 
@@ -133,14 +133,14 @@ class DataClassExtractionTest extends TestCase
             // Check if we can access nested properties through the nested object structure
             $nestedObjectProps = $nestedProps['song_meta_data_custom_name'];
             $this->assertNotNull($nestedObjectProps, 'song_meta_data_custom_name should exist');
-            
+
             // The nested object is a ResolvedValidationSet, so access objectProperties directly
             if ($nestedObjectProps->objectProperties) {
                 $songMetaProps = $nestedObjectProps->objectProperties;
-                
+
                 $this->assertArrayHasKey('lengthInSeconds', $songMetaProps, 'Should have lengthInSeconds in nested object');
                 $this->assertArrayHasKey('fileFormat', $songMetaProps, 'Should have fileFormat in nested object');
-                
+
                 // Use nested properties instead of flattened ones
                 $lengthProp = $songMetaProps['lengthInSeconds'];
             } else {

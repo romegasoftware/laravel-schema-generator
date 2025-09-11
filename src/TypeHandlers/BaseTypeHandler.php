@@ -52,14 +52,14 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
 
         return $this->builder;
     }
-    
+
     /**
      * Create an object builder from property's objectProperties
      */
     protected function createObjectBuilderFromProperty(): BuilderInterface
     {
         $objectBuilder = $this->factory->createInlineObjectBuilder();
-        
+
         // Check if we have objectProperties to add
         if ($this->property->validations?->objectProperties) {
             foreach ($this->property->validations->objectProperties as $propName => $propValidation) {
@@ -68,23 +68,23 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
                 if (str_contains($propName, '.')) {
                     continue;
                 }
-                
+
                 // Create a new SchemaPropertyData for the nested property
                 $nestedProperty = new \RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData(
                     name: $propName,
                     validator: $this->property->validator,
-                    isOptional: !$propValidation->isFieldRequired(),
+                    isOptional: ! $propValidation->isFieldRequired(),
                     validations: $propValidation
                 );
-                
+
                 // Use UniversalTypeHandler to handle the nested property
                 $handler = new \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler($this->factory);
                 $nestedBuilder = $handler->handle($nestedProperty);
-                
+
                 $objectBuilder->property($propName, $nestedBuilder);
             }
         }
-        
+
         return $objectBuilder;
     }
 

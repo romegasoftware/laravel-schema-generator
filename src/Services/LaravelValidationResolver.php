@@ -4,7 +4,6 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Services;
 
 use Illuminate\Validation\ValidationRuleParser;
 use Illuminate\Validation\Validator;
-use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 
@@ -14,7 +13,10 @@ use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
  */
 class LaravelValidationResolver
 {
-    private static ?array $typeInferenceRules = null;
+    public function __construct(
+        private MessageResolutionService $messageService = new MessageResolutionService,
+        private TypeInferenceService $typeInferenceService = new TypeInferenceService
+    ) {}
 
     /**
      * Resolve Laravel validation rules into structured format
@@ -34,7 +36,7 @@ class LaravelValidationResolver
             [$ruleName, $parameters] = ValidationRuleParser::parse($rule);
             $rulesForInference[strtolower($ruleName)] = $parameters ?: true;
         }
-        $inferredType = $this->inferType($rulesForInference);
+        $inferredType = $this->typeInferenceService->inferType($rulesForInference);
 
         // Check if this is a wildcard field and resolve nested validations if needed
         $nestedValidations = null;
@@ -43,90 +45,6 @@ class LaravelValidationResolver
         }
 
         return ResolvedValidationSet::make($field, $resolvedValidations, $inferredType, $nestedValidations);
-    }
-
-    /**
-     * Infer type from validation rules
-     */
-    private function inferType(array $validations): string
-    {
-        // Initialize type inference rules if not cached
-        if (self::$typeInferenceRules === null) {
-            self::$typeInferenceRules = $this->buildTypeInferenceRules();
-        }
-
-        // Check for direct type indicators in priority order
-        foreach (self::$typeInferenceRules as $rule => $type) {
-            if (isset($validations[$rule])) {
-                // Handle enum special case
-                if ($type === 'enum' && isset($validations['in']) && is_array($validations['in'])) {
-                    return 'enum:'.implode(',', $validations['in']);
-                }
-
-                return $type;
-            }
-        }
-
-        // Check for enum rules (in rule with multiple values)
-        if (isset($validations['in']) && is_array($validations['in']) && count($validations['in']) > 1) {
-            return 'enum:'.implode(',', $validations['in']);
-        }
-
-        if (isset($validations['fieldName']) && str_ends_with($validations['fieldName'], '*')) {
-            return 'array';
-        }
-
-        // Default to string if no specific type detected
-        return 'string';
-    }
-
-    /**
-     * Build type inference rules mapping
-     */
-    private function buildTypeInferenceRules(): array
-    {
-        return [
-            // Boolean types
-            'boolean' => 'boolean',
-            'bool' => 'boolean',
-
-            // Number types
-            'integer' => 'number',
-            'numeric' => 'number',
-            'int' => 'number',
-            'float' => 'number',
-            'decimal' => 'number',
-
-            // Array types
-            'array' => 'array',
-
-            // Special string types
-            'email' => 'email',
-            'url' => 'url',
-            'uuid' => 'uuid',
-            'ulid' => 'string', // ULID as string for now
-            'ip' => 'string',
-            'ipv4' => 'string',
-            'ipv6' => 'string',
-            'mac_address' => 'string',
-            'json' => 'string',
-            'date' => 'string', // Date as string in TypeScript
-            'date_format' => 'string',
-            'before' => 'string',
-            'after' => 'string',
-
-            // File types (treated as special strings)
-            'file' => 'string',
-            'image' => 'string',
-            'mimes' => 'string',
-            'mimetypes' => 'string',
-
-            // Enum indicator
-            'in' => 'enum',
-
-            // Default string type
-            'string' => 'string',
-        ];
     }
 
     /**
@@ -150,7 +68,12 @@ class LaravelValidationResolver
         $resolvedValidations = $this->resolveValidationRules($rules, $itemField, $validator);
 
         // Infer type for the nested item
-        $inferredType = $this->inferType($rules);
+        $rulesForInference = [];
+        foreach ($rules as $rule) {
+            [$ruleName, $parameters] = ValidationRuleParser::parse($rule);
+            $rulesForInference[strtolower($ruleName)] = $parameters ?: true;
+        }
+        $inferredType = $this->typeInferenceService->inferType($rulesForInference);
 
         // Check for further nesting and handle recursively
         $nestedValidations = null;
@@ -206,27 +129,20 @@ class LaravelValidationResolver
     {
         $resolvedValidations = [];
 
+        // Determine if this field is numeric based on validation rules
+        $isNumericField = $this->typeInferenceService->isNumericField($rules);
+
         foreach ($rules as $rule) {
             [$ruleName, $parameters] = ValidationRuleParser::parse($rule);
 
-            // Check for custom message first
-            $customMessageKey = $field.'.'.lcfirst($ruleName);
-            $message = null;
-
-            if (isset($validator->customMessages[$customMessageKey])) {
-                $message = $validator->customMessages[$customMessageKey];
-            } else {
-                // Fall back to default Laravel message
-                $validatorReflection = new ReflectionClass($validator);
-                $getMessage = $validatorReflection->getMethod('getMessage');
-
-                $message = $validator->makeReplacements(
-                    $getMessage->invoke($validator, $field, $ruleName),
-                    $field,
-                    $ruleName,
-                    $parameters
-                );
-            }
+            // Resolve the message using the message service
+            $message = $this->messageService->resolveCustomMessage(
+                $field,
+                $ruleName,
+                $validator,
+                $parameters,
+                $isNumericField
+            );
 
             $resolvedValidation = new ResolvedValidation(
                 rule: $ruleName,

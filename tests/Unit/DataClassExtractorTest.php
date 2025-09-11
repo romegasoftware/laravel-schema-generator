@@ -29,7 +29,7 @@ class DataClassExtractorTest extends TestCase
 
         $result = $this->extractor->extract($reflection);
 
-        $this->assertEquals('TestPostalCodeSchema', $result->name);
+        $this->assertEquals('TestPostalCodeDataSchema', $result->name);
         $this->assertCount(1, $result->properties);
 
         $property = $result->properties->toCollection()->first();
@@ -53,7 +53,7 @@ class DataClassExtractorTest extends TestCase
 
         $result = $this->extractor->extract($reflection);
 
-        $this->assertEquals('TestInheritingSchema', $result->name);
+        $this->assertEquals('TestInheritingDataSchema', $result->name);
         $this->assertCount(1, $result->properties);
 
         $property = $result->properties->toCollection()->first();
