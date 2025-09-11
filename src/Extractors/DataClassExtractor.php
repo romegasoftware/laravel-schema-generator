@@ -316,7 +316,7 @@ class DataClassExtractor extends BaseExtractor
     /**
      * Merge inherited validation messages from InheritValidationFrom attributes
      */
-    protected function mergeInheritedMessages(ReflectionClass $class, \Illuminate\Validation\Validator $validator): void
+    protected function mergeInheritedMessages(ReflectionClass $class, Validator $validator): void
     {
         $constructor = $class->getConstructor();
         if (! $constructor) {
