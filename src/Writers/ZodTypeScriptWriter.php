@@ -54,14 +54,17 @@ class ZodTypeScriptWriter extends BaseScriptWriter
             $typeVarName = str_replace('Schema', 'SchemaType', $schema->name);
             $originalClassName = $this->getOriginalClassName($schema);
 
+            $isDataTypeClass = $this->isDataClass($schema);
+
             // Get the cached schema definition
             $schemaDefinition = $generatedSchemas[$schemaVarName] ?? 'z.object({})';
 
             // Add TypeScript type annotation if we have App types
-            if ($this->generator->needsAppTypesImport($schemas) && $originalClassName) {
+            if ($this->generator->needsAppTypesImport($schemas) && $originalClassName && $isDataTypeClass) {
                 $content .= sprintf(
-                    "export const %s: z.ZodType<App.%s> = %s;\n",
+                    "export const %s: z.ZodType<%s.%s> = %s;\n",
                     $schemaVarName,
+                    config('laravel-schema-generator.app_prefix', 'App'),
                     $originalClassName,
                     $schemaDefinition
                 );

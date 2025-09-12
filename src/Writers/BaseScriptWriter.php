@@ -4,6 +4,7 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Writers;
 
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Traits\Macroable;
+use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\SchemaTypeScriptWriter;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Traits\Makeable;
@@ -56,6 +57,18 @@ abstract class BaseScriptWriter implements SchemaTypeScriptWriter
         }
 
         return null;
+    }
+
+    /**
+     * Get the original class name for TypeScript
+     */
+    public function isDataClass(ExtractedSchemaData $schema): bool
+    {
+        if (! isset($schema->className)) {
+            return false;
+        }
+
+        return new ReflectionClass($schema->className)->isSubclassOf(\Spatie\LaravelData\Data::class);
     }
 
     /**
