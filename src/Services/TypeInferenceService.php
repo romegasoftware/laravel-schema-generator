@@ -135,17 +135,30 @@ class TypeInferenceService
             return 'string'; // Dates as strings in TypeScript
         }
 
-        // Check for file types using Laravel's actual file rules
+        // Check for file types - both from normalized rules and Laravel's file rules
+        if (isset($normalizedRules['File']) || isset($normalizedRules['Image'])) {
+            return 'file';
+        }
+
+        // Also check using Laravel's actual file rules
         $fileRules = $this->getFileRules();
         foreach ($fileRules as $fileRule) {
             if (isset($normalizedRules[$fileRule])) {
-                // File and Image return their specific types, others are treated as string constraints
+                // File and Image rules indicate a file type
                 if ($fileRule === 'File' || $fileRule === 'Image') {
-                    return 'string'; // File references as strings
+                    return 'file';
                 }
                 // Size rules like Min, Max, etc. don't determine type by themselves
                 break;
             }
+        }
+
+        // Also check for other common file-related rules
+        if (isset($normalizedRules['Mimes']) ||
+            isset($normalizedRules['Mimetypes']) ||
+            isset($normalizedRules['Extensions']) ||
+            isset($normalizedRules['Dimensions'])) {
+            return 'file';
         }
 
         // Check for enum (in rule with values)

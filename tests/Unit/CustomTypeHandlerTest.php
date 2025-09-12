@@ -3,6 +3,8 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodStringBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\TypeHandlerInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
@@ -11,8 +13,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
 use Spatie\LaravelData\DataCollection;
 
 class CustomTypeHandlerTest extends TestCase
@@ -39,7 +39,7 @@ class CustomTypeHandlerTest extends TestCase
                 $builder = new ZodStringBuilder;
 
                 // Custom datetime validation - requires ISO format
-                $builder->regex('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/', 'Must be valid ISO datetime');
+                $builder->validateRegex(['/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/'], 'Must be valid ISO datetime');
 
                 // Handle nullable/optional
                 $validations = $property->validations;
@@ -84,7 +84,7 @@ class CustomTypeHandlerTest extends TestCase
         $schema = $generator->generate($extracted);
 
         $this->assertStringContainsString(
-            "created_at: z.string().trim().regex(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/, 'Must be valid ISO datetime')",
+            "created_at: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/, 'Must be valid ISO datetime').trim()",
             $schema
         );
     }
@@ -112,7 +112,7 @@ class CustomTypeHandlerTest extends TestCase
                 $propertyName = $property->name;
 
                 // Custom behavior: always add uppercase validation for strings
-                $builder->regex('/^[A-Z]+$/', 'Must be uppercase');
+                $builder->validateRegex(['/^[A-Z]+$/'], 'Must be uppercase');
 
                 $validations = $property->validations;
                 if ($validations && $validations->isFieldNullable()) {
@@ -157,7 +157,7 @@ class CustomTypeHandlerTest extends TestCase
         // Should use custom handler instead of default string handler
         // The custom handler uses ZodStringBuilder which adds .trim() by default
         $this->assertStringContainsString(
-            "code: z.string().trim().regex(/^[A-Z]+$/, 'Must be uppercase')",
+            "code: z.string().regex(/^[A-Z]+$/, 'Must be uppercase').trim()",
             $schema
         );
         $this->assertStringNotContainsString('.min(', $schema);
@@ -184,7 +184,7 @@ class CustomTypeHandlerTest extends TestCase
                 $builder = new ZodStringBuilder;
 
                 // Custom UUID validation - more specific than default
-                $builder->regex('/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', 'Must be valid UUID v4');
+                $builder->validateRegex(['/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i'], 'Must be valid UUID v4');
 
                 $validations = $property->validations;
                 if ($validations->isFieldNullable()) {
@@ -226,7 +226,7 @@ class CustomTypeHandlerTest extends TestCase
         $schema = $generator->generate($extracted);
 
         $this->assertStringContainsString(
-            "id: z.string().trim().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, 'Must be valid UUID v4')",
+            "id: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, 'Must be valid UUID v4').trim()",
             $schema
         );
     }

@@ -32,7 +32,7 @@ class NestedObjectValidationTest extends TestCase
 
         // The nested properties should be inside the object
         $this->assertStringContainsString('lengthInSeconds: z.number()', $schema);
-        $this->assertStringContainsString('fileFormat: z.enum(["MP3", "WAV"])', $schema);
+        $this->assertStringContainsString('fileFormat: z.enum(["MP3", "WAV"],', $schema);
 
         // These should NOT exist as separate top-level properties
         $this->assertStringNotContainsString('song_meta_data_custom_name.lengthInSeconds:', $schema);

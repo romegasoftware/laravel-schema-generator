@@ -3,9 +3,9 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEnumBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodObjectBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEnumBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodObjectBuilder;
 
 class EnumResolutionConsistencyTest extends TestCase
 {
@@ -14,7 +14,7 @@ class EnumResolutionConsistencyTest extends TestCase
     {
         // This test case represents: 'payment_method' => 'required|string|in:credit_card,paypal,bank_transfer'
         $enumBuilder = new ZodEnumBuilder;
-        $enumBuilder->values(['credit_card', 'paypal', 'bank_transfer']);
+        $enumBuilder->setValues(['credit_card', 'paypal', 'bank_transfer']);
 
         $expected = 'z.enum(["credit_card", "paypal", "bank_transfer"])';
         $actual = $enumBuilder->build();
@@ -27,7 +27,7 @@ class EnumResolutionConsistencyTest extends TestCase
     {
         // This test case represents: 'items.*.pricing.*.component' => 'required|in:base,tax,discount'
         $enumBuilder = new ZodEnumBuilder;
-        $enumBuilder->values(['base', 'tax', 'discount']);
+        $enumBuilder->setValues(['base', 'tax', 'discount']);
 
         $expected = 'z.enum(["base", "tax", "discount"])';
         $actual = $enumBuilder->build();
@@ -43,7 +43,7 @@ class EnumResolutionConsistencyTest extends TestCase
 
         // Root level enum (payment_method)
         $paymentMethodEnum = new ZodEnumBuilder;
-        $paymentMethodEnum->values(['credit_card', 'paypal', 'bank_transfer']);
+        $paymentMethodEnum->setValues(['credit_card', 'paypal', 'bank_transfer']);
 
         // Nested array with enum (items.*.pricing.*.component)
         // ZodObjectBuilder is for schema references only
@@ -56,7 +56,7 @@ class EnumResolutionConsistencyTest extends TestCase
 
         // Test another enum
         $componentEnum = new ZodEnumBuilder;
-        $componentEnum->values(['base', 'tax', 'discount']);
+        $componentEnum->setValues(['base', 'tax', 'discount']);
         $this->assertEquals('z.enum(["base", "tax", "discount"])', $componentEnum->build());
     }
 }

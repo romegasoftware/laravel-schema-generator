@@ -9,7 +9,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Traits\Makeable;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEnumBuilder;
 
 abstract class BaseTypeHandler implements TypeHandlerInterface
 {
@@ -39,6 +38,7 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
         $type = $this->property->validations->inferredType;
 
         $this->builder = match (true) {
+            $type === 'file' => $this->factory->createFileBuilder(),
             $type === 'boolean' => $this->factory->createBooleanBuilder(),
             $type === 'number' => $this->factory->createNumberBuilder(),
             $type === 'array' => $this->factory->createArrayBuilder()
@@ -112,46 +112,7 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
         $message = $validation->message;
 
         try {
-            match ($validation->rule) {
-                // String validations
-                'min' => $this->callBuilderMethod('min', [$validation->getFirstParameter(), $message]),
-                'max' => $this->callBuilderMethod('max', [$validation->getFirstParameter(), $message]),
-                'size' => $this->callBuilderMethod('length', [$validation->getFirstParameter(), $message]),
-                'regex' => $this->applyRegexValidation($validation->parameters, $message),
-                'email' => $this->callBuilderMethod('email', [$message]),
-                'url' => $this->callBuilderMethod('url', [$message]),
-                'uuid' => $this->callBuilderMethod('uuid', [$message]),
-                'confirmed' => $this->callBuilderMethod('confirmed', [$message]),
-
-                // Number validations
-                'integer' => $this->callBuilderMethod('integer', [$message]),
-                'numeric' => null, // Already handled by type inference
-                'positive' => $this->callBuilderMethod('positive', [$message]),
-                'negative' => $this->callBuilderMethod('negative', [$message]),
-                'finite' => $this->callBuilderMethod('finite', [$message]),
-                'gte' => $this->callBuilderMethod('gte', [$validation->getFirstParameter(), $message]),
-                'lte' => $this->callBuilderMethod('lte', [$validation->getFirstParameter(), $message]),
-                'gt' => $this->callBuilderMethod('gt', [$validation->getFirstParameter(), $message]),
-                'lt' => $this->callBuilderMethod('lt', [$validation->getFirstParameter(), $message]),
-                'multiple_of' => $this->callBuilderMethod('multipleOf', [$validation->getFirstParameter(), $message]),
-                'decimal' => $this->applyDecimalValidation($validation->parameters, $message),
-                'digits' => $this->callBuilderMethod('digits', [$validation->getFirstParameter(), $message]),
-                'digits_between' => $this->applyDigitsBetweenValidation($validation->parameters, $message),
-                'max_digits' => $this->callBuilderMethod('maxDigits', [$validation->getFirstParameter(), $message]),
-                'min_digits' => $this->callBuilderMethod('minDigits', [$validation->getFirstParameter(), $message]),
-
-                // Array validations
-                'array' => null, // Already handled by type inference
-
-                // Boolean validations
-                'boolean' => null, // Already handled by type inference
-
-                // Enum validations
-                'in' => $this->applyInValidation($validation->parameters, $message),
-
-                // Generic validation - pass through if Laravel accepts it
-                default => $this->applyGenericValidation($validation->rule, $validation->parameters, $message),
-            };
+            $this->applyGenericValidation($validation->rule, $validation->parameters, $message);
         } catch (\Throwable $e) {
             // Silently skip validations that can't be applied - this allows for extensibility
             // Laravel may have validation rules that don't have Zod equivalents yet
@@ -169,83 +130,15 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
     }
 
     /**
-     * Apply regex validation with pattern conversion
-     */
-    public function applyRegexValidation(array $parameters, ?string $customMessage): void
-    {
-        if (empty($parameters[0])) {
-            return;
-        }
-
-        $pattern = $this->convertPhpRegexToJavaScript($parameters[0]);
-        $this->callBuilderMethod('regex', [$pattern, $customMessage]);
-    }
-
-    /**
-     * Convert PHP regex to JavaScript regex
-     */
-    public function convertPhpRegexToJavaScript(string $phpRegex): string
-    {
-        // Remove the delimiters (first and last character) if they exist
-        if (preg_match('/^\/.*\/$/', $phpRegex)) {
-            $pattern = substr($phpRegex, 1, -1);
-        } else {
-            $pattern = $phpRegex;
-        }
-
-        // In JavaScript, dots don't need escaping inside character classes
-        $pattern = preg_replace_callback(
-            '/\[[^\]]*\]/',
-            fn ($matches) => str_replace('\.', '.', $matches[0]),
-            $pattern
-        );
-
-        // Return as a JavaScript regex literal
-        return '/'.$pattern.'/';
-    }
-
-    /**
-     * Apply in/enum validation
-     */
-    public function applyInValidation(array $parameters, ?string $customMessage): void
-    {
-        if ($this->builder instanceof ZodEnumBuilder && ! empty($parameters)) {
-            // Enum builder handles this automatically
-            return;
-        }
-
-        // For other builders, we can't easily add enum validation, so skip
-        // This would require a more complex transformation to ZodEnumBuilder
-    }
-
-    /**
      * Apply generic validation by checking if the builder supports the method
      */
     public function applyGenericValidation(string $rule, array $parameters, ?string $customMessage): void
     {
         // Try to call a method with the rule name
-        if (method_exists($this->builder, $rule)) {
-            $args = array_merge($parameters, [$customMessage]);
-            $this->callBuilderMethod($rule, $args);
+        if (method_exists($this->builder, "validate{$rule}")) {
+            $args = array_merge([$parameters], [$customMessage]);
+            $this->callBuilderMethod("validate{$rule}", $args);
         }
-
-        // Note: This allows for extensibility - custom builders can implement additional methods
-        // and they will be automatically called if they exist
-    }
-
-    /**
-     * Apply decimal validation
-     */
-    public function applyDecimalValidation(array $parameters, ?string $customMessage): void
-    {
-        if (empty($parameters[0])) {
-            return;
-        }
-
-        $min = (int) $parameters[0];
-        $max = isset($parameters[1]) ? (int) $parameters[1] : null;
-
-        $this->callBuilderMethod('decimal', [$min, $max, $customMessage]);
     }
 
     /**
@@ -261,5 +154,71 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
         $max = (int) $parameters[1];
 
         $this->callBuilderMethod('digitsBetween', [$min, $max, $customMessage]);
+    }
+
+    /**
+     * Apply between validation (for files or numbers)
+     */
+    protected function applyBetweenValidation(array $parameters, ?string $customMessage): void
+    {
+        if (empty($parameters[0]) || empty($parameters[1])) {
+            return;
+        }
+
+        $min = (int) $parameters[0];
+        $max = (int) $parameters[1];
+
+        $this->callBuilderMethod('between', [$min, $max, $customMessage]);
+    }
+
+    /**
+     * Apply mimes validation
+     */
+    protected function applyMimesValidation(array $parameters, ?string $customMessage): void
+    {
+        if (empty($parameters)) {
+            return;
+        }
+
+        // The parameters are already extensions, convert them to MIME types
+        $mimeTypes = $this->convertExtensionsToMimeTypes($parameters);
+
+        // If no MIME types were mapped, use the extensions as-is (they might already be MIME types)
+        if (empty($mimeTypes)) {
+            // Try to use them as MIME types directly if they contain /
+            foreach ($parameters as $param) {
+                if (str_contains($param, '/')) {
+                    $mimeTypes[] = $param;
+                }
+            }
+        }
+
+        if (! empty($mimeTypes)) {
+            $this->callBuilderMethod('mimes', [$mimeTypes, $customMessage]);
+        }
+    }
+
+    /**
+     * Apply mimetypes validation
+     */
+    protected function applyMimetypesValidation(array $parameters, ?string $customMessage): void
+    {
+        if (empty($parameters)) {
+            return;
+        }
+
+        $this->callBuilderMethod('mimetypes', [$parameters, $customMessage]);
+    }
+
+    /**
+     * Apply extensions validation
+     */
+    protected function applyExtensionsValidation(array $parameters, ?string $customMessage): void
+    {
+        if (empty($parameters)) {
+            return;
+        }
+
+        $this->callBuilderMethod('extensions', [$parameters, $customMessage]);
     }
 }

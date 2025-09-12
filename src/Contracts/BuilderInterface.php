@@ -30,9 +30,17 @@ interface BuilderInterface
     public function build(): string;
 
     /**
-     * Escape string for JavaScript
+     * Unified message normalization for JavaScript output
+     * Handles all escaping consistently for embedding in JavaScript strings
+     * Use this when you need to embed a message directly in a JS string
      */
-    public function escapeForJS(string $str): string;
+    public function normalizeMessageForJS(?string $str): string;
+
+    /**
+     * Format a message for use as a method parameter (e.g., .min(1, 'message'))
+     * Returns the message formatted with comma and quotes: , 'message'
+     */
+    public function formatMessageAsParameter(?string $str): string;
 
     /**
      * Set the translator instance

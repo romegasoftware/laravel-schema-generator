@@ -1,6 +1,6 @@
 <?php
 
-namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
+namespace RomegaSoftware\LaravelSchemaGenerator\Builders\Zod;
 
 class ZodObjectBuilder extends ZodBuilder
 {
@@ -19,8 +19,9 @@ class ZodObjectBuilder extends ZodBuilder
     /**
      * Set the schema reference
      */
-    public function schemaReference(string $reference): self
+    public function validateSchemaReference(?array $parameters = [], ?string $message = null): self
     {
+        [$reference] = $parameters;
         $this->schemaReference = $reference;
 
         return $this;

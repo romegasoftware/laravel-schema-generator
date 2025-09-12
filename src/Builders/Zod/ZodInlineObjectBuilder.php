@@ -1,6 +1,6 @@
 <?php
 
-namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
+namespace RomegaSoftware\LaravelSchemaGenerator\Builders\Zod;
 
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;

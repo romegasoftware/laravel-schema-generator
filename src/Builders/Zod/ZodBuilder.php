@@ -1,6 +1,6 @@
 <?php
 
-namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
+namespace RomegaSoftware\LaravelSchemaGenerator\Builders\Zod;
 
 use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Support\Traits\Macroable;
@@ -189,25 +189,32 @@ abstract class ZodBuilder implements BuilderInterface
     }
 
     /**
-     * Format a message for use in validation rules
+     * Format a message for use as a method parameter (e.g., .min(1, 'message'))
+     * Returns the message formatted with comma and quotes: , 'message'
      */
-    protected function formatMessage(?string $message): string
+    public function formatMessageAsParameter(?string $str): string
     {
-        if ($message === null) {
+        if ($str === null) {
             return '';
         }
 
-        // Escape single quotes and return formatted message
-        $escapedMessage = str_replace("'", "\\'", $message);
+        $escapedStr = $this->normalizeMessageForJS($str);
 
-        return ", '{$escapedMessage}'";
+        return ", '{$escapedStr}'";
     }
 
     /**
-     * Escape string for JavaScript
+     * Unified message normalization for JavaScript output
+     * Handles all escaping consistently for embedding in JavaScript strings
+     * Use this when you need to embed a message directly in a JS string
      */
-    public function escapeForJS(string $str): string
+    public function normalizeMessageForJS(?string $str): string
     {
+        if ($str === null) {
+            return '';
+        }
+
+        // Escape all special characters for JavaScript strings
         return str_replace(
             ['\\', "'", '"', "\n", "\r", "\t"],
             ['\\\\', "\\'", '\\"', '\\n', '\\r', '\\t'],

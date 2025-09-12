@@ -105,9 +105,10 @@ class ValidationSchemaGeneratorTest extends TestCase
         $schema = $this->generator->generate($extracted);
 
         // Test actual string validation format
-        $this->assertStringContainsString('z.string().trim()', $schema);
+        $this->assertStringContainsString('z.string()', $schema);
         $this->assertStringContainsString(".min(2, 'The name field must be at least 2 characters.')", $schema);
         $this->assertStringContainsString(".max(100, 'The name field may not be greater than 100 characters.')", $schema);
+        $this->assertStringContainsString('.trim()', $schema);
     }
 
     #[Test]
@@ -426,8 +427,7 @@ class ValidationSchemaGeneratorTest extends TestCase
         $this->assertStringContainsString('.optional()', $schema);
 
         // Verify UUID field: should have uuid() validation with message
-        $this->assertStringContainsString('uuid: z.string().trim()', $schema);
-        $this->assertStringContainsString('.uuid(\'The uuid field must be a valid UUID.\')', $schema);
+        $this->assertStringContainsString('uuid: z.string().uuid(\'The uuid field must be a valid UUID.\').trim()', $schema);
 
         // Verify overall structure is valid Zod v4
         $this->assertStringStartsWith('z.object({', $schema);

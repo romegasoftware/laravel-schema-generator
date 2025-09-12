@@ -1,14 +1,14 @@
 <?php
 
-namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
+namespace RomegaSoftware\LaravelSchemaGenerator\Builders\Zod;
 
 class ZodEnumBuilder extends ZodBuilder
 {
+    protected ?string $requiredMessage = null;
+
     protected array $values = [];
 
     protected ?string $enumReference = null;
-
-    protected ?string $customMessage = null;
 
     public function __construct(array $values = [], ?string $enumReference = null)
     {
@@ -42,14 +42,14 @@ class ZodEnumBuilder extends ZodBuilder
     protected function getBaseType(): string
     {
         if ($this->enumReference) {
-            $messageStr = $this->customMessage ? ', { message: "'.addslashes($this->customMessage).'" }' : '';
+            $messageStr = $this->requiredMessage ? ', { message: "'.addslashes($this->requiredMessage).'" }' : '';
 
             return "z.enum({$this->enumReference}{$messageStr})";
         }
 
         $formattedValues = array_map(fn ($v) => '"'.$v.'"', $this->values);
         $valuesStr = implode(', ', $formattedValues);
-        $messageStr = $this->customMessage ? ', { message: "'.addslashes($this->customMessage).'" }' : '';
+        $messageStr = $this->requiredMessage ? ', { message: "'.addslashes($this->requiredMessage).'" }' : '';
 
         return "z.enum([{$valuesStr}]{$messageStr})";
     }
@@ -57,9 +57,10 @@ class ZodEnumBuilder extends ZodBuilder
     /**
      * Set enum values
      */
-    public function values(array $values): self
+    public function validateValues(?array $parameters = [], ?string $message = null): self
     {
-        $this->values = $values;
+        // Parameters is already an array of values in this case
+        $this->values = $parameters;
 
         return $this;
     }
@@ -67,19 +68,22 @@ class ZodEnumBuilder extends ZodBuilder
     /**
      * Set enum reference (e.g., 'App.StatusEnum')
      */
-    public function enumReference(string $reference): self
+    public function validateEnumReference(?array $parameters = [], ?string $message = null): self
     {
+        [$reference] = $parameters;
         $this->enumReference = $reference;
 
         return $this;
     }
 
-    /**
-     * Set custom error message for enum validation
-     */
-    public function message(string $message): self
+    public function validateRequired(?array $parameters = [], ?string $message = null): self
     {
-        $this->customMessage = $message;
+        $resolvedMessage = $this->resolveMessage('required', $message);
+
+        if ($resolvedMessage) {
+            $escapedMessage = $this->normalizeMessageForJS($resolvedMessage);
+            $this->requiredMessage = $escapedMessage;
+        }
 
         return $this;
     }

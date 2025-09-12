@@ -1,6 +1,6 @@
 <?php
 
-namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
+namespace RomegaSoftware\LaravelSchemaGenerator\Builders\Zod;
 
 class ZodEmailBuilder extends ZodBuilder
 {
@@ -28,7 +28,7 @@ class ZodEmailBuilder extends ZodBuilder
     /**
      * Add trim validation
      */
-    public function trim(): self
+    public function validateTrim(?array $parameters = [], ?string $message = null): self
     {
         if (! $this->hasRule('trim')) {
             $this->addRule('.trim()');
@@ -40,9 +40,10 @@ class ZodEmailBuilder extends ZodBuilder
     /**
      * Add minimum length validation
      */
-    public function min(int $length, ?string $message = null): self
+    public function validateMin(?array $parameters = [], ?string $message = null): self
     {
-        $messageStr = $this->formatMessage($message);
+        [$length] = $parameters;
+        $messageStr = $this->formatMessageAsParameter($message);
         $rule = ".min({$length}{$messageStr})";
 
         $this->replaceRule('min', $rule);
@@ -53,17 +54,17 @@ class ZodEmailBuilder extends ZodBuilder
     /**
      * Make field required using Zod v4 error callback approach
      */
-    public function required(?string $message = null): self
+    public function validateRequired(?array $parameters = [], ?string $message = null): self
     {
         $resolvedMessage = $this->resolveMessage('required', $message);
 
         if ($resolvedMessage) {
-            $escapedMessage = $this->escapeForJS($resolvedMessage);
+            $escapedMessage = $this->normalizeMessageForJS($resolvedMessage);
             $this->requiredMessage = $escapedMessage;
         }
 
         $length = 1;
-        $messageStr = $this->formatMessage($resolvedMessage);
+        $messageStr = $this->formatMessageAsParameter($resolvedMessage);
 
         $rule = ".min({$length}{$messageStr})";
 
@@ -75,12 +76,12 @@ class ZodEmailBuilder extends ZodBuilder
     /**
      * Make field required using Zod v4 error callback approach
      */
-    public function email(?string $message = null): self
+    public function validateEmail(?array $parameters = [], ?string $message = null): self
     {
         $resolvedMessage = $this->resolveMessage('email', $message);
 
         if ($resolvedMessage) {
-            $escapedMessage = $this->escapeForJS($resolvedMessage);
+            $escapedMessage = $this->normalizeMessageForJS($resolvedMessage);
             $this->emailErrorMessage = $escapedMessage;
         }
 
@@ -90,37 +91,13 @@ class ZodEmailBuilder extends ZodBuilder
     /**
      * Add maximum length validation
      */
-    public function max(int $length, ?string $message = null): self
+    public function validateMax(?array $parameters = [], ?string $message = null): self
     {
-        $messageStr = $this->formatMessage($message);
+        [$length] = $parameters;
+        $messageStr = $this->formatMessageAsParameter($message);
         $rule = ".max({$length}{$messageStr})";
 
         $this->replaceRule('max', $rule);
-
-        return $this;
-    }
-
-    /**
-     * Add custom email validation message
-     */
-    public function emailMessage(string $message): self
-    {
-        // For custom email message, we need to reconstruct with custom message
-        // This is a special case for email validation
-        $escapedMessage = str_replace("'", "\\'", $message);
-        $rule = ".email('{$escapedMessage}')";
-
-        $this->replaceRule('email', $rule);
-
-        return $this;
-    }
-
-    /**
-     * Add non-empty validation (alias for min(1))
-     */
-    public function nonEmpty(?string $message = null): self
-    {
-        $this->min(1, $message);
 
         return $this;
     }

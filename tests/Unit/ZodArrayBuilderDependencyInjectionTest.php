@@ -4,14 +4,14 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use Mockery;
 use PHPUnit\Framework\Attributes\Test;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodArrayBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodInlineObjectBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodStringBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodArrayBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodInlineObjectBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
 
 class ZodArrayBuilderDependencyInjectionTest extends TestCase
 {

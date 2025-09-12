@@ -3,17 +3,18 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Factories;
 
 use Illuminate\Contracts\Translation\Translator;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodAnyBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodArrayBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodBooleanBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEmailBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEnumBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodFileBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodInlineObjectBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodNumberBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodObjectBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodStringBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodAnyBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodArrayBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodBooleanBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEmailBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEnumBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodInlineObjectBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodNumberBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodObjectBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
 
 /**
  * Factory class for creating ZodBuilder instances with proper dependency injection
@@ -118,5 +119,13 @@ class ZodBuilderFactory
     public function createObjectBuilder(string $schemaReference = ''): ZodObjectBuilder
     {
         return $this->setTranslatorOnBuilder(new ZodObjectBuilder($schemaReference));
+    }
+
+    /**
+     * Create a ZodFileBuilder instance
+     */
+    public function createFileBuilder(): ZodFileBuilder
+    {
+        return $this->setTranslatorOnBuilder(new ZodFileBuilder);
     }
 }

@@ -3,6 +3,8 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodStringBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\TypeHandlerInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
@@ -10,8 +12,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
 
 class TypeHandlerRegistryTest extends TestCase
 {

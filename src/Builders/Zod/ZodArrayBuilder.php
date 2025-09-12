@@ -1,6 +1,6 @@
 <?php
 
-namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
+namespace RomegaSoftware\LaravelSchemaGenerator\Builders\Zod;
 
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
@@ -130,9 +130,10 @@ class ZodArrayBuilder extends ZodBuilder
     /**
      * Add minimum array length validation
      */
-    public function min(int $length, ?string $message = null): self
+    public function validateMin(?array $parameters = [], ?string $message = null): self
     {
-        $messageStr = $this->formatMessage($message);
+        [$length] = $parameters;
+        $messageStr = $this->formatMessageAsParameter($message);
         $rule = ".min({$length}{$messageStr})";
 
         $this->replaceRule('min', $rule);
@@ -143,9 +144,10 @@ class ZodArrayBuilder extends ZodBuilder
     /**
      * Add maximum array length validation
      */
-    public function max(int $length, ?string $message = null): self
+    public function validateMax(?array $parameters = [], ?string $message = null): self
     {
-        $messageStr = $this->formatMessage($message);
+        [$length] = $parameters;
+        $messageStr = $this->formatMessageAsParameter($message);
         $rule = ".max({$length}{$messageStr})";
 
         $this->replaceRule('max', $rule);
@@ -156,22 +158,13 @@ class ZodArrayBuilder extends ZodBuilder
     /**
      * Add exact array length validation
      */
-    public function length(int $length, ?string $message = null): self
+    public function validateLength(?array $parameters = [], ?string $message = null): self
     {
-        $messageStr = $this->formatMessage($message);
+        [$length] = $parameters;
+        $messageStr = $this->formatMessageAsParameter($message);
         $rule = ".length({$length}{$messageStr})";
 
         $this->replaceRule('length', $rule);
-
-        return $this;
-    }
-
-    /**
-     * Add non-empty array validation (alias for min(1))
-     */
-    public function nonEmpty(?string $message = null): self
-    {
-        $this->min(1, $message);
 
         return $this;
     }

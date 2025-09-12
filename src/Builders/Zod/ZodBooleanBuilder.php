@@ -1,16 +1,16 @@
 <?php
 
-namespace RomegaSoftware\LaravelSchemaGenerator\ZodBuilders;
+namespace RomegaSoftware\LaravelSchemaGenerator\Builders\Zod;
 
-class ZodAnyBuilder extends ZodBuilder
+class ZodBooleanBuilder extends ZodBuilder
 {
     protected function getBaseType(): string
     {
-        return 'z.any()';
+        return 'z.boolean()';
     }
 
     /**
-     * Override build method since z.any() doesn't support additional validation chains
+     * Override build method since boolean types don't support additional validation chains
      * except for nullable and optional
      */
     public function build(): string

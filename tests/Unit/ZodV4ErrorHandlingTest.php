@@ -3,12 +3,12 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodStringBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
 
 class ZodV4ErrorHandlingTest extends TestCase
 {
@@ -24,10 +24,11 @@ class ZodV4ErrorHandlingTest extends TestCase
     public function it_generates_required_field_with_zod_v4_error_callback(): void
     {
         $builder = new ZodStringBuilder;
-        $result = $builder->required('Username is required')->trim()->build();
+        $result = $builder->validateRequired([], 'Username is required')->validateTrim()->build();
 
         // The actual implementation uses refine method
-        $this->assertStringContainsString('z.string().trim()', $result);
+        $this->assertStringContainsString('z.string()', $result);
+        $this->assertStringContainsString('.trim()', $result);
         $this->assertStringContainsString('.refine((val) => val != undefined && val != null && val != \'\', { error: \'Username is required\'})', $result);
     }
 
@@ -35,13 +36,14 @@ class ZodV4ErrorHandlingTest extends TestCase
     public function it_generates_required_plus_min_as_separate_validations(): void
     {
         $builder = new ZodStringBuilder;
-        $result = $builder->required('Title is required')
-            ->trim()
-            ->min(5, 'Title must be at least 5 characters')
+        $result = $builder->validateRequired([], 'Title is required')
+            ->validateTrim()
+            ->validateMin([5], 'Title must be at least 5 characters')
             ->build();
 
         // Should have required using refine method
-        $this->assertStringContainsString('z.string().trim()', $result);
+        $this->assertStringContainsString('z.string()', $result);
+        $this->assertStringContainsString('.trim()', $result);
         $this->assertStringContainsString('.refine((val) => val != undefined && val != null && val != \'\', { error: \'Title is required\'})', $result);
 
         // Should have separate min validation
@@ -52,7 +54,7 @@ class ZodV4ErrorHandlingTest extends TestCase
     public function it_generates_min_only_validation_without_required(): void
     {
         $builder = new ZodStringBuilder;
-        $result = $builder->trim()->min(10, 'Must be at least 10 characters')->build();
+        $result = $builder->validateTrim()->validateMin([10], 'Must be at least 10 characters')->build();
 
         // Should NOT have error callback in base definition
         $this->assertStringStartsWith('z.string()', $result);
@@ -127,7 +129,8 @@ class ZodV4ErrorHandlingTest extends TestCase
         $result = $builder->build();
 
         // Required is not added by UniversalTypeHandler, just min validation
-        $this->assertStringContainsString('z.string().trim()', $result);
+        $this->assertStringContainsString('z.string()', $result);
+        $this->assertStringContainsString('.trim()', $result);
         $this->assertStringContainsString('.min(8, \'Password must be at least 8 characters\')', $result);
     }
 
@@ -162,12 +165,13 @@ class ZodV4ErrorHandlingTest extends TestCase
     public function it_escapes_javascript_special_characters_in_messages(): void
     {
         $builder = new ZodStringBuilder;
-        $result = $builder->required("Title can't be empty or contain \"quotes\"")
-            ->trim()
+        $result = $builder->validateRequired([], "Title can't be empty or contain \"quotes\"")
+            ->validateTrim()
             ->build();
 
         // Should properly escape quotes and apostrophes for JavaScript
-        $this->assertStringContainsString('z.string().trim()', $result);
+        $this->assertStringContainsString('z.string()', $result);
+        $this->assertStringContainsString('.trim()', $result);
         $this->assertStringContainsString("Title can\\'t be empty or contain \\\"quotes\\\"", $result);
     }
 }

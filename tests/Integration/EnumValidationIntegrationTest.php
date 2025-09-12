@@ -44,7 +44,7 @@ class EnumValidationIntegrationTest extends TestCase
         $this->assertStringContainsString('payment_method: z.enum(["credit_card", "paypal", "bank_transfer"])', $schema);
 
         // Nested enum should also be properly formatted
-        $this->assertStringContainsString('component: z.enum(["base", "tax", "discount"])', $schema);
+        $this->assertStringContainsString('component: z.enum(["base", "tax", "discount"]', $schema);
 
         // Should NOT contain malformed enum
         $this->assertStringNotContainsString('z.enum(App.', $schema);

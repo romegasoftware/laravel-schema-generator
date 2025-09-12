@@ -35,7 +35,7 @@ class NestedObjectsInArraysTest extends TestCase
 
         // The nested object properties should be inside the object, not as separate fields
         $this->assertStringContainsString('lengthInSeconds: z.number()', $schema);
-        $this->assertStringContainsString('fileFormat: z.enum(["MP3", "WAV"])', $schema);
+        $this->assertStringContainsString('fileFormat: z.enum(["MP3", "WAV"],', $schema);
 
         // These should NOT exist as separate fields with dot notation
         $this->assertStringNotContainsString('song_meta_data_custom_name.lengthInSeconds:', $schema);

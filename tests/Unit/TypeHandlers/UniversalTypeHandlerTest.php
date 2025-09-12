@@ -3,17 +3,17 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit\TypeHandlers;
 
 use PHPUnit\Framework\Attributes\Test;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodArrayBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodBooleanBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEmailBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEnumBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodNumberBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodStringBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodArrayBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodBooleanBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEmailBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEnumBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodNumberBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
 
 class UniversalTypeHandlerTest extends TestCase
 {

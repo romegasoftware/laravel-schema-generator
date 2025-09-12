@@ -3,11 +3,11 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEmailBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEnumBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodNumberBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodStringBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEmailBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodEnumBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodNumberBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\ZodBuilders\ZodStringBuilder;
 
 class ZodBuilderTest extends TestCase
 {
@@ -16,13 +16,13 @@ class ZodBuilderTest extends TestCase
     {
         $builder = new ZodStringBuilder;
 
-        $result = $builder->trim()
-            ->min(5, 'Too short')
-            ->max(100, 'Too long')
-            ->regex('/^[A-Z]+$/', 'Must be uppercase')
+        $result = $builder->validateTrim()
+            ->validateMin([5], 'Too short')
+            ->validateMax([100], 'Too long')
+            ->validateRegex(['/^[A-Z]+$/'], 'Must be uppercase')
             ->build();
 
-        $this->assertEquals("z.string().trim().trim().min(5, 'Too short').max(100, 'Too long').regex(/^[A-Z]+$/, 'Must be uppercase')", $result);
+        $this->assertEquals("z.string().min(5, 'Too short').max(100, 'Too long').regex(/^[A-Z]+$/, 'Must be uppercase').trim()", $result);
     }
 
     #[Test]
@@ -30,12 +30,12 @@ class ZodBuilderTest extends TestCase
     {
         $builder = new ZodStringBuilder;
 
-        $result = $builder->min(1, 'Required')
+        $result = $builder->validateMin([1], 'Required')
             ->nullable()
             ->optional()
             ->build();
 
-        $this->assertEquals("z.string().trim().min(1, 'Required').nullable().optional()", $result);
+        $this->assertEquals("z.string().min(1, 'Required').trim().nullable().optional()", $result);
     }
 
     #[Test]
@@ -43,13 +43,13 @@ class ZodBuilderTest extends TestCase
     {
         $builder = new ZodStringBuilder;
 
-        $result = $builder->min(1)
-            ->min(5, 'Updated message')  // Should replace the first min
-            ->max(10)
-            ->max(20)  // Should replace the first max
+        $result = $builder->validateMin([1])
+            ->validateMin([5], 'Updated message')  // Should replace the first min
+            ->validateMax([10])
+            ->validateMax([20])  // Should replace the first max
             ->build();
 
-        $this->assertEquals("z.string().trim().min(5, 'Updated message').max(20)", $result);
+        $this->assertEquals("z.string().min(5, 'Updated message').max(20).trim()", $result);
     }
 
     #[Test]
@@ -57,9 +57,9 @@ class ZodBuilderTest extends TestCase
     {
         $builder = new ZodNumberBuilder;
 
-        $result = $builder->min(0)
-            ->max(100)
-            ->integer()
+        $result = $builder->validateMin([0])
+            ->validateMax([100])
+            ->validateInteger()
             ->build();
 
         // Note: integer() modifies the base type, not adds a chain
@@ -73,23 +73,12 @@ class ZodBuilderTest extends TestCase
     {
         $builder = new ZodEmailBuilder;
 
-        $result = $builder->trim()
-            ->min(1, 'Email required')
-            ->max(255)
+        $result = $builder
+            ->validateMin([1], 'Email required')
+            ->validateMax([255])
             ->build();
 
-        $this->assertEquals("z.email().trim().trim().min(1, 'Email required').max(255)", $result);
-    }
-
-    #[Test]
-    public function it_builds_email_with_custom_email_message(): void
-    {
-        $builder = new ZodEmailBuilder;
-
-        $result = $builder->emailMessage('Please enter a valid email address')
-            ->build();
-
-        $this->assertEquals("z.email().trim().email('Please enter a valid email address')", $result);
+        $this->assertEquals("z.email().trim().min(1, 'Email required').max(255)", $result);
     }
 
     #[Test]
@@ -97,7 +86,7 @@ class ZodBuilderTest extends TestCase
     {
         $builder = new ZodEmailBuilder;
 
-        $result = $builder->required('Email is required')
+        $result = $builder->validateRequired([], 'Email is required')
             ->build();
 
         // Should use the Zod v4 error callback approach for required messages
@@ -109,13 +98,12 @@ class ZodBuilderTest extends TestCase
     {
         $builder = new ZodEmailBuilder;
 
-        $result = $builder->required('Email field is mandatory')
-            ->emailMessage('Must be a valid email format')
-            ->max(255, 'Email too long')
+        $result = $builder->validateRequired([], 'Email field is mandatory')
+            ->validateMax([255], 'Email too long')
             ->build();
 
         // Should combine both approaches: Zod v4 error callback for required, and custom email message
-        $this->assertEquals("z.email({ error: (val) => (val != undefined && val != null ? 'Email field is mandatory' : undefined) }).trim().min(1, 'Email field is mandatory').email('Must be a valid email format').max(255, 'Email too long')", $result);
+        $this->assertEquals("z.email({ error: (val) => (val != undefined && val != null ? 'Email field is mandatory' : undefined) }).trim().min(1, 'Email field is mandatory').max(255, 'Email too long')", $result);
     }
 
     #[Test]
@@ -123,25 +111,11 @@ class ZodBuilderTest extends TestCase
     {
         $builder = new ZodEmailBuilder;
 
-        $result = $builder->emailMessage("Can't be empty or invalid")
-            ->required("Email field can't be blank")
+        $result = $builder->validateRequired([], "Email field can't be blank")
             ->build();
 
         // Should properly escape quotes in JavaScript strings
-        $this->assertEquals("z.email({ error: (val) => (val != undefined && val != null ? 'Email field can\\'t be blank' : undefined) }).trim().email('Can\\'t be empty or invalid').min(1, 'Email field can\\'t be blank')", $result);
-    }
-
-    #[Test]
-    public function it_builds_nullable_optional_email_with_messages(): void
-    {
-        $builder = new ZodEmailBuilder;
-
-        $result = $builder->emailMessage('Invalid email format')
-            ->nullable()
-            ->optional()
-            ->build();
-
-        $this->assertEquals("z.email().trim().email('Invalid email format').nullable().optional()", $result);
+        $this->assertEquals("z.email({ error: (val) => (val != undefined && val != null ? 'Email field can\\'t be blank' : undefined) }).trim().min(1, 'Email field can\\'t be blank')", $result);
     }
 
     #[Test]
@@ -153,8 +127,8 @@ class ZodBuilderTest extends TestCase
 
         $builder = $factory->createArrayBuilder('z.string()');
 
-        $result = $builder->min(1, 'At least one required')
-            ->max(10)
+        $result = $builder->validateMin([1], 'At least one required')
+            ->validateMax([10])
             ->build();
 
         $this->assertEquals("z.array(z.string()).min(1, 'At least one required').max(10)", $result);
@@ -165,7 +139,7 @@ class ZodBuilderTest extends TestCase
     {
         $builder = new ZodEnumBuilder(['active', 'inactive', 'pending']);
 
-        $result = $builder->message('Invalid status')
+        $result = $builder->validateRequired([], 'Invalid status')
             ->nullable()
             ->build();
 
@@ -177,7 +151,7 @@ class ZodBuilderTest extends TestCase
     {
         $builder = new ZodEnumBuilder([], 'App.StatusEnum');
 
-        $result = $builder->message('Invalid status')
+        $result = $builder->validateRequired([], 'Invalid status')
             ->build();
 
         $this->assertEquals('z.enum(App.StatusEnum, { message: "Invalid status" })', $result);
@@ -188,9 +162,9 @@ class ZodBuilderTest extends TestCase
     {
         $builder = new ZodStringBuilder;
 
-        $result = $builder->min(1, "Don't forget quotes")
+        $result = $builder->validateMin([1], "Don't forget quotes")
             ->build();
 
-        $this->assertEquals("z.string().trim().min(1, 'Don\\'t forget quotes')", $result);
+        $this->assertEquals("z.string().min(1, 'Don\\'t forget quotes').trim()", $result);
     }
 }
