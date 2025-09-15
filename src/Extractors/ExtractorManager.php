@@ -13,11 +13,24 @@ class ExtractorManager
 
     protected PackageDetector $packageDetector;
 
+    protected bool $initialized = false;
+
     public function __construct(PackageDetector $packageDetector)
     {
         $this->packageDetector = $packageDetector;
-        $this->registerDefaultExtractors();
-        $this->registerCustomExtractors();
+        // Defer extractor registration until first use to prevent early dependency resolution
+    }
+
+    /**
+     * Initialize extractors if not already done
+     */
+    protected function ensureInitialized(): void
+    {
+        if (! $this->initialized) {
+            $this->registerDefaultExtractors();
+            $this->registerCustomExtractors();
+            $this->initialized = true;
+        }
     }
 
     /**
@@ -80,6 +93,7 @@ class ExtractorManager
      */
     public function findExtractor(ReflectionClass $class): ?ExtractorInterface
     {
+        $this->ensureInitialized();
         foreach ($this->extractors as $extractor) {
             if ($extractor->canHandle($class)) {
                 return $extractor;
@@ -96,6 +110,7 @@ class ExtractorManager
      */
     public function extract(ReflectionClass $class): ExtractedSchemaData
     {
+        $this->ensureInitialized();
         $extractor = $this->findExtractor($class);
 
         if (! $extractor) {
@@ -113,6 +128,8 @@ class ExtractorManager
      */
     public function getExtractors(): array
     {
+        $this->ensureInitialized();
+
         return $this->extractors;
     }
 }

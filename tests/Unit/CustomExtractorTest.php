@@ -170,7 +170,8 @@ class CustomExtractorTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Custom extractor class NonExistentExtractor does not exist.');
 
-        new ExtractorManager($this->app->make(PackageDetector::class));
+        $manager = new ExtractorManager($this->app->make(PackageDetector::class));
+        $manager->getExtractors(); // Trigger initialization
     }
 
     #[Test]
@@ -191,7 +192,8 @@ class CustomExtractorTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Custom extractor InvalidExtractor must implement ExtractorInterface.');
 
-        new ExtractorManager($this->app->make(PackageDetector::class));
+        $manager = new ExtractorManager($this->app->make(PackageDetector::class));
+        $manager->getExtractors(); // Trigger initialization
     }
 
     #[Test]

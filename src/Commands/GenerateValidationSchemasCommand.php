@@ -30,12 +30,52 @@ class GenerateValidationSchemasCommand extends Command
         protected ?SchemaTypeScriptWriter $writer = null
     ) {
         parent::__construct();
+        // Defer dependency initialization to prevent early database access during package discovery
+    }
 
-        $this->packageDetector = $packageDetector ?? new PackageDetector;
-        $this->extractorManager = $extractorManager ?? new ExtractorManager($this->packageDetector);
-        $this->typeHandlerRegistry = $typeHandlerRegistry ?? new TypeHandlerRegistry;
-        $this->generator = $generator ?? new ValidationSchemaGenerator($this->typeHandlerRegistry);
-        $this->writer = $writer ?? config('laravel-schema-generator.writer', ZodTypeScriptWriter::class)::make();
+    /**
+     * Get the package detector instance (lazy initialization)
+     */
+    protected function getPackageDetector(): PackageDetector
+    {
+        return $this->packageDetector ??= app(PackageDetector::class);
+    }
+
+    /**
+     * Get the extractor manager instance (lazy initialization)
+     */
+    protected function getExtractorManager(): ExtractorManager
+    {
+        return $this->extractorManager ??= new ExtractorManager($this->getPackageDetector());
+    }
+
+    /**
+     * Get the type handler registry instance (lazy initialization)
+     */
+    protected function getTypeHandlerRegistry(): TypeHandlerRegistry
+    {
+        return $this->typeHandlerRegistry ??= app(TypeHandlerRegistry::class);
+    }
+
+    /**
+     * Get the generator instance (lazy initialization)
+     */
+    protected function getGenerator(): ValidationSchemaGenerator
+    {
+        return $this->generator ??= app(ValidationSchemaGenerator::class);
+    }
+
+    /**
+     * Get the writer instance (lazy initialization)
+     */
+    protected function getWriter(): SchemaTypeScriptWriter
+    {
+        if ($this->writer === null) {
+            $writerClass = config('laravel-schema-generator.writer', ZodTypeScriptWriter::class);
+            $this->writer = $writerClass::make();
+        }
+
+        return $this->writer;
     }
 
     /**
@@ -73,7 +113,7 @@ class GenerateValidationSchemasCommand extends Command
                 $this->line("  Processing: {$className}");
 
                 $reflectionClass = new ReflectionClass($className);
-                $extractedData = $this->extractorManager->extract($reflectionClass);
+                $extractedData = $this->getExtractorManager()->extract($reflectionClass);
 
                 $schemas[] = $extractedData;
 
@@ -93,9 +133,9 @@ class GenerateValidationSchemasCommand extends Command
 
         // Write schemas to file
         $this->info('📝 Writing schemas to file...');
-        $this->writer->write($schemas);
+        $this->getWriter()->write($schemas);
 
-        $this->info(sprintf('✅ Generated %d Zod schemas in %s', count($schemas), $this->writer->getOutputPath()));
+        $this->info(sprintf('✅ Generated %d Zod schemas in %s', count($schemas), $this->getWriter()->getOutputPath()));
 
         // Show any errors that occurred
         if (! empty($errors)) {
