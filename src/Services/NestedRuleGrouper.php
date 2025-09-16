@@ -57,7 +57,23 @@ class NestedRuleGrouper
             }
 
             if (str_contains($field, '.*')) {
-                $this->processWildcardField($grouped, $field, $ruleSet, $rules, $nestedObjectFields);
+                // Check if this is a nested object within an array
+                $parts = explode('.*', $field, 2);
+                $baseField = $parts[0];
+                $remainingPath = $parts[1] ?? '';
+
+                if ($remainingPath && ! str_contains($remainingPath, '.*')) {
+                    // Check if this path corresponds to a nested object
+                    $nestedObjectPath = $baseField.'.*.'.explode('.', ltrim($remainingPath, '.'))[0];
+                    if (isset($nestedObjectFields[$nestedObjectPath])) {
+                        // This is part of a nested object, handle it specially
+                        $this->addNestedObjectInArray($grouped, $field, $ruleSet, $rules, $nestedObjectFields);
+                        continue;
+                    }
+                }
+
+                // Regular wildcard field
+                $this->addNestedRule($grouped, $field, $ruleSet);
             } else {
                 $this->processRegularField($grouped, $field, $ruleSet);
             }
@@ -96,35 +112,6 @@ class NestedRuleGrouper
                str_contains($field, '.__nested.');
     }
 
-    /**
-     * Process a wildcard field (contains .*)
-     */
-    private function processWildcardField(
-        array &$grouped,
-        string $field,
-        string $ruleSet,
-        array $allRules,
-        array $nestedObjectFields
-    ): void {
-        // Check if this is a nested object within an array
-        $parts = explode('.*', $field, 2);
-        $baseField = $parts[0];
-        $remainingPath = $parts[1] ?? '';
-
-        if ($remainingPath && ! str_contains($remainingPath, '.*')) {
-            // Check if this path corresponds to a nested object
-            $nestedObjectPath = $baseField.'.*.'.explode('.', ltrim($remainingPath, '.'))[0];
-            if (isset($nestedObjectFields[$nestedObjectPath])) {
-                // This is part of a nested object, handle it specially
-                $this->addNestedObjectInArray($grouped, $field, $ruleSet, $allRules, $nestedObjectFields);
-
-                return;
-            }
-        }
-
-        // Regular wildcard field
-        $this->addNestedRule($grouped, $field, $ruleSet);
-    }
 
     /**
      * Process a regular field (no wildcards)

@@ -4,6 +4,7 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
+use RomegaSoftware\LaravelSchemaGenerator\Services\NestedRuleGrouper;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
 
@@ -21,12 +22,8 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string|max:50',
         ];
 
-        $extractor = $this->getRequestExtractor();
-        $reflection = new ReflectionClass($extractor);
-        $method = $reflection->getMethod('groupRulesByBaseField');
-        $method->setAccessible(true);
-
-        $grouped = $method->invoke($extractor, $rules);
+        $grouper = new NestedRuleGrouper();
+        $grouped = $grouper->groupRulesByBaseField($rules);
 
         // Check categories grouping
         $this->assertArrayHasKey('categories', $grouped);
@@ -49,12 +46,8 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string|max:50',
         ];
 
-        $extractor = $this->getRequestExtractor();
-        $reflection = new ReflectionClass($extractor);
-        $method = $reflection->getMethod('groupRulesByBaseField');
-        $method->setAccessible(true);
-
-        $grouped = $method->invoke($extractor, $rules);
+        $grouper = new NestedRuleGrouper();
+        $grouped = $grouper->groupRulesByBaseField($rules);
 
         // Should create a base tags field
         $this->assertArrayHasKey('tags', $grouped);
@@ -75,12 +68,8 @@ class NestedArrayValidationTest extends TestCase
             'items.*.pricing.*.component' => 'required|in:base,tax,discount',
         ];
 
-        $extractor = $this->getRequestExtractor();
-        $reflection = new ReflectionClass($extractor);
-        $method = $reflection->getMethod('groupRulesByBaseField');
-        $method->setAccessible(true);
-
-        $grouped = $method->invoke($extractor, $rules);
+        $grouper = new NestedRuleGrouper();
+        $grouped = $grouper->groupRulesByBaseField($rules);
 
         // Check items base structure
         $this->assertArrayHasKey('items', $grouped);
@@ -120,12 +109,8 @@ class NestedArrayValidationTest extends TestCase
             'users.*.profiles.*.name' => 'string|max:100',
         ];
 
-        $extractor = $this->getRequestExtractor();
-        $reflection = new ReflectionClass($extractor);
-        $method = $reflection->getMethod('groupRulesByBaseField');
-        $method->setAccessible(true);
-
-        $grouped = $method->invoke($extractor, $rules);
+        $grouper = new NestedRuleGrouper();
+        $grouped = $grouper->groupRulesByBaseField($rules);
 
         // Check users -> profiles -> settings -> key/value structure
         $this->assertArrayHasKey('users', $grouped);
@@ -158,12 +143,8 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string',  // No base rule
         ];
 
-        $extractor = $this->getRequestExtractor();
-        $reflection = new ReflectionClass($extractor);
-        $method = $reflection->getMethod('groupRulesByBaseField');
-        $method->setAccessible(true);
-
-        $grouped = $method->invoke($extractor, $rules);
+        $grouper = new NestedRuleGrouper();
+        $grouped = $grouper->groupRulesByBaseField($rules);
 
         // Check data structure
         $this->assertArrayHasKey('data', $grouped);
