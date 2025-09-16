@@ -2,13 +2,13 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Services;
 
-use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
-use RomegaSoftware\LaravelSchemaGenerator\Data\FieldMetadata;
 use Illuminate\Validation\Validator;
+use RomegaSoftware\LaravelSchemaGenerator\Data\FieldMetadata;
+use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 
 /**
  * Service for building nested validation structures
- * 
+ *
  * Handles the construction of nested validation hierarchies for complex
  * data structures including arrays, objects, and nested Data classes.
  */
@@ -32,7 +32,7 @@ class NestedValidationBuilder
     ): ResolvedValidationSet {
         // Check if this is a nested object based on metadata
         $fieldMeta = $metadata[$baseField] ?? null;
-        
+
         if ($fieldMeta instanceof FieldMetadata && $fieldMeta->isNestedDataObject()) {
             return $this->buildNestedObjectValidation($baseField, $fieldRules, $validator);
         }
@@ -44,8 +44,8 @@ class NestedValidationBuilder
 
         // Regular field without nesting
         return $this->validationResolver->resolve(
-            $baseField, 
-            $fieldRules['rules'] ?? '', 
+            $baseField,
+            $fieldRules['rules'] ?? '',
             $validator
         );
     }
@@ -190,6 +190,7 @@ class NestedValidationBuilder
 
         // Simple property
         $rulesString = is_array($rules) ? ($rules['rules'] ?? '') : $rules;
+
         return $this->validationResolver->resolve(
             $baseField.'.*.'.$property,
             $rulesString,
@@ -206,12 +207,12 @@ class NestedValidationBuilder
         Validator $validator
     ): array {
         $objectProperties = [];
-        
-        if (!empty($fieldRules['nested'])) {
+
+        if (! empty($fieldRules['nested'])) {
             foreach ($fieldRules['nested'] as $property => $rules) {
                 // Ensure rules is a string
                 $rulesString = is_array($rules) ? ($rules['rules'] ?? '') : $rules;
-                
+
                 $propertyValidationSet = $this->validationResolver->resolve(
                     $baseField.'.'.$property,
                     $rulesString,

@@ -2,8 +2,8 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit\Services;
 
-use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Services\TypeInferenceService;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 
@@ -14,7 +14,7 @@ class TypeInferenceServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new TypeInferenceService();
+        $this->service = new TypeInferenceService;
     }
 
     #[Test]
@@ -42,7 +42,7 @@ class TypeInferenceServiceTest extends TestCase
     public function it_infers_number_type_from_numeric_rules(): void
     {
         $numericRules = ['integer', 'int', 'numeric', 'decimal'];
-        
+
         foreach ($numericRules as $rule) {
             $validations = [$rule => true];
             $type = $this->service->inferType($validations);
@@ -110,7 +110,7 @@ class TypeInferenceServiceTest extends TestCase
     public function it_infers_string_type_from_date_rules(): void
     {
         $dateRules = ['date', 'date_format', 'date_equals', 'before', 'after'];
-        
+
         foreach ($dateRules as $rule) {
             $validations = [$rule => true];
             $type = $this->service->inferType($validations);
@@ -134,7 +134,7 @@ class TypeInferenceServiceTest extends TestCase
     public function it_infers_file_type_from_mime_rules(): void
     {
         $fileRules = ['mimes', 'mimetypes', 'extensions', 'dimensions'];
-        
+
         foreach ($fileRules as $rule) {
             $validations = [$rule => ['jpg', 'png']];
             $type = $this->service->inferType($validations);
@@ -272,7 +272,7 @@ class TypeInferenceServiceTest extends TestCase
         $reflection = new \ReflectionClass($this->service);
         $method = $reflection->getMethod('extractLaravelRuleCategories');
         $method->setAccessible(true);
-        
+
         $categories1 = $method->invoke($this->service);
         $this->assertIsArray($categories1);
         $this->assertArrayHasKey('numeric', $categories1);
@@ -291,7 +291,7 @@ class TypeInferenceServiceTest extends TestCase
         $reflection = new \ReflectionClass($this->service);
         $method = $reflection->getMethod('getNumericRules');
         $method->setAccessible(true);
-        
+
         $numericRules = $method->invoke($this->service);
         $this->assertIsArray($numericRules);
         $this->assertContains('Numeric', $numericRules);
@@ -304,7 +304,7 @@ class TypeInferenceServiceTest extends TestCase
         $reflection = new \ReflectionClass($this->service);
         $method = $reflection->getMethod('getFileRules');
         $method->setAccessible(true);
-        
+
         $fileRules = $method->invoke($this->service);
         $this->assertIsArray($fileRules);
         // File rules typically include Min, Max, Between, Size
@@ -333,31 +333,31 @@ class TypeInferenceServiceTest extends TestCase
         return [
             'email with additional rules' => [
                 ['email' => true, 'required' => true, 'max' => 255],
-                'email'
+                'email',
             ],
             'url with validation' => [
                 ['url' => true, 'active_url' => true],
-                'url'
+                'url',
             ],
             'file with size constraints' => [
                 ['file' => true, 'max' => 2048],
-                'file'
+                'file',
             ],
             'image with dimensions' => [
                 ['image' => true, 'dimensions' => ['min_width' => 100]],
-                'file'
+                'file',
             ],
             'date with format' => [
                 ['date' => true, 'date_format' => 'Y-m-d'],
-                'string'
+                'string',
             ],
             'numeric with range' => [
                 ['numeric' => true, 'between' => [1, 100]],
-                'number'
+                'number',
             ],
             'array with size' => [
                 ['array' => true, 'min' => 1, 'max' => 10],
-                'array'
+                'array',
             ],
         ];
     }
@@ -395,7 +395,7 @@ class TypeInferenceServiceTest extends TestCase
         $reflection = new \ReflectionClass($this->service);
         $method = $reflection->getMethod('inferType');
         $method->setAccessible(true);
-        
+
         // Test with Size rule which is in fileRules but doesn't indicate file type
         $validations = ['Size' => 100];
         $type = $method->invoke($this->service, $validations);
@@ -403,7 +403,7 @@ class TypeInferenceServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_handles_digits_rule_normalization_in_isNumericField(): void
+    public function it_handles_digits_rule_normalization_in_is_numeric_field(): void
     {
         // Test the digits rule normalization in isNumericField
         $rules = ['digits'];
@@ -411,15 +411,15 @@ class TypeInferenceServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_handles_non_string_rules_in_isNumericField(): void
+    public function it_handles_non_string_rules_in_is_numeric_field(): void
     {
         // Test with non-string rules (objects, arrays, etc.)
-        $rules = [new \stdClass(), ['nested' => 'array'], 123];
+        $rules = [new \stdClass, ['nested' => 'array'], 123];
         $this->assertFalse($this->service->isNumericField($rules));
     }
 
     #[Test]
-    public function it_normalizes_int_in_isNumericField(): void
+    public function it_normalizes_int_in_is_numeric_field(): void
     {
         // Test the Int -> Integer normalization in isNumericField
         $rules = ['int'];
@@ -427,7 +427,7 @@ class TypeInferenceServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_normalizes_bool_in_isNumericField(): void
+    public function it_normalizes_bool_in_is_numeric_field(): void
     {
         // Test the Bool -> Boolean normalization in isNumericField (should not be numeric)
         $rules = ['bool'];
@@ -435,7 +435,7 @@ class TypeInferenceServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_handles_case_sensitive_int_normalization_in_isNumericField(): void
+    public function it_handles_case_sensitive_int_normalization_in_is_numeric_field(): void
     {
         // Test the exact case-sensitive Int -> Integer normalization in isNumericField
         $rules = ['Int'];  // Capital I
@@ -443,7 +443,7 @@ class TypeInferenceServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_handles_case_sensitive_bool_normalization_in_isNumericField(): void
+    public function it_handles_case_sensitive_bool_normalization_in_is_numeric_field(): void
     {
         // Test the exact case-sensitive Bool -> Boolean normalization in isNumericField
         $rules = ['Bool'];  // Capital B
@@ -466,7 +466,7 @@ class TypeInferenceServiceTest extends TestCase
         $reflection = new \ReflectionClass($this->service);
         $method = $reflection->getMethod('getNumericRules');
         $method->setAccessible(true);
-        
+
         $numericRules = $method->invoke($this->service);
         $this->assertIsArray($numericRules);
         $this->assertContains('Numeric', $numericRules);
@@ -480,7 +480,7 @@ class TypeInferenceServiceTest extends TestCase
         $reflection = new \ReflectionClass($this->service);
         $method = $reflection->getMethod('getFileRules');
         $method->setAccessible(true);
-        
+
         $fileRules = $method->invoke($this->service);
         $this->assertIsArray($fileRules);
         $this->assertNotEmpty($fileRules);

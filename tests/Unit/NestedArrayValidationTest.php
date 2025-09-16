@@ -3,7 +3,6 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
-use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Services\NestedRuleGrouper;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
@@ -22,7 +21,7 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string|max:50',
         ];
 
-        $grouper = new NestedRuleGrouper();
+        $grouper = new NestedRuleGrouper;
         $grouped = $grouper->groupRulesByBaseField($rules);
 
         // Check categories grouping
@@ -46,7 +45,7 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string|max:50',
         ];
 
-        $grouper = new NestedRuleGrouper();
+        $grouper = new NestedRuleGrouper;
         $grouped = $grouper->groupRulesByBaseField($rules);
 
         // Should create a base tags field
@@ -68,7 +67,7 @@ class NestedArrayValidationTest extends TestCase
             'items.*.pricing.*.component' => 'required|in:base,tax,discount',
         ];
 
-        $grouper = new NestedRuleGrouper();
+        $grouper = new NestedRuleGrouper;
         $grouped = $grouper->groupRulesByBaseField($rules);
 
         // Check items base structure
@@ -109,7 +108,7 @@ class NestedArrayValidationTest extends TestCase
             'users.*.profiles.*.name' => 'string|max:100',
         ];
 
-        $grouper = new NestedRuleGrouper();
+        $grouper = new NestedRuleGrouper;
         $grouped = $grouper->groupRulesByBaseField($rules);
 
         // Check users -> profiles -> settings -> key/value structure
@@ -143,7 +142,7 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string',  // No base rule
         ];
 
-        $grouper = new NestedRuleGrouper();
+        $grouper = new NestedRuleGrouper;
         $grouped = $grouper->groupRulesByBaseField($rules);
 
         // Check data structure

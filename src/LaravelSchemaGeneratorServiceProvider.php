@@ -3,10 +3,12 @@
 namespace RomegaSoftware\LaravelSchemaGenerator;
 
 use Illuminate\Console\Events\CommandFinished;
+use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use RomegaSoftware\LaravelSchemaGenerator\Commands\GenerateValidationSchemasCommand;
 use RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor;
+use RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Factories\FieldMetadataFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
@@ -18,83 +20,96 @@ use RomegaSoftware\LaravelSchemaGenerator\Support\PackageDetector;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\EnumTypeHandler;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
+use RomegaSoftware\LaravelSchemaGenerator\Writers\ZodTypeScriptWriter;
 
-class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
+class LaravelSchemaGeneratorServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     /**
      * Register services
      */
     public function register(): void
     {
+        $this->registerConfig();
+        $this->registerCoreServices();
+        $this->registerTypeHandlers();
+        $this->registerExtractors();
+        $this->registerGeneratorsAndWriters();
+        $this->registerTypeHandlerRegistry();
+    }
+
+    /**
+     * Register configuration files
+     */
+    protected function registerConfig(): void
+    {
         // Provide default Spatie Data config if not already configured
         if (! config()->has('data')) {
             $this->mergeConfigFrom(__DIR__.'/../config/data-defaults.php', 'data');
         }
 
-        // Merge config
+        // Merge package config
         $this->mergeConfigFrom(
             __DIR__.'/../config/laravel-schema-generator.php',
             'laravel-schema-generator'
         );
+    }
 
+    /**
+     * Register core services that can be auto-resolved
+     */
+    protected function registerCoreServices(): void
+    {
+        // Simple singletons that Laravel can auto-resolve
         $this->app->singleton(PackageDetector::class);
-        $this->app->singleton(ZodBuilderFactory::class);
         $this->app->singleton(LaravelValidationResolver::class);
         $this->app->singleton(MessageResolutionService::class);
         $this->app->singleton(FieldMetadataFactory::class);
         $this->app->singleton(DataClassRuleProcessor::class);
         $this->app->singleton(NestedMessageHandler::class);
-        $this->app->singleton(EnumTypeHandler::class);
 
-        // Register Spatie Data dependencies if available
-        if (class_exists(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class)) {
+        // Register Spatie Data validator resolver if available
+        if ($this->spatieDataAvailable()) {
             $this->app->singleton(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class);
         }
+    }
 
-        // Register type handlers with their factory dependencies
-        $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\BaseTypeHandler::class, function ($app) {
-            return new class($app->make(ZodBuilderFactory::class)) extends \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\BaseTypeHandler
-            {
-                public function canHandle(string $type): bool
-                {
-                    return false;
-                }
-
-                public function canHandleProperty(\RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData $property): bool
-                {
-                    return false;
-                }
-
-                public function handle(\RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData $property): \RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface
-                {
-                    throw new \Exception('Base handler should not be called directly');
-                }
-
-                public function getPriority(): int
-                {
-                    return 0;
-                }
-            };
+    /**
+     * Register type handlers with special dependency handling
+     */
+    protected function registerTypeHandlers(): void
+    {
+        // ZodBuilderFactory with optional translator
+        $this->app->singleton(ZodBuilderFactory::class, function ($app) {
+            return new ZodBuilderFactory(
+                $app->bound('translator') ? $app->make('translator') : null
+            );
         });
 
-        $this->app->bind(UniversalTypeHandler::class, function ($app) {
+        // EnumTypeHandler - simple dependency injection
+        $this->app->singleton(EnumTypeHandler::class);
+
+        // UniversalTypeHandler with circular dependency handling
+        $this->app->singleton(UniversalTypeHandler::class, function ($app) {
             $factory = $app->make(ZodBuilderFactory::class);
             $handler = new UniversalTypeHandler($factory);
 
-            // Set up circular dependency: factory needs the universal handler for complex builders
+            // Handle circular dependency: factory needs handler for complex builders
             $factory->setUniversalTypeHandler($handler);
 
             return $handler;
         });
+    }
 
-        // Register extractors with their dependencies
-        $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor::class, function ($app) {
-            return new \RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor(
-                $app->make(LaravelValidationResolver::class)
-            );
-        });
+    /**
+     * Register extractor services
+     */
+    protected function registerExtractors(): void
+    {
+        // Request class extractor
+        $this->app->bind(RequestClassExtractor::class);
 
-        if (class_exists(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class)) {
+        // Data class extractor (only if Spatie Data is available)
+        if ($this->spatieDataAvailable()) {
             $this->app->bind(DataClassExtractor::class, function ($app) {
                 return new DataClassExtractor(
                     $app->make(LaravelValidationResolver::class),
@@ -105,25 +120,39 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
                 );
             });
         }
+    }
 
-        // Register writers with their dependencies
-        $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\Writers\ZodTypeScriptWriter::class, function ($app) {
-            return new \RomegaSoftware\LaravelSchemaGenerator\Writers\ZodTypeScriptWriter(
-                $app->make(ValidationSchemaGenerator::class)
+    /**
+     * Register generators and writers
+     */
+    protected function registerGeneratorsAndWriters(): void
+    {
+        // Validation schema generator with registry
+        $this->app->singleton(ValidationSchemaGenerator::class, function ($app) {
+            return new ValidationSchemaGenerator(
+                $app->make(TypeHandlerRegistry::class)
             );
         });
 
-        // Register type handler registry as singleton
+        // TypeScript writer
+        $this->app->bind(ZodTypeScriptWriter::class);
+    }
+
+    /**
+     * Register the type handler registry
+     */
+    protected function registerTypeHandlerRegistry(): void
+    {
         $this->app->singleton(TypeHandlerRegistry::class, function ($app) {
             $registry = new TypeHandlerRegistry;
 
-            // First, register the default built-in handlers using proper injection
+            // Register built-in handlers
             $registry->registerMany([
                 $app->make(EnumTypeHandler::class),
                 $app->make(UniversalTypeHandler::class),
             ]);
 
-            // Then register custom handlers from config
+            // Register custom handlers from config
             $customHandlers = config('laravel-schema-generator.custom_type_handlers', []);
             foreach ($customHandlers as $handlerClass) {
                 if (class_exists($handlerClass)) {
@@ -133,13 +162,14 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
 
             return $registry;
         });
+    }
 
-        // Register ValidationSchemaGenerator as singleton with custom registry
-        $this->app->singleton(ValidationSchemaGenerator::class, function ($app) {
-            $registry = $app->make(TypeHandlerRegistry::class);
-
-            return new ValidationSchemaGenerator($registry);
-        });
+    /**
+     * Check if Spatie Laravel Data package is available
+     */
+    protected function spatieDataAvailable(): bool
+    {
+        return class_exists(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class);
     }
 
     /**
@@ -196,5 +226,31 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
                 ], $output);
             }
         });
+    }
+
+    /**
+     * Get the services provided by the provider
+     *
+     * @return array<class-string>
+     */
+    public function provides(): array
+    {
+        return [
+            PackageDetector::class,
+            LaravelValidationResolver::class,
+            MessageResolutionService::class,
+            FieldMetadataFactory::class,
+            DataClassRuleProcessor::class,
+            NestedMessageHandler::class,
+            ZodBuilderFactory::class,
+            EnumTypeHandler::class,
+            UniversalTypeHandler::class,
+            TypeHandlerRegistry::class,
+            ValidationSchemaGenerator::class,
+            DataClassExtractor::class,
+            GenerateValidationSchemasCommand::class,
+            RequestClassExtractor::class,
+            ZodTypeScriptWriter::class,
+        ];
     }
 }

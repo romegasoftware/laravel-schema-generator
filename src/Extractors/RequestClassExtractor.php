@@ -77,8 +77,8 @@ class RequestClassExtractor extends BaseExtractor
         $instance->setContainer(app());
         $method = $class->getMethod('getValidatorInstance');
 
-        return $method->isStatic() 
-            ? $method->invoke(null) 
+        return $method->isStatic()
+            ? $method->invoke(null)
             : $method->invoke($instance);
     }
 
@@ -91,8 +91,8 @@ class RequestClassExtractor extends BaseExtractor
         $instance->setContainer(app());
         $method = $class->getMethod('validationRules');
 
-        return $method->isStatic() 
-            ? $method->invoke(null) 
+        return $method->isStatic()
+            ? $method->invoke(null)
             : $method->invoke($instance);
     }
 }

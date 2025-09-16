@@ -43,8 +43,8 @@ class NestedRuleGrouper
      *   ]
      * ]
      *
-     * @param array $rules The validation rules to group
-     * @param array $metadata Optional metadata for enhanced nested object detection
+     * @param  array  $rules  The validation rules to group
+     * @param  array  $metadata  Optional metadata for enhanced nested object detection
      */
     public function groupRulesByBaseField(array $rules, array $metadata = []): array
     {
@@ -71,6 +71,7 @@ class NestedRuleGrouper
                     if (isset($nestedObjectFields[$nestedObjectPath])) {
                         // This is part of a nested object, handle it specially
                         $this->addNestedObjectInArray($grouped, $field, $ruleSet, $rules, $nestedObjectFields);
+
                         continue;
                     }
                 }
@@ -107,12 +108,12 @@ class NestedRuleGrouper
         }
 
         // From metadata (for non-array contexts)
-        if (!empty($metadata)) {
+        if (! empty($metadata)) {
             foreach ($metadata as $meta) {
                 // Check if metadata is a FieldMetadata object with isNestedDataObject method
                 if (is_object($meta) && method_exists($meta, 'isNestedDataObject') && $meta->isNestedDataObject()) {
                     // Only add as nested object field if it's not within an array context
-                    if (!str_contains($meta->fieldName, '.*')) {
+                    if (! str_contains($meta->fieldName, '.*')) {
                         $nestedObjectFields[$meta->fieldName] = true;
                         if (property_exists($meta, 'mappedName') && $meta->mappedName) {
                             // Also check if the rule exists for the mapped name
@@ -140,7 +141,6 @@ class NestedRuleGrouper
                str_contains($field, '.__type') ||
                str_contains($field, '.__class');
     }
-
 
     /**
      * Process a regular field (no wildcards)
@@ -209,11 +209,11 @@ class NestedRuleGrouper
      * Recursively add nested rules to the grouped structure
      * Handles multi-level wildcards like items.*.variations.*.type
      *
-     * @param array &$grouped The grouped rules array to modify
-     * @param string $field The field path with wildcards
-     * @param string $ruleSet The validation rules for this field
-     * @param bool $isNestedObjectInArray Whether this field is a nested object within an array
-     * @param array $metadata Optional metadata for enhanced nested object detection
+     * @param  array  &$grouped  The grouped rules array to modify
+     * @param  string  $field  The field path with wildcards
+     * @param  string  $ruleSet  The validation rules for this field
+     * @param  bool  $isNestedObjectInArray  Whether this field is a nested object within an array
+     * @param  array  $metadata  Optional metadata for enhanced nested object detection
      */
     public function addNestedRule(array &$grouped, string $field, string $ruleSet, bool $isNestedObjectInArray = false, array $metadata = []): void
     {
@@ -242,7 +242,7 @@ class NestedRuleGrouper
                 $this->addNestedRuleRecursively($grouped[$baseField]['nested'], $remainingPath, $ruleSet);
             } else {
                 // No more wildcards - check if this is part of a nested object
-                if (!empty($metadata) && str_contains($remainingPath, '.')) {
+                if (! empty($metadata) && str_contains($remainingPath, '.')) {
                     $pathParts = explode('.', $remainingPath, 2);
                     $potentialNestedObject = $pathParts[0];
                     $nestedProperty = $pathParts[1];
@@ -250,7 +250,7 @@ class NestedRuleGrouper
                     // Check metadata for nested object information
                     $isNestedObjectProperty = false;
                     foreach ($metadata as $meta) {
-                        if (is_object($meta) && 
+                        if (is_object($meta) &&
                             method_exists($meta, 'isNestedDataObject') &&
                             $meta->isNestedDataObject() &&
                             property_exists($meta, 'fieldName') &&
@@ -273,6 +273,7 @@ class NestedRuleGrouper
                         }
                         // Add the property to the nested object
                         $grouped[$baseField]['nested'][$potentialNestedObject]['nested'][$nestedProperty] = $ruleSet;
+
                         return;
                     }
                 }
@@ -368,8 +369,8 @@ class NestedRuleGrouper
      * Group rules by base field with metadata awareness
      * This is a specialized version for DataClassExtractor that handles metadata
      *
-     * @param array $rules The validation rules to group
-     * @param array $metadata Metadata for enhanced nested object detection
+     * @param  array  $rules  The validation rules to group
+     * @param  array  $metadata  Metadata for enhanced nested object detection
      * @return array The grouped rules
      */
     public function groupRulesByBaseFieldWithMetadata(array $rules, array $metadata): array
@@ -437,13 +438,13 @@ class NestedRuleGrouper
                     // Check if this field is a nested object within an array using metadata
                     $isNestedObjectInArray = false;
                     foreach ($metadata as $meta) {
-                        if (is_object($meta) && 
+                        if (is_object($meta) &&
                             method_exists($meta, 'isNestedDataObject') &&
                             $meta->isNestedDataObject() &&
                             property_exists($meta, 'fieldName') &&
                             str_contains($meta->fieldName, '.*') &&
                             ($meta->fieldName === $field ||
-                             (property_exists($meta, 'mappedName') && $meta->mappedName && 
+                             (property_exists($meta, 'mappedName') && $meta->mappedName &&
                               str_replace($meta->propertyName, $meta->mappedName, $meta->fieldName) === $field))) {
                             $isNestedObjectInArray = true;
                             break;
