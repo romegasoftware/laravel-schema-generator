@@ -18,7 +18,7 @@ use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
 #[ValidationSchema]
 class CreateUserRequest extends FormRequest
 {
-    // Schema will be generated with name "CreateUserSchema"
+    // Schema will be generated with name "CreateUserRequestSchema"
 }
 ```
 
@@ -41,7 +41,7 @@ You can add multiple `#[ValidationSchema]` attributes with different names:
 #[ValidationSchema(name: 'RegisterUser')]
 class CreateUserRequest extends FormRequest
 {
-    // Generates both CreateUserSchema and RegisterUserSchema
+    // Generates both CreateUserRequestSchema and RegisterUserSchema
 }
 ```
 

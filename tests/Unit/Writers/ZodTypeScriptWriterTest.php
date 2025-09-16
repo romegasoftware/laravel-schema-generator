@@ -152,7 +152,7 @@ class ZodTypeScriptWriterTest extends TestCase
         config(['laravel-schema-generator.use_app_types' => true]);
 
         $requestSchema = new ExtractedSchemaData(
-            name: 'CreateUserSchema',
+            name: 'CreateUserRequestSchema',
             properties: SchemaPropertyData::collect([
                 [
                     'name' => 'name',
@@ -187,7 +187,7 @@ class ZodTypeScriptWriterTest extends TestCase
         $content = $this->writer->generateContent($schemas);
 
         // Without App types annotation (not a Data class)
-        $this->assertStringContainsString('export const CreateUserSchema = z.object({ name: z.string() });', $content);
+        $this->assertStringContainsString('export const CreateUserRequestSchema = z.object({ name: z.string() });', $content);
         $this->assertStringNotContainsString('z.ZodType<App.', $content);
     }
 

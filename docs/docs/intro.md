@@ -59,7 +59,7 @@ class CreateUserRequest extends FormRequest
 ```typescript
 import { z } from "zod";
 
-export const CreateUserSchema = z.object({
+export const CreateUserRequestSchema = z.object({
   name: z.string().min(1).max(255),
   email: z.email().max(255),
   password: z.string().min(8),
@@ -67,16 +67,18 @@ export const CreateUserSchema = z.object({
   age: z.number().min(18).max(120).nullable(),
 });
 
-export type CreateUserSchemaType = z.infer<typeof CreateUserSchema>;
+export type CreateUserRequestSchemaType = z.infer<
+  typeof CreateUserRequestSchema
+>;
 ```
 
 ### Usage in TypeScript
 
 ```typescript
-import { CreateUserSchema } from "@/types/zod-schemas";
+import { CreateUserRequestSchema } from "@/types/zod-schemas";
 
 // Validate form data
-const result = CreateUserSchema.safeParse(formData);
+const result = CreateUserRequestSchema.safeParse(formData);
 
 if (result.success) {
   // Data is valid

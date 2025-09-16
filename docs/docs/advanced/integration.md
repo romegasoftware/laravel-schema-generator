@@ -438,10 +438,10 @@ beforeAll(() => {
 ```typescript
 // tests/typescript/schemas.test.ts
 import { describe, it, expect } from "@jest/globals";
-import { CreateUserSchema, UpdatePostSchema } from "@/types/zod-schemas";
+import { CreateUserRequestSchema, UpdatePostSchema } from "@/types/zod-schemas";
 
 describe("Generated Zod Schemas", () => {
-  describe("CreateUserSchema", () => {
+  describe("CreateUserRequestSchema", () => {
     it("validates correct user data", () => {
       const validData = {
         name: "John Doe",
@@ -450,7 +450,7 @@ describe("Generated Zod Schemas", () => {
         password_confirmation: "securePassword123",
       };
 
-      const result = CreateUserSchema.safeParse(validData);
+      const result = CreateUserRequestSchema.safeParse(validData);
       expect(result.success).toBe(true);
     });
 
@@ -462,7 +462,7 @@ describe("Generated Zod Schemas", () => {
         password_confirmation: "securePassword123",
       };
 
-      const result = CreateUserSchema.safeParse(invalidData);
+      const result = CreateUserRequestSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
 
       if (!result.success) {
@@ -483,7 +483,7 @@ describe("Generated Zod Schemas", () => {
 
 ```typescript
 import { test, expect } from "@playwright/test";
-import { CreateUserSchema } from "../src/types/zod-schemas";
+import { CreateUserRequestSchema } from "../src/types/zod-schemas";
 
 test.describe("Form Validation", () => {
   test.beforeEach(async ({ page }) => {
@@ -500,7 +500,7 @@ test.describe("Form Validation", () => {
     };
 
     // Verify the data matches our schema expectations
-    const result = CreateUserSchema.safeParse(formData);
+    const result = CreateUserRequestSchema.safeParse(formData);
     expect(result.success).toBe(true);
 
     // Fill the actual form
@@ -526,7 +526,7 @@ test.describe("Form Validation", () => {
     };
 
     // Verify our schema would catch these errors
-    const result = CreateUserSchema.safeParse(invalidData);
+    const result = CreateUserRequestSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
 
     // Fill form with invalid data

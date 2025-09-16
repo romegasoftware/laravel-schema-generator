@@ -70,9 +70,9 @@ php artisan schema:generate
 3. **Use in TypeScript**:
 
 ```typescript
-import { CreateUserSchema } from "@/types/schemas";
+import { CreateUserRequestSchema } from "@/types/schemas";
 
-const result = CreateUserSchema.safeParse(formData);
+const result = CreateUserRequestSchema.safeParse(formData);
 if (result.success) {
   // Data is valid
   await api.createUser(result.data);

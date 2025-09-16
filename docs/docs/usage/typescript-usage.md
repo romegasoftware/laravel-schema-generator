@@ -14,7 +14,7 @@ Laravel Zod Generator creates TypeScript files with the following structure:
 import { z } from "zod";
 
 // Schema definition
-export const CreateUserSchema = z.object({
+export const CreateUserRequestSchema = z.object({
   name: z.string().min(1).max(255),
   email: z.email(),
   password: z.string().min(8),
@@ -22,7 +22,9 @@ export const CreateUserSchema = z.object({
 });
 
 // Inferred TypeScript type
-export type CreateUserSchemaType = z.infer<typeof CreateUserSchema>;
+export type CreateUserRequestSchemaType = z.infer<
+  typeof CreateUserRequestSchema
+>;
 ```
 
 ## Basic Usage Patterns
@@ -34,18 +36,21 @@ export type CreateUserSchemaType = z.infer<typeof CreateUserSchema>;
 ```tsx
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { CreateUserSchema, CreateUserSchemaType } from "@/types/zod-schemas";
+import {
+  CreateUserRequestSchema,
+  CreateUserRequestSchemaType,
+} from "@/types/zod-schemas";
 
 function UserForm() {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<CreateUserSchemaType>({
-    resolver: zodResolver(CreateUserSchema),
+  } = useForm<CreateUserRequestSchemaType>({
+    resolver: zodResolver(CreateUserRequestSchema),
   });
 
-  const onSubmit = async (data: CreateUserSchemaType) => {
+  const onSubmit = async (data: CreateUserRequestSchemaType) => {
     // Data is automatically validated and typed
     console.log(data); // TypeScript knows the exact shape
 
@@ -118,13 +123,16 @@ function UserForm() {
 <script setup lang="ts">
 import { Field, useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
-import { CreateUserSchema, CreateUserSchemaType } from "@/types/zod-schemas";
+import {
+  CreateUserRequestSchema,
+  CreateUserRequestSchemaType,
+} from "@/types/zod-schemas";
 
 const { handleSubmit } = useForm({
-  validationSchema: toTypedSchema(CreateUserSchema),
+  validationSchema: toTypedSchema(CreateUserRequestSchema),
 });
 
-const onSubmit = handleSubmit(async (values: CreateUserSchemaType) => {
+const onSubmit = handleSubmit(async (values: CreateUserRequestSchemaType) => {
   // Submit form data
   await submitUser(values);
 });
@@ -229,9 +237,9 @@ Handle complex conditional logic:
 
 ```typescript
 import { z } from "zod";
-import { CreateUserSchema } from "@/types/zod-schemas";
+import { CreateUserRequestSchema } from "@/types/zod-schemas";
 
-const ConditionalUserSchema = CreateUserSchema.extend({
+const ConditionalUserSchema = CreateUserRequestSchema.extend({
   user_type: z.enum(["individual", "business"]),
 }).refine(
   (data) => {
@@ -318,7 +326,7 @@ if (result.success) {
 
 ```typescript
 import { z } from "zod";
-import { CreateUserSchema } from "@/types/zod-schemas";
+import { CreateUserRequestSchema } from "@/types/zod-schemas";
 
 function handleValidationErrors(error: z.ZodError): Record<string, string> {
   const fieldErrors: Record<string, string> = {};
@@ -347,7 +355,7 @@ function handleValidationErrors(error: z.ZodError): Record<string, string> {
 }
 
 // Usage
-const result = CreateUserSchema.safeParse(formData);
+const result = CreateUserRequestSchema.safeParse(formData);
 if (!result.success) {
   const errors = handleValidationErrors(result.error);
   setFormErrors(errors);
@@ -359,7 +367,7 @@ if (!result.success) {
 Override default error messages:
 
 ```typescript
-const CustomUserSchema = CreateUserSchema.extend({
+const CustomUserSchema = CreateUserRequestSchema.extend({
   email: z
     .string()
     .min(1, "Email is required")
@@ -482,7 +490,7 @@ const schemaCache = new SchemaCache();
 // Usage
 const cachedUserSchema = schemaCache.getSchema(
   "CreateUser",
-  () => CreateUserSchema
+  () => CreateUserRequestSchema
 );
 ```
 
@@ -535,9 +543,9 @@ if (validator.isValid) {
 
 ```typescript
 import { describe, it, expect } from "vitest";
-import { CreateUserSchema } from "@/types/zod-schemas";
+import { CreateUserRequestSchema } from "@/types/zod-schemas";
 
-describe("CreateUserSchema", () => {
+describe("CreateUserRequestSchema", () => {
   it("validates correct user data", () => {
     const validData = {
       name: "John Doe",
@@ -546,7 +554,7 @@ describe("CreateUserSchema", () => {
       age: 25,
     };
 
-    const result = CreateUserSchema.safeParse(validData);
+    const result = CreateUserRequestSchema.safeParse(validData);
     expect(result.success).toBe(true);
   });
 
@@ -557,7 +565,7 @@ describe("CreateUserSchema", () => {
       password: "password123",
     };
 
-    const result = CreateUserSchema.safeParse(invalidData);
+    const result = CreateUserRequestSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
 
     if (!result.success) {
@@ -576,7 +584,7 @@ describe("CreateUserSchema", () => {
 
 ```typescript
 import { expect } from "@playwright/test";
-import { CreateUserSchema } from "@/types/zod-schemas";
+import { CreateUserRequestSchema } from "@/types/zod-schemas";
 
 test("form validation works end-to-end", async ({ page }) => {
   await page.goto("/register");
@@ -599,7 +607,7 @@ test("form validation works end-to-end", async ({ page }) => {
   };
 
   // Verify data structure matches our schema
-  const result = CreateUserSchema.safeParse(validData);
+  const result = CreateUserRequestSchema.safeParse(validData);
   expect(result.success).toBe(true);
 });
 ```
@@ -631,7 +639,7 @@ try {
 // Validate data when it enters your system
 async function handleApiRequest(request: Request) {
   const body = await request.json();
-  const result = CreateUserSchema.safeParse(body);
+  const result = CreateUserRequestSchema.safeParse(body);
 
   if (!result.success) {
     return new Response("Invalid data", { status: 400 });
@@ -647,9 +655,9 @@ async function handleApiRequest(request: Request) {
 ```typescript
 // Create type-safe API clients
 class UserAPI {
-  async createUser(data: CreateUserSchemaType): Promise<UserSchemaType> {
+  async createUser(data: CreateUserRequestSchemaType): Promise<UserSchemaType> {
     // Validate input
-    const validatedData = CreateUserSchema.parse(data);
+    const validatedData = CreateUserRequestSchema.parse(data);
 
     const response = await fetch("/api/users", {
       method: "POST",

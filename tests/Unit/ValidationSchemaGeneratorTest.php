@@ -212,7 +212,7 @@ class ValidationSchemaGeneratorTest extends TestCase
 
         // Test Request class naming
         $extracted2 = new ExtractedSchemaData(
-            name: 'CreateUserSchema',
+            name: 'CreateUserRequestSchema',
             dependencies: [],
             properties: new DataCollection(SchemaPropertyData::class, []),
             type: '',
@@ -224,7 +224,7 @@ class ValidationSchemaGeneratorTest extends TestCase
         $schemas = $this->generator->getProcessedSchemas();
 
         $this->assertArrayHasKey('UserSchema', $schemas);
-        $this->assertArrayHasKey('CreateUserSchema', $schemas);
+        $this->assertArrayHasKey('CreateUserRequestSchema', $schemas);
     }
 
     #[Test]

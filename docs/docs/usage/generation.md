@@ -153,13 +153,15 @@ php artisan schema:generate --dry-run
 // Preview of generated content:
 import { z } from "zod";
 
-export const CreateUserSchema = z.object({
+export const CreateUserRequestSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   email: z.email("Invalid email format"),
   age: z.number().min(18).nullable(),
 });
 
-export type CreateUserSchemaType = z.infer<typeof CreateUserSchema>;
+export type CreateUserRequestSchemaType = z.infer<
+  typeof CreateUserRequestSchema
+>;
 
 // File would be written to: resources/js/types/zod-schemas.ts
 // Total schemas: 1

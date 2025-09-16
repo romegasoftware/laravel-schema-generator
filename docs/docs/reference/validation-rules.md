@@ -234,7 +234,7 @@ const FileMetadataSchema = z.object({
 
 ```typescript
 // Manual implementation required
-const CreateUserSchema = z
+const CreateUserRequestSchema = z
   .object({
     password: z.string().min(8),
     password_confirmation: z.string(),
@@ -435,9 +435,9 @@ Always test that your generated schemas work as expected:
 
 ```typescript
 import { describe, it, expect } from "vitest";
-import { CreateUserSchema } from "@/types/zod-schemas";
+import { CreateUserRequestSchema } from "@/types/zod-schemas";
 
-describe("CreateUserSchema", () => {
+describe("CreateUserRequestSchema", () => {
   it("validates valid data", () => {
     const validData = {
       name: "John Doe",
@@ -445,7 +445,7 @@ describe("CreateUserSchema", () => {
       age: 25,
     };
 
-    const result = CreateUserSchema.safeParse(validData);
+    const result = CreateUserRequestSchema.safeParse(validData);
     expect(result.success).toBe(true);
   });
 });

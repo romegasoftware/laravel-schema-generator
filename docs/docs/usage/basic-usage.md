@@ -71,7 +71,7 @@ class CreateUserRequest extends FormRequest
 ```typescript
 import { z } from "zod";
 
-export const CreateUserSchema = z.object({
+export const CreateUserRequestSchema = z.object({
   name: z.string().min(1, "Please enter your full name").max(255),
   email: z.email().max(255),
   password: z.string().min(8, "Password must be at least 8 characters long"),
@@ -81,7 +81,9 @@ export const CreateUserSchema = z.object({
   terms_accepted: z.boolean(),
 });
 
-export type CreateUserSchemaType = z.infer<typeof CreateUserSchema>;
+export type CreateUserRequestSchemaType = z.infer<
+  typeof CreateUserRequestSchema
+>;
 ```
 
 ### Complex Validation Rules
@@ -384,9 +386,9 @@ Always test the generated schemas with real data:
 
 ```typescript
 import { describe, it, expect } from "vitest";
-import { CreateUserSchema } from "@/types/zod-schemas";
+import { CreateUserRequestSchema } from "@/types/zod-schemas";
 
-describe("CreateUserSchema", () => {
+describe("CreateUserRequestSchema", () => {
   it("validates valid user data", () => {
     const validData = {
       name: "John Doe",
@@ -396,7 +398,7 @@ describe("CreateUserSchema", () => {
       terms_accepted: true,
     };
 
-    const result = CreateUserSchema.safeParse(validData);
+    const result = CreateUserRequestSchema.safeParse(validData);
     expect(result.success).toBe(true);
   });
 
@@ -407,7 +409,7 @@ describe("CreateUserSchema", () => {
       password: "123", // Too short
     };
 
-    const result = CreateUserSchema.safeParse(invalidData);
+    const result = CreateUserRequestSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
   });
 });
