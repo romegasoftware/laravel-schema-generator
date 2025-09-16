@@ -11,15 +11,9 @@ class ExtractorManager
 {
     protected array $extractors = [];
 
-    protected PackageDetector $packageDetector;
-
     protected bool $initialized = false;
 
-    public function __construct(PackageDetector $packageDetector)
-    {
-        $this->packageDetector = $packageDetector;
-        // Defer extractor registration until first use to prevent early dependency resolution
-    }
+    public function __construct(protected PackageDetector $packageDetector) {}
 
     /**
      * Initialize extractors if not already done

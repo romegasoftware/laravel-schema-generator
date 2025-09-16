@@ -15,6 +15,7 @@ use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodObjectBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodPasswordBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodStringBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
+use RomegaSoftware\LaravelSchemaGenerator\Traits\Makeable;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
 
 /**
@@ -22,6 +23,8 @@ use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
  */
 class ZodBuilderFactory
 {
+    use Makeable;
+
     private ?UniversalTypeHandler $universalTypeHandler = null;
 
     public function __construct(

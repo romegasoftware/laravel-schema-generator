@@ -10,16 +10,21 @@ use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Factories\ValidationRuleFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver;
 use RomegaSoftware\LaravelSchemaGenerator\Services\NestedRuleGrouper;
+use RomegaSoftware\LaravelSchemaGenerator\Services\NestedValidationBuilder;
 
 abstract class BaseExtractor implements ExtractorInterface
 {
     use Macroable;
 
+    protected NestedValidationBuilder $nestedValidationBuilder;
+
     public function __construct(
         protected LaravelValidationResolver $validationResolver,
         protected ValidationRuleFactory $ruleFactory = new ValidationRuleFactory,
         protected NestedRuleGrouper $ruleGrouper = new NestedRuleGrouper
-    ) {}
+    ) {
+        $this->nestedValidationBuilder = new NestedValidationBuilder($validationResolver);
+    }
 
     /**
      * ex $rules = [
@@ -110,65 +115,60 @@ abstract class BaseExtractor implements ExtractorInterface
      */
     public function createNestedObjectValidation(string $baseField, array $nestedRules, $validator): ResolvedValidationSet
     {
-        $objectProperties = [];
+        // Delegate to the specialized builder service
+        return $this->nestedValidationBuilder->buildNestedObjectStructure($baseField, $nestedRules, $validator);
+    }
 
-        foreach ($nestedRules as $property => $rules) {
-            if (is_array($rules) && isset($rules['nested'])) {
-                // Check if this is a nested object (not an array)
-                if (isset($rules['isNestedObject']) && $rules['isNestedObject']) {
-                    // This is a nested object within the array item
-                    $nestedObjectValidationSet = $this->createNestedObjectValidation(
-                        $baseField.'.*.'.$property,
-                        $rules['nested'],
-                        $validator
-                    );
-
-                    // Strip the .* suffix from the property key for cleaner names in TypeScript
-                    $cleanPropertyKey = str_replace('.*', '', $property);
-
-                    // Override the inferred type to be 'object' instead of array
-                    $objectProperties[$cleanPropertyKey] = ResolvedValidationSet::make(
-                        fieldName: $baseField.'.*.'.$property,
-                        validations: $nestedObjectValidationSet->validations->all(),
-                        inferredType: 'object',
-                        nestedValidations: null,
-                        objectProperties: $nestedObjectValidationSet->objectProperties
-                    );
-                } else {
-                    // This property is itself a nested array structure
-                    $nestedValidationSet = $this->resolveArrayFieldWithNestedRules(
-                        $baseField.'.*.'.$property,
-                        $rules,
-                        $validator
-                    );
-
-                    // Strip the .* suffix from the property key for cleaner names in TypeScript
-                    $cleanPropertyKey = str_replace('.*', '', $property);
-                    $objectProperties[$cleanPropertyKey] = $nestedValidationSet;
-                }
-            } else {
-                // Simple property - ensure rules is a string
-                $rulesString = is_array($rules) ? (isset($rules['rules']) ? $rules['rules'] : '') : $rules;
-
-                // Strip the .* suffix from the property key for cleaner names in TypeScript
-                $cleanPropertyKey = str_replace('.*', '', $property);
-
-                $propertyValidationSet = $this->validationResolver->resolve(
-                    $baseField.'.*.'.$property,
-                    $rulesString,
-                    $validator
-                );
-                $objectProperties[$cleanPropertyKey] = $propertyValidationSet;
-            }
+    /**
+     * Normalize all rules to string format
+     */
+    protected function normalizeRules(array $rules): array
+    {
+        $normalizedRules = [];
+        foreach ($rules as $field => $rule) {
+            $normalizedRules[$field] = $this->ruleFactory->normalizeRule($rule);
         }
 
-        // Create a validation set that represents an object with nested properties
-        return ResolvedValidationSet::make(
-            fieldName: $baseField.'.*[object]',
-            validations: [],
-            inferredType: 'object',
-            nestedValidations: null,
-            objectProperties: $objectProperties
-        );
+        return $normalizedRules;
+    }
+
+    /**
+     * Create validation properties from grouped rules
+     */
+    protected function createPropertiesFromGroupedRules(array $groupedRules, Validator $validator, array $metadata = []): array
+    {
+        $properties = [];
+
+        foreach ($groupedRules as $baseField => $fieldRules) {
+            $resolvedValidationSet = $this->resolveFieldValidation($baseField, $fieldRules, $validator, $metadata);
+
+            $properties[] = new SchemaPropertyData(
+                name: $baseField,
+                validator: $validator,
+                isOptional: ! $resolvedValidationSet->isFieldRequired(),
+                validations: $resolvedValidationSet,
+            );
+        }
+
+        return $properties;
+    }
+
+    /**
+     * Resolve validation for a single field
+     */
+    protected function resolveFieldValidation(string $baseField, array $fieldRules, Validator $validator, array $metadata = []): ResolvedValidationSet
+    {
+        // Use builder for complex nested structures
+        if (! empty($metadata)) {
+            return $this->nestedValidationBuilder->buildFromMetadata($baseField, $fieldRules, $metadata, $validator);
+        }
+
+        // Handle nested rules
+        if (isset($fieldRules['nested'])) {
+            return $this->resolveArrayFieldWithNestedRules($baseField, $fieldRules, $validator);
+        }
+
+        // Regular field without nesting
+        return $this->validationResolver->resolve($baseField, $fieldRules['rules'] ?? '', $validator);
     }
 }

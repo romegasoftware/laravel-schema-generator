@@ -62,24 +62,37 @@ class RequestClassExtractor extends BaseExtractor
      */
     protected function transformRulesToProperties(ReflectionClass $class): array
     {
-        $instance = $class->newInstance();
-        $instance->setContainer(app());
-        $validationRules = $class->getMethod('validationRules');
-        $validatorInstance = $class->getMethod('getValidatorInstance');
-
-        // Check if method is static
-        if ($validatorInstance->isStatic()) {
-            $validator = $validatorInstance->invoke(null);
-        } else {
-            $validator = $validatorInstance->invoke($instance);
-        }
-
-        if ($validationRules->isStatic()) {
-            $rules = $validationRules->invoke(null);
-        } else {
-            $rules = $validationRules->invoke($instance);
-        }
+        $validator = $this->getValidatorInstance($class);
+        $rules = $this->getValidationRules($class);
 
         return $this->resolveRulesFromValidator($validator, $rules);
+    }
+
+    /**
+     * Get validator instance from class
+     */
+    protected function getValidatorInstance(ReflectionClass $class): \Illuminate\Validation\Validator
+    {
+        $instance = $class->newInstance();
+        $instance->setContainer(app());
+        $method = $class->getMethod('getValidatorInstance');
+
+        return $method->isStatic() 
+            ? $method->invoke(null) 
+            : $method->invoke($instance);
+    }
+
+    /**
+     * Get validation rules from class
+     */
+    protected function getValidationRules(ReflectionClass $class): array
+    {
+        $instance = $class->newInstance();
+        $instance->setContainer(app());
+        $method = $class->getMethod('validationRules');
+
+        return $method->isStatic() 
+            ? $method->invoke(null) 
+            : $method->invoke($instance);
     }
 }

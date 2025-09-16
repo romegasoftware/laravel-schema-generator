@@ -5,9 +5,12 @@ namespace RomegaSoftware\LaravelSchemaGenerator\TypeHandlers;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory;
+use RomegaSoftware\LaravelSchemaGenerator\Traits\Makeable;
 
 class EnumTypeHandler extends BaseTypeHandler
 {
+    use Makeable;
+
     public function __construct(ZodBuilderFactory $factory)
     {
         parent::__construct($factory);

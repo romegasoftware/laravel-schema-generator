@@ -6,10 +6,18 @@ use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use RomegaSoftware\LaravelSchemaGenerator\Commands\GenerateValidationSchemasCommand;
+use RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor;
+use RomegaSoftware\LaravelSchemaGenerator\Factories\FieldMetadataFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
+use RomegaSoftware\LaravelSchemaGenerator\Services\DataClassRuleProcessor;
+use RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver;
+use RomegaSoftware\LaravelSchemaGenerator\Services\MessageResolutionService;
+use RomegaSoftware\LaravelSchemaGenerator\Services\NestedMessageHandler;
 use RomegaSoftware\LaravelSchemaGenerator\Support\PackageDetector;
+use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\EnumTypeHandler;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
+use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
 
 class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
 {
@@ -29,22 +37,14 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
             'laravel-schema-generator'
         );
 
-        // Register package detector as singleton
         $this->app->singleton(PackageDetector::class);
-
-        // Register ZodBuilderFactory as singleton with translator dependency
-        $this->app->singleton(ZodBuilderFactory::class, function ($app) {
-            return new ZodBuilderFactory(
-                $app->bound('translator') ? $app->make('translator') : null
-            );
-        });
-
-        // Register core services first
-        $this->app->singleton(\Illuminate\Contracts\Translation\Translator::class, function ($app) {
-            return $app->make('translator');
-        });
-
-        $this->app->singleton(\RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver::class);
+        $this->app->singleton(ZodBuilderFactory::class);
+        $this->app->singleton(LaravelValidationResolver::class);
+        $this->app->singleton(MessageResolutionService::class);
+        $this->app->singleton(FieldMetadataFactory::class);
+        $this->app->singleton(DataClassRuleProcessor::class);
+        $this->app->singleton(NestedMessageHandler::class);
+        $this->app->singleton(EnumTypeHandler::class);
 
         // Register Spatie Data dependencies if available
         if (class_exists(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class)) {
@@ -77,15 +77,9 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
             };
         });
 
-        $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\EnumTypeHandler::class, function ($app) {
-            return new \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\EnumTypeHandler(
-                $app->make(ZodBuilderFactory::class)
-            );
-        });
-
-        $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler::class, function ($app) {
+        $this->app->bind(UniversalTypeHandler::class, function ($app) {
             $factory = $app->make(ZodBuilderFactory::class);
-            $handler = new \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler($factory);
+            $handler = new UniversalTypeHandler($factory);
 
             // Set up circular dependency: factory needs the universal handler for complex builders
             $factory->setUniversalTypeHandler($handler);
@@ -96,15 +90,18 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
         // Register extractors with their dependencies
         $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor::class, function ($app) {
             return new \RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor(
-                $app->make(\RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver::class)
+                $app->make(LaravelValidationResolver::class)
             );
         });
 
         if (class_exists(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class)) {
-            $this->app->bind(\RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor::class, function ($app) {
-                return new \RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor(
-                    $app->make(\RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver::class),
-                    $app->make(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class)
+            $this->app->bind(DataClassExtractor::class, function ($app) {
+                return new DataClassExtractor(
+                    $app->make(LaravelValidationResolver::class),
+                    $app->make(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class),
+                    $app->make(MessageResolutionService::class),
+                    $app->make(FieldMetadataFactory::class),
+                    $app->make(DataClassRuleProcessor::class)
                 );
             });
         }
@@ -122,8 +119,8 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider
 
             // First, register the default built-in handlers using proper injection
             $registry->registerMany([
-                $app->make(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\EnumTypeHandler::class),
-                $app->make(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler::class),
+                $app->make(EnumTypeHandler::class),
+                $app->make(UniversalTypeHandler::class),
             ]);
 
             // Then register custom handlers from config

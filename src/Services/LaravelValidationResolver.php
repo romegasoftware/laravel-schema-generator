@@ -6,6 +6,7 @@ use Illuminate\Validation\ValidationRuleParser;
 use Illuminate\Validation\Validator;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Traits\Makeable;
 
 /**
  * Simplified Laravel validation resolver with single responsibility:
@@ -13,6 +14,8 @@ use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
  */
 class LaravelValidationResolver
 {
+    use Makeable;
+
     public function __construct(
         private MessageResolutionService $messageService = new MessageResolutionService,
         private TypeInferenceService $typeInferenceService = new TypeInferenceService
@@ -23,6 +26,11 @@ class LaravelValidationResolver
      */
     public function resolve(string $field, string $rules, Validator $validator): ResolvedValidationSet
     {
+        // Handle empty rules
+        if (empty($rules)) {
+            return ResolvedValidationSet::make($field, [], 'string', null);
+        }
+
         $explodedRules = (new ValidationRuleParser($validator->getData()))
             ->explode(ValidationRuleParser::filterConditionalRules([$rules], $validator->getData()));
 
