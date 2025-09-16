@@ -16,7 +16,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Services\MessageResolutionService;
 use RomegaSoftware\LaravelSchemaGenerator\Support\SchemaNameGenerator;
 use Spatie\LaravelData\DataCollection;
 use Spatie\LaravelData\Resolvers\DataValidatorResolver;
-use Spatie\LaravelData\Resolvers\DataValidationRulesResolver;
 use Spatie\LaravelData\Support\DataConfig;
 use Spatie\LaravelData\Support\Validation\DataRules;
 use Spatie\LaravelData\Support\Validation\PropertyRules;
@@ -97,23 +96,23 @@ class DataClassExtractor extends BaseExtractor
     {
         // Directly extract validation rules from the DataClass properties,
         // bypassing the shouldSkipPropertyValidation check that excludes properties with default values
-        
+
         $dataConfig = app(DataConfig::class);
         $dataClass = $dataConfig->getDataClass($class->getName());
         $dataRules = DataRules::create();
         $fullPayload = []; // Empty payload for context
         $path = ValidationPath::create();
         $ruleDenormalizer = app(RuleDenormalizer::class);
-        
+
         // Process each property to extract validation rules
         foreach ($dataClass->properties as $dataProperty) {
             $propertyPath = $path->property($dataProperty->inputMappedName ?? $dataProperty->name);
-            
+
             // Skip if validation is explicitly disabled for this property
             if ($dataProperty->validate === false) {
                 continue;
             }
-            
+
             // For Data objects and collections, we need to recursively extract their rules
             if ($dataProperty->type->kind->isDataObject()) {
                 // Add basic object validation rules
@@ -123,69 +122,71 @@ class DataClassExtractor extends BaseExtractor
                     $fullPayload,
                     $path
                 );
-                
+
                 // Apply rule inferrers for the data object property itself
                 foreach ($dataConfig->ruleInferrers as $inferrer) {
                     $inferrer->handle($dataProperty, $propertyRules, $context);
                 }
-                
+
                 // Add the rules for this property
                 $rules = $ruleDenormalizer->execute(
                     $propertyRules->all(),
                     $propertyPath
                 );
                 $dataRules->add($propertyPath, $rules);
-                
+
                 // Recursively extract rules for the nested data object
                 $nestedClass = new ReflectionClass($dataProperty->type->dataClass);
                 $nestedRules = $this->extractRules($nestedClass);
-                
+
                 // Add nested rules with proper path
                 foreach ($nestedRules as $nestedKey => $nestedRule) {
                     $fullPath = $propertyPath->property($nestedKey);
                     $dataRules->add($fullPath, $nestedRule);
                 }
+
                 continue;
             }
-            
+
             if ($dataProperty->type->kind->isDataCollectable()) {
                 // Add array validation rules
                 $propertyRules = PropertyRules::create();
-                $propertyRules->add(new \Spatie\LaravelData\Attributes\Validation\Present());
-                $propertyRules->add(new \Spatie\LaravelData\Attributes\Validation\ArrayType());
-                
+                $propertyRules->add(new \Spatie\LaravelData\Attributes\Validation\Present);
+                $propertyRules->add(new \Spatie\LaravelData\Attributes\Validation\ArrayType);
+
                 $context = new ValidationContext(
                     $fullPayload,
                     $fullPayload,
                     $path
                 );
-                
+
                 // Apply rule inferrers
                 foreach ($dataConfig->ruleInferrers as $inferrer) {
                     $inferrer->handle($dataProperty, $propertyRules, $context);
                 }
-                
+
                 // Add the rules for this property
                 $rules = $ruleDenormalizer->execute(
                     $propertyRules->all(),
                     $propertyPath
                 );
                 $dataRules->add($propertyPath, $rules);
-                
+
                 // If it's a collection of Data objects, add nested validation
                 if ($dataProperty->type->dataClass) {
                     $nestedClass = new ReflectionClass($dataProperty->type->dataClass);
                     $nestedRules = $this->extractRules($nestedClass);
-                    
+
                     // Add nested rules for array items
                     foreach ($nestedRules as $nestedKey => $nestedRule) {
-                        $fullPath = ValidationPath::create($propertyPath->get() . '.*.' . $nestedKey);
+                        $fullPath = ValidationPath::create($propertyPath->get().'.*.'.$nestedKey);
                         $dataRules->add($fullPath, $nestedRule);
                     }
                 }
+
                 continue;
             }
-            
+
             // Build rules for this property using the rule inferrers
             $propertyRules = PropertyRules::create();
             $context = new ValidationContext(
@@ -193,21 +194,21 @@ class DataClassExtractor extends BaseExtractor
                 $fullPayload,
                 $path
             );
-            
+
             // Apply all rule inferrers to build the complete rule set
             foreach ($dataConfig->ruleInferrers as $inferrer) {
                 $inferrer->handle($dataProperty, $propertyRules, $context);
             }
-            
+
             // Denormalize the rules to the format expected by Laravel validator
             $rules = $ruleDenormalizer->execute(
                 $propertyRules->all(),
                 $propertyPath
             );
-            
+
             $dataRules->add($propertyPath, $rules);
         }
-        
+
         // Handle custom rules() method if it exists
         if (method_exists($class->getName(), 'rules')) {
             $validationContext = new ValidationContext(
@@ -215,22 +216,22 @@ class DataClassExtractor extends BaseExtractor
                 $fullPayload,
                 $path
             );
-            
+
             $overwrittenRules = app()->call([$class->getName(), 'rules'], ['context' => $validationContext]);
             $shouldMergeRules = $dataClass->attributes->has(\Spatie\LaravelData\Attributes\MergeValidationRules::class);
-            
+
             foreach ($overwrittenRules as $key => $rules) {
                 $rules = collect(\Illuminate\Support\Arr::wrap($rules))
                     ->map(fn (mixed $rule) => $ruleDenormalizer->execute($rule, $path))
                     ->flatten()
                     ->all();
-                
+
                 $shouldMergeRules
                     ? $dataRules->merge($path->property($key), $rules)
                     : $dataRules->add($path->property($key), $rules);
             }
         }
-        
+
         // Process InheritValidationFrom attributes to merge inherited rules
         $constructor = $class->getConstructor();
         if ($constructor) {
@@ -251,7 +252,7 @@ class DataClassExtractor extends BaseExtractor
                             // Override the current property's rules with inherited ones
                             $currentPropertyName = $parameter->getName();
                             $dataRules->add(
-                                $path->property($currentPropertyName), 
+                                $path->property($currentPropertyName),
                                 $sourceRules[$sourceProperty]
                             );
                         }

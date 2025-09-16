@@ -132,14 +132,14 @@ abstract class BaseExtractor implements ExtractorInterface
                     $nestedObjectPath = $baseField.'.*.'.explode('.', ltrim($remainingPath, '.'))[0];
                     if (isset($nestedObjectFields[$nestedObjectPath])) {
                         // This is part of a nested object, handle it specially
-                        $this->addNestedObjectInArray($grouped, $field, $ruleSet, $rules, $nestedObjectFields);
+                        $this->ruleGrouper->addNestedObjectInArray($grouped, $field, $ruleSet, $rules, $nestedObjectFields);
 
                         continue;
                     }
                 }
 
                 // Regular wildcard field
-                $this->addNestedRule($grouped, $field, $ruleSet);
+                $this->ruleGrouper->addNestedRule($grouped, $field, $ruleSet);
             } else {
                 // Regular field or base array field
                 if (! isset($grouped[$field])) {
@@ -158,93 +158,6 @@ abstract class BaseExtractor implements ExtractorInterface
         $this->cleanupGroupedRules($grouped);
 
         return $grouped;
-    }
-
-    /**
-     * Add a nested object that's within an array context
-     */
-    protected function addNestedObjectInArray(array &$grouped, string $field, string $ruleSet, array $allRules, array $nestedObjectFields): void
-    {
-        // Extract the parts: baseArray.*.objectField.property
-        if (preg_match('/^(.+?)\.\*\.([^.]+)(?:\.(.+))?$/', $field, $matches)) {
-            $baseArray = $matches[1];
-            $objectField = $matches[2];
-            $propertyPath = $matches[3] ?? null;
-
-            // Initialize structure
-            if (! isset($grouped[$baseArray])) {
-                $grouped[$baseArray] = [
-                    'rules' => null,
-                    'nested' => [],
-                ];
-            }
-
-            $nestedObjectPath = $baseArray.'.*.'.$objectField;
-            if (isset($nestedObjectFields[$nestedObjectPath])) {
-                // This is a nested object
-                if (! isset($grouped[$baseArray]['nested'][$objectField])) {
-                    $grouped[$baseArray]['nested'][$objectField] = [
-                        'rules' => $allRules[$nestedObjectPath.'.__baseRules'] ?? 'object',
-                        'nested' => [],
-                        'isNestedObject' => true,
-                    ];
-                }
-
-                if ($propertyPath) {
-                    // Add the property to the nested object
-                    $grouped[$baseArray]['nested'][$objectField]['nested'][$propertyPath] =
-                        $allRules[$nestedObjectPath.'.__nested.'.$propertyPath] ?? $ruleSet;
-                }
-            } else {
-                // Regular nested field
-                $this->addNestedRule($grouped, $field, $ruleSet);
-            }
-        }
-    }
-
-    /**
-     * Recursively add nested rules to the grouped structure
-     * Handles multi-level wildcards like items.*.variations.*.type
-     */
-    public function addNestedRule(array &$grouped, string $field, string $ruleSet): void
-    {
-        // Split on the first .* occurrence only
-        $parts = explode('.*', $field, 2);
-        $baseField = $parts[0];
-        $remainingPath = $parts[1] ?? '';
-
-        // Initialize base field if not exists
-        if (! isset($grouped[$baseField])) {
-            $grouped[$baseField] = [
-                'rules' => null,
-                'nested' => [],
-            ];
-        }
-
-        if ($remainingPath === '') {
-            // Direct array items (e.g., tags.*)
-            $grouped[$baseField]['nested']['*'] = $ruleSet;
-        } else {
-            // Remove leading dot and process remaining path
-            $remainingPath = ltrim($remainingPath, '.');
-
-            if (str_contains($remainingPath, '.*')) {
-                // Still has wildcards - need to handle nested arrays recursively
-                $this->addNestedRuleRecursively($grouped[$baseField]['nested'], $remainingPath, $ruleSet);
-            } else {
-                // No more wildcards - this is a simple nested property
-                // But we need to make sure we don't overwrite existing structured data
-                if (! isset($grouped[$baseField]['nested'][$remainingPath])) {
-                    $grouped[$baseField]['nested'][$remainingPath] = $ruleSet;
-                } elseif (is_array($grouped[$baseField]['nested'][$remainingPath]) && isset($grouped[$baseField]['nested'][$remainingPath]['rules'])) {
-                    // Already a structured field, update its rules
-                    $grouped[$baseField]['nested'][$remainingPath]['rules'] = $ruleSet;
-                } else {
-                    // Simple field, just update it
-                    $grouped[$baseField]['nested'][$remainingPath] = $ruleSet;
-                }
-            }
-        }
     }
 
     /**

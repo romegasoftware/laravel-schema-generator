@@ -6,6 +6,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationRuleParser;
 use Illuminate\Validation\Validator;
 use ReflectionClass;
+use RomegaSoftware\LaravelSchemaGenerator\Traits\Makeable;
 
 /**
  * Service for inferring types from Laravel validation rules
@@ -15,6 +16,8 @@ use ReflectionClass;
  */
 class TypeInferenceService
 {
+    use Makeable;
+
     /**
      * Cached Laravel rule categories extracted via reflection
      */
@@ -247,34 +250,5 @@ class TypeInferenceService
         }
 
         return false;
-    }
-
-    /**
-     * Check if validation rules indicate the field should be nullable/optional
-     */
-    public function inferNullability(array $validations): array
-    {
-        $isOptional = false;
-        $isNullable = false;
-
-        // Check for nullable indicators
-        if (isset($validations['nullable']) && $validations['nullable'] === true) {
-            $isNullable = true;
-        }
-
-        // Check for optional indicators (absence of required rule means optional)
-        if (! isset($validations['required']) || $validations['required'] !== true) {
-            $isOptional = true;
-        }
-
-        // Sometimes fields might not be required
-        if (isset($validations['sometimes']) && $validations['sometimes'] === true) {
-            $isOptional = true;
-        }
-
-        return [
-            'optional' => $isOptional,
-            'nullable' => $isNullable,
-        ];
     }
 }

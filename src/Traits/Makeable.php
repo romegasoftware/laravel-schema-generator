@@ -12,6 +12,9 @@ trait Makeable
         return app(static::class);
     }
 
+    /**
+     * @return Mockery\MockInterface&self
+     */
     public static function mock(): MockInterface
     {
         $instance = static::make();

@@ -6,11 +6,13 @@ use Illuminate\Support\Traits\Macroable;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\SchemaGeneratorInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Support\SchemaNameGenerator;
+use RomegaSoftware\LaravelSchemaGenerator\Traits\Makeable;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
 
 abstract class BaseGenerator implements SchemaGeneratorInterface
 {
     use Macroable;
+    use Makeable;
 
     public array $processedSchemas = [];
 
