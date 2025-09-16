@@ -2,6 +2,8 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Builders\Zod;
 
+use Override;
+
 class ZodEmailBuilder extends ZodBuilder
 {
     protected ?string $requiredMessage = null;
@@ -26,34 +28,9 @@ class ZodEmailBuilder extends ZodBuilder
     }
 
     /**
-     * Add trim validation
-     */
-    public function validateTrim(?array $parameters = [], ?string $message = null): self
-    {
-        if (! $this->hasRule('trim')) {
-            $this->addRule('.trim()');
-        }
-
-        return $this;
-    }
-
-    /**
-     * Add minimum length validation
-     */
-    public function validateMin(?array $parameters = [], ?string $message = null): self
-    {
-        [$length] = $parameters;
-        $messageStr = $this->formatMessageAsParameter($message);
-        $rule = ".min({$length}{$messageStr})";
-
-        $this->replaceRule('min', $rule);
-
-        return $this;
-    }
-
-    /**
      * Make field required using Zod v4 error callback approach
      */
+    #[Override]
     public function validateRequired(?array $parameters = [], ?string $message = null): self
     {
         $resolvedMessage = $this->resolveMessage('required', $message);
@@ -84,20 +61,6 @@ class ZodEmailBuilder extends ZodBuilder
             $escapedMessage = $this->normalizeMessageForJS($resolvedMessage);
             $this->emailErrorMessage = $escapedMessage;
         }
-
-        return $this;
-    }
-
-    /**
-     * Add maximum length validation
-     */
-    public function validateMax(?array $parameters = [], ?string $message = null): self
-    {
-        [$length] = $parameters;
-        $messageStr = $this->formatMessageAsParameter($message);
-        $rule = ".max({$length}{$messageStr})";
-
-        $this->replaceRule('max', $rule);
 
         return $this;
     }

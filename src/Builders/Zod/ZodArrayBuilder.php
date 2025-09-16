@@ -2,6 +2,7 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Builders\Zod;
 
+use Override;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
@@ -25,7 +26,7 @@ class ZodArrayBuilder extends ZodBuilder
     /**
      * Logic to setup the builder. (i.e.: The nesting logic for an array)
      */
-    #[\Override]
+    #[Override]
     public function setup(): self
     {
         $arrayBuilder = $this->factory->createArrayBuilder();
@@ -123,34 +124,6 @@ class ZodArrayBuilder extends ZodBuilder
     {
         $this->itemBuilder = $itemBuilder;
         $this->itemType = 'z.any()'; // Fallback, though builder takes precedence
-
-        return $this;
-    }
-
-    /**
-     * Add minimum array length validation
-     */
-    public function validateMin(?array $parameters = [], ?string $message = null): self
-    {
-        [$length] = $parameters;
-        $messageStr = $this->formatMessageAsParameter($message);
-        $rule = ".min({$length}{$messageStr})";
-
-        $this->replaceRule('min', $rule);
-
-        return $this;
-    }
-
-    /**
-     * Add maximum array length validation
-     */
-    public function validateMax(?array $parameters = [], ?string $message = null): self
-    {
-        [$length] = $parameters;
-        $messageStr = $this->formatMessageAsParameter($message);
-        $rule = ".max({$length}{$messageStr})";
-
-        $this->replaceRule('max', $rule);
 
         return $this;
     }

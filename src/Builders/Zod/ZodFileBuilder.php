@@ -2,6 +2,7 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Builders\Zod;
 
+use Override;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Traits\HandlesFiles;
 
 class ZodFileBuilder extends ZodBuilder
@@ -107,6 +108,7 @@ class ZodFileBuilder extends ZodBuilder
     /**
      * Add minimum file size validation (in kilobytes)
      */
+    #[Override]
     public function validateMin(?array $parameters = [], ?string $message = null): self
     {
         [$sizeInKb] = $parameters;
@@ -124,6 +126,7 @@ class ZodFileBuilder extends ZodBuilder
     /**
      * Add maximum file size validation (in kilobytes)
      */
+    #[Override]
     public function validateMax(?array $parameters = [], ?string $message = null): self
     {
         [$sizeInKb] = $parameters;

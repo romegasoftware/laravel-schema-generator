@@ -6,8 +6,6 @@ class ZodNumberBuilder extends ZodBuilder
 {
     protected bool $isInteger = false;
 
-    protected ?string $requiredMessage = null;
-
     protected ?string $integerMessage = null;
 
     protected function getBaseType(): string
@@ -37,49 +35,6 @@ class ZodNumberBuilder extends ZodBuilder
             $escapedMessage = $this->normalizeMessageForJS($resolvedMessage);
             $this->integerMessage = $escapedMessage;
         }
-
-        return $this;
-    }
-
-    /**
-     * Make field required using Zod refine approach
-     */
-    public function validateRequired(?array $parameters = [], ?string $message = null): self
-    {
-        $resolvedMessage = $this->resolveMessage('required', $message);
-
-        if ($resolvedMessage) {
-            $escapedMessage = $this->normalizeMessageForJS($resolvedMessage);
-            $this->requiredMessage = $escapedMessage;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Add minimum value validation
-     */
-    public function validateMin(?array $parameters = [], ?string $message = null): self
-    {
-        [$value] = $parameters;
-        $messageStr = $this->formatMessageAsParameter($message);
-        $rule = ".min({$value}{$messageStr})";
-
-        $this->replaceRule('min', $rule);
-
-        return $this;
-    }
-
-    /**
-     * Add maximum value validation
-     */
-    public function validateMax(?array $parameters = [], ?string $message = null): self
-    {
-        [$value] = $parameters;
-        $messageStr = $this->formatMessageAsParameter($message);
-        $rule = ".max({$value}{$messageStr})";
-
-        $this->replaceRule('max', $rule);
 
         return $this;
     }

@@ -76,18 +76,6 @@ class ZodEnumBuilder extends ZodBuilder
         return $this;
     }
 
-    public function validateRequired(?array $parameters = [], ?string $message = null): self
-    {
-        $resolvedMessage = $this->resolveMessage('required', $message);
-
-        if ($resolvedMessage) {
-            $escapedMessage = $this->normalizeMessageForJS($resolvedMessage);
-            $this->requiredMessage = $escapedMessage;
-        }
-
-        return $this;
-    }
-
     /**
      * Get the enum values
      */
