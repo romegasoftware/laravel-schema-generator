@@ -5,9 +5,9 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Feature;
 use Illuminate\Foundation\Http\FormRequest;
 use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
-use RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
 
 class TestUploadRequest extends FormRequest
 {
@@ -25,7 +25,7 @@ class TestUploadRequest extends FormRequest
 
 class FileValidationSchemaGenerationTest extends TestCase
 {
-    protected RequestClassExtractor $extractor;
+    use InteractsWithExtractors;
 
     protected ValidationSchemaGenerator $generator;
 
@@ -33,14 +33,13 @@ class FileValidationSchemaGenerationTest extends TestCase
     {
         parent::setUp();
 
-        $this->extractor = $this->app->make(RequestClassExtractor::class);
         $this->generator = $this->app->make(ValidationSchemaGenerator::class);
     }
 
     #[Test]
     public function it_generates_schema_for_file_upload_validation(): void
     {
-        $extracted = $this->extractor->extract(new \ReflectionClass(TestUploadRequest::class));
+        $extracted = $this->getRequestExtractor()->extract(new \ReflectionClass(TestUploadRequest::class));
 
         $this->assertInstanceOf(ExtractedSchemaData::class, $extracted);
         $this->assertEquals('TestUploadRequestSchema', $extracted->name);
@@ -80,7 +79,7 @@ class FileValidationSchemaGenerationTest extends TestCase
             }
         };
 
-        $extracted = $this->extractor->extract(new \ReflectionClass($request));
+        $extracted = $this->getRequestExtractor()->extract(new \ReflectionClass($request));
         $schema = $this->generator->generate($extracted);
 
         // Should detect image rule and create file builder
@@ -102,7 +101,7 @@ class FileValidationSchemaGenerationTest extends TestCase
             }
         };
 
-        $extracted = $this->extractor->extract(new \ReflectionClass($request));
+        $extracted = $this->getRequestExtractor()->extract(new \ReflectionClass($request));
         $schema = $this->generator->generate($extracted);
 
         // Should detect image rule and create file builder
@@ -123,7 +122,7 @@ class FileValidationSchemaGenerationTest extends TestCase
             }
         };
 
-        $extracted = $this->extractor->extract(new \ReflectionClass($request));
+        $extracted = $this->getRequestExtractor()->extract(new \ReflectionClass($request));
         $schema = $this->generator->generate($extracted);
 
         $this->assertStringContainsString('z.file()', $schema);
@@ -144,7 +143,7 @@ class FileValidationSchemaGenerationTest extends TestCase
             }
         };
 
-        $extracted = $this->extractor->extract(new \ReflectionClass($request));
+        $extracted = $this->getRequestExtractor()->extract(new \ReflectionClass($request));
         $schema = $this->generator->generate($extracted);
 
         $this->assertStringContainsString('z.file()', $schema);
@@ -165,7 +164,7 @@ class FileValidationSchemaGenerationTest extends TestCase
             }
         };
 
-        $extracted = $this->extractor->extract(new \ReflectionClass($request));
+        $extracted = $this->getRequestExtractor()->extract(new \ReflectionClass($request));
         $schema = $this->generator->generate($extracted);
 
         $this->assertStringContainsString('z.file()', $schema);
@@ -186,7 +185,7 @@ class FileValidationSchemaGenerationTest extends TestCase
             }
         };
 
-        $extracted = $this->extractor->extract(new \ReflectionClass($request));
+        $extracted = $this->getRequestExtractor()->extract(new \ReflectionClass($request));
         $schema = $this->generator->generate($extracted);
 
         $this->assertStringContainsString('z.file()', $schema);

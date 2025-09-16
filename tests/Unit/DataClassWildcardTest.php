@@ -4,26 +4,20 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
-use RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
 use Spatie\LaravelData\Data;
 
 class DataClassWildcardTest extends TestCase
 {
-    private DataClassExtractor $extractor;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->extractor = $this->app->make(DataClassExtractor::class);
-    }
+    use InteractsWithExtractors;
 
     #[Test]
     public function it_handles_wildcard_array_validation_in_data_class(): void
     {
         $reflection = new \ReflectionClass(DataWithWildcardRules::class);
 
-        $result = $this->extractor->extract($reflection);
+        $result = $this->getDataExtractor()->extract($reflection);
 
         $this->assertEquals('DataWithWildcardRulesSchema', $result->name);
 
@@ -46,7 +40,7 @@ class DataClassWildcardTest extends TestCase
     {
         $reflection = new \ReflectionClass(DataWithNestedObjectArray::class);
 
-        $result = $this->extractor->extract($reflection);
+        $result = $this->getDataExtractor()->extract($reflection);
 
         // Find the items property
         $itemsProperty = $result->properties->toCollection()->firstWhere('name', 'items');
@@ -74,7 +68,7 @@ class DataWithWildcardRules extends Data
         public array $tags = []
     ) {}
 
-    public static function rules(): array
+    public static function rules($context = null): array
     {
         return [
             'tags' => 'array',
@@ -90,7 +84,7 @@ class DataWithNestedObjectArray extends Data
         public array $items = []
     ) {}
 
-    public static function rules(): array
+    public static function rules($context = null): array
     {
         return [
             'items' => 'required|array',

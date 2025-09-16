@@ -7,9 +7,12 @@ use RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\FormRequests\TestLoginRequest;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
 
 class EnumZodGenerationTest extends TestCase
 {
+    use InteractsWithExtractors;
+
     protected RequestClassExtractor $extractor;
 
     protected ValidationSchemaGenerator $generator;
@@ -17,7 +20,6 @@ class EnumZodGenerationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->extractor = $this->app->make(RequestClassExtractor::class);
         $this->generator = $this->app->make(ValidationSchemaGenerator::class);
     }
 
@@ -25,7 +27,7 @@ class EnumZodGenerationTest extends TestCase
     public function it_generates_z_enum_for_laravel_enum_rule(): void
     {
         $reflection = new \ReflectionClass(TestLoginRequest::class);
-        $extracted = $this->extractor->extract($reflection);
+        $extracted = $this->getRequestExtractor()->extract($reflection);
         $schema = $this->generator->generate($extracted);
 
         // The login_as_user_type field should generate a z.enum()

@@ -3,28 +3,27 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
-use RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\AlbumData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
 
 class NestedObjectsInArraysTest extends TestCase
 {
-    protected DataClassExtractor $extractor;
+    use InteractsWithExtractors;
 
     protected ValidationSchemaGenerator $generator;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->extractor = $this->app->make(DataClassExtractor::class);
         $this->generator = $this->app->make(ValidationSchemaGenerator::class);
     }
 
     #[Test]
     public function it_handles_nested_objects_within_array_items(): void
     {
-        $extracted = $this->extractor->extract(new \ReflectionClass(AlbumData::class));
+        $extracted = $this->getDataExtractor()->extract(new \ReflectionClass(AlbumData::class));
         $schema = $this->generator->generate($extracted);
 
         // The album should have an array of songs
@@ -51,7 +50,7 @@ class NestedObjectsInArraysTest extends TestCase
     #[Test]
     public function it_generates_correct_structure_for_album_data(): void
     {
-        $extracted = $this->extractor->extract(new \ReflectionClass(AlbumData::class));
+        $extracted = $this->getDataExtractor()->extract(new \ReflectionClass(AlbumData::class));
         $schema = $this->generator->generate($extracted);
 
         // Expected structure (simplified for readability):
@@ -82,7 +81,7 @@ class NestedObjectsInArraysTest extends TestCase
     #[Test]
     public function it_maintains_validation_messages_for_deeply_nested_properties(): void
     {
-        $extracted = $this->extractor->extract(new \ReflectionClass(AlbumData::class));
+        $extracted = $this->getDataExtractor()->extract(new \ReflectionClass(AlbumData::class));
         $schema = $this->generator->generate($extracted);
 
         // Check that custom messages are preserved for nested properties

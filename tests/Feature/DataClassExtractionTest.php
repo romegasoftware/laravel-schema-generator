@@ -3,10 +3,10 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Feature;
 
 use PHPUnit\Framework\Attributes\Test;
-use RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\AlbumData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\SongData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
 
 /**
  * Test manual rules() method extraction from Spatie Data classes
@@ -14,20 +14,14 @@ use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
  */
 class DataClassExtractionTest extends TestCase
 {
-    private DataClassExtractor $extractor;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->extractor = $this->app->make(DataClassExtractor::class);
-    }
+    use InteractsWithExtractors;
 
     #[Test]
     public function it_extracts_manual_rules_from_song_data(): void
     {
         $reflection = new \ReflectionClass(SongData::class);
 
-        $result = $this->extractor->extract($reflection);
+        $result = $this->getDataExtractor()->extract($reflection);
 
         // Verify schema name
         $this->assertEquals('SongDataSchema', $result->name);
@@ -65,7 +59,7 @@ class DataClassExtractionTest extends TestCase
     {
         $reflection = new \ReflectionClass(AlbumData::class);
 
-        $result = $this->extractor->extract($reflection);
+        $result = $this->getDataExtractor()->extract($reflection);
 
         // Verify schema name
         $this->assertEquals('AlbumDataSchema', $result->name);

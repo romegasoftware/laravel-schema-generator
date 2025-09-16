@@ -4,18 +4,12 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
-use RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
 
 class NestedArrayValidationTest extends TestCase
 {
-    protected RequestClassExtractor $extractor;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->extractor = $this->app->make(RequestClassExtractor::class);
-    }
+    use InteractsWithExtractors;
 
     #[Test]
     public function it_groups_wildcard_rules_correctly(): void
@@ -27,7 +21,7 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string|max:50',
         ];
 
-        $extractor = $this->app->make(RequestClassExtractor::class);
+        $extractor = $this->getRequestExtractor();
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -55,7 +49,7 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string|max:50',
         ];
 
-        $extractor = $this->app->make(RequestClassExtractor::class);
+        $extractor = $this->getRequestExtractor();
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -81,7 +75,7 @@ class NestedArrayValidationTest extends TestCase
             'items.*.pricing.*.component' => 'required|in:base,tax,discount',
         ];
 
-        $extractor = $this->app->make(RequestClassExtractor::class);
+        $extractor = $this->getRequestExtractor();
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -126,7 +120,7 @@ class NestedArrayValidationTest extends TestCase
             'users.*.profiles.*.name' => 'string|max:100',
         ];
 
-        $extractor = $this->app->make(RequestClassExtractor::class);
+        $extractor = $this->getRequestExtractor();
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);
@@ -164,7 +158,7 @@ class NestedArrayValidationTest extends TestCase
             'tags.*' => 'string',  // No base rule
         ];
 
-        $extractor = $this->app->make(RequestClassExtractor::class);
+        $extractor = $this->getRequestExtractor();
         $reflection = new ReflectionClass($extractor);
         $method = $reflection->getMethod('groupRulesByBaseField');
         $method->setAccessible(true);

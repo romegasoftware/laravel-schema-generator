@@ -3,10 +3,10 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
-use RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\AlbumData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\SongData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
 
 /**
  * @deprecated Use Feature/DataClassManualRulesExtractionTest instead
@@ -14,20 +14,14 @@ use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
  */
 class DataClassManualRulesTest extends TestCase
 {
-    private DataClassExtractor $extractor;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->extractor = $this->app->make(DataClassExtractor::class);
-    }
+    use InteractsWithExtractors;
 
     #[Test]
     public function it_extracts_manual_rules_from_song_data(): void
     {
         $reflection = new \ReflectionClass(SongData::class);
 
-        $result = $this->extractor->extract($reflection);
+        $result = $this->getDataExtractor()->extract($reflection);
 
         // According to Spatie docs, we should have:
         // - title: required
@@ -45,7 +39,7 @@ class DataClassManualRulesTest extends TestCase
     {
         $reflection = new \ReflectionClass(AlbumData::class);
 
-        $result = $this->extractor->extract($reflection);
+        $result = $this->getDataExtractor()->extract($reflection);
 
         // According to Spatie docs, we should have:
         // - title: required|string

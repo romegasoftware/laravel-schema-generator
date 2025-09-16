@@ -3,26 +3,20 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Feature;
 
 use PHPUnit\Framework\Attributes\Test;
-use RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\FormRequests\TestLoginRequest;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
 
 class TestLoginRequestExtractionTest extends TestCase
 {
-    private RequestClassExtractor $extractor;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->extractor = $this->app->make(RequestClassExtractor::class);
-    }
+    use InteractsWithExtractors;
 
     #[Test]
     public function it_extracts_validation_rules_from_test_login_request(): void
     {
         $reflection = new \ReflectionClass(TestLoginRequest::class);
 
-        $result = $this->extractor->extract($reflection);
+        $result = $this->getRequestExtractor()->extract($reflection);
 
         // Verify schema name from attribute
         $this->assertEquals('LoginRequestSchema', $result->name);
@@ -106,7 +100,7 @@ class TestLoginRequestExtractionTest extends TestCase
     {
         $reflection = new \ReflectionClass(TestLoginRequest::class);
 
-        $result = $this->extractor->extract($reflection);
+        $result = $this->getRequestExtractor()->extract($reflection);
 
         $properties = $result->properties->toCollection();
 
@@ -127,7 +121,7 @@ class TestLoginRequestExtractionTest extends TestCase
     {
         $reflection = new \ReflectionClass(TestLoginRequest::class);
 
-        $result = $this->extractor->extract($reflection);
+        $result = $this->getRequestExtractor()->extract($reflection);
 
         $properties = $result->properties->toCollection();
 

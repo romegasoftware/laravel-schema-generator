@@ -6,28 +6,22 @@ use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\InheritValidationFrom;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
-use RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
 use Spatie\LaravelData\Attributes\Validation\Regex;
 use Spatie\LaravelData\Attributes\Validation\StringType;
 use Spatie\LaravelData\Data;
 
 class DataClassExtractorTest extends TestCase
 {
-    protected DataClassExtractor $extractor;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->extractor = $this->app->make(DataClassExtractor::class);
-    }
+    use InteractsWithExtractors;
 
     #[Test]
     public function it_extracts_custom_messages_from_data_class(): void
     {
         $reflection = new ReflectionClass(TestPostalCodeData::class);
 
-        $result = $this->extractor->extract($reflection);
+        $result = $this->getDataExtractor()->extract($reflection);
 
         $this->assertEquals('TestPostalCodeDataSchema', $result->name);
         $this->assertCount(1, $result->properties);
@@ -51,7 +45,7 @@ class DataClassExtractorTest extends TestCase
     {
         $reflection = new ReflectionClass(TestInheritingData::class);
 
-        $result = $this->extractor->extract($reflection);
+        $result = $this->getDataExtractor()->extract($reflection);
 
         $this->assertEquals('TestInheritingDataSchema', $result->name);
         $this->assertCount(1, $result->properties);
@@ -76,7 +70,7 @@ class DataClassExtractorTest extends TestCase
         // the inherited custom messages are preserved and not overwritten with empty array
         $reflection = new ReflectionClass(TestInheritingDataWithoutMessages::class);
 
-        $result = $this->extractor->extract($reflection);
+        $result = $this->getDataExtractor()->extract($reflection);
 
         $property = $result->properties->toCollection()->first();
         $validations = $property->validations;
@@ -98,7 +92,7 @@ class TestPostalCodeData extends Data
         public string $code
     ) {}
 
-    public static function messages(): array
+    public static function messages(...$args): array
     {
         return [
             'code.regex' => 'Postal Code must match ##### or #####-####',

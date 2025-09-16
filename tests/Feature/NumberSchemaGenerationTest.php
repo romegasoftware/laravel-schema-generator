@@ -5,9 +5,9 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Feature;
 use Illuminate\Foundation\Http\FormRequest;
 use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
-use RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
 
 class TestRequest extends FormRequest
 {
@@ -21,7 +21,7 @@ class TestRequest extends FormRequest
 
 class NumberSchemaGenerationTest extends TestCase
 {
-    protected RequestClassExtractor $extractor;
+    use InteractsWithExtractors;
 
     protected ValidationSchemaGenerator $generator;
 
@@ -29,14 +29,13 @@ class NumberSchemaGenerationTest extends TestCase
     {
         parent::setUp();
 
-        $this->extractor = $this->app->make(RequestClassExtractor::class);
         $this->generator = $this->app->make(ValidationSchemaGenerator::class);
     }
 
     #[Test]
     public function it_generates_schema_for_test_request(): void
     {
-        $extracted = $this->extractor->extract(new \ReflectionClass(TestRequest::class));
+        $extracted = $this->getRequestExtractor()->extract(new \ReflectionClass(TestRequest::class));
 
         $this->assertInstanceOf(ExtractedSchemaData::class, $extracted);
         $this->assertEquals('TestRequestSchema', $extracted->name);

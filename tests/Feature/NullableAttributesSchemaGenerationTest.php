@@ -4,14 +4,14 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Feature;
 
 use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
-use RomegaSoftware\LaravelSchemaGenerator\Extractors\DataClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\NullableAttributesData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
 
 class NullableAttributesSchemaGenerationTest extends TestCase
 {
-    protected DataClassExtractor $extractor;
+    use InteractsWithExtractors;
 
     protected ValidationSchemaGenerator $generator;
 
@@ -19,7 +19,6 @@ class NullableAttributesSchemaGenerationTest extends TestCase
     {
         parent::setUp();
 
-        $this->extractor = $this->app->make(DataClassExtractor::class);
         $this->generator = $this->app->make(ValidationSchemaGenerator::class);
     }
 
@@ -27,7 +26,7 @@ class NullableAttributesSchemaGenerationTest extends TestCase
     public function it_generates_schema_for_nullable_fields(): void
     {
         (new NullableAttributesData)->getValidationRules([]);
-        $extracted = $this->extractor->extract(new \ReflectionClass(objectOrClass: NullableAttributesData::class));
+        $extracted = $this->getDataExtractor()->extract(new \ReflectionClass(objectOrClass: NullableAttributesData::class));
 
         $this->assertInstanceOf(ExtractedSchemaData::class, $extracted);
         $this->assertEquals('NullableAttributesDataSchema', $extracted->name);
@@ -43,7 +42,7 @@ class NullableAttributesSchemaGenerationTest extends TestCase
         $this->assertStringContainsString('.min(1,', $schema);
         $this->assertStringContainsString('.nullable()', $schema);
         $this->assertStringContainsString('.optional()', $schema);
-        
+
         // Check that reason field is present with nullable and max validation
         $this->assertStringContainsString('reason:', $schema);
         $this->assertStringContainsString('z.string()', $schema);

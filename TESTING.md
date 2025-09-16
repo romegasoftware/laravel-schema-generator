@@ -7,7 +7,7 @@ The test suite is organized into three main categories:
 ```
 tests/
 ├── Unit/           # Isolated component tests
-├── Feature/        # Integration and workflow tests  
+├── Feature/        # Integration and workflow tests
 ├── Integration/    # End-to-end validation tests
 ├── Fixtures/       # Test data and mock classes
 └── Traits/         # Shared test helpers
@@ -29,23 +29,8 @@ vendor/bin/phpunit --coverage-html coverage
 # Run specific test file
 vendor/bin/phpunit tests/Unit/DataClassExtractorTest.php
 
-# Run tests in parallel (faster)
+# Run tests in parallel
 php artisan test --parallel
-```
-
-## Test Groups
-
-Tests are organized into groups for targeted testing:
-
-- `@group extractors` - Tests for extractor classes
-- `@group builders` - Tests for Zod builder classes  
-- `@group generators` - Tests for schema generators
-- `@group validation` - Tests for validation rules
-- `@group integration` - End-to-end tests
-
-Run specific groups:
-```bash
-vendor/bin/phpunit --group extractors
 ```
 
 ## Writing Tests
@@ -71,14 +56,13 @@ We provide several traits to simplify testing:
 class MyTest extends TestCase
 {
     use InteractsWithExtractors;
-    use InteractsWithBuilders;
     use CreatesTestClasses;
-    
+
     public function test_something()
     {
         // Use trait methods
         $extractor = $this->getRequestExtractor();
-        $validationSet = $this->createValidationSet([...]);
+        $validationSet = $this->createTestFormRequest([...]);
     }
 }
 ```
@@ -91,7 +75,7 @@ Never instantiate services directly. Use the container:
 // ❌ Wrong
 $extractor = new RequestClassExtractor();
 
-// ✅ Correct  
+// ✅ Correct
 $extractor = $this->app->make(RequestClassExtractor::class);
 ```
 
@@ -123,9 +107,9 @@ public function test_extractor_handles_validation_rules()
 {
     $extractor = $this->getRequestExtractor();
     $reflection = new ReflectionClass(TestLoginRequest::class);
-    
+
     $result = $extractor->extract($reflection);
-    
+
     $this->assertInstanceOf(ExtractedSchemaData::class, $result);
     $this->assertEquals('LoginRequestSchema', $result->name);
 }
@@ -140,9 +124,9 @@ public function test_builder_generates_correct_schema()
         'required' => [],
         'email' => [],
     ]);
-    
+
     $schema = $this->buildZodSchema('string', $validationSet);
-    
+
     $this->assertStringContainsString('z.string()', $schema);
     $this->assertStringContainsString('.email()', $schema);
 }
@@ -158,7 +142,7 @@ public function test_with_mock_validator()
         ['email' => 'required|email'],
         ['email.required' => 'Email is required']
     );
-    
+
     // Use validator in test
 }
 ```
@@ -166,11 +150,13 @@ public function test_with_mock_validator()
 ## Debugging Failed Tests
 
 1. **Run verbose output:**
+
    ```bash
    vendor/bin/phpunit --verbose
    ```
 
 2. **Use dd() for debugging:**
+
    ```php
    dd($result); // Will dump and die
    ```
@@ -183,11 +169,13 @@ public function test_with_mock_validator()
 ## Continuous Integration
 
 Tests run automatically on:
+
 - Pull requests
 - Commits to main branch
 - Release tags
 
 The CI pipeline runs:
+
 1. PHPUnit tests
 2. Code coverage analysis
 3. Static analysis (PHPStan)
@@ -196,11 +184,13 @@ The CI pipeline runs:
 ## Test Coverage Goals
 
 We aim for:
+
 - **Overall:** 80%+ coverage
 - **Critical paths:** 95%+ coverage
 - **New features:** 100% coverage
 
 Check current coverage:
+
 ```bash
 vendor/bin/phpunit --coverage-text
 ```
@@ -210,14 +200,17 @@ vendor/bin/phpunit --coverage-text
 ### Common Issues
 
 1. **"Class not found" errors**
+
    - Run `composer dump-autoload`
    - Check namespace and file location match
 
 2. **"Target class [config] does not exist"**
+
    - Ensure test extends our TestCase, not PHPUnit's
    - TestCase sets up Laravel application
 
 3. **"Too few arguments" errors**
+
    - Use dependency injection via container
    - Don't instantiate services directly
 

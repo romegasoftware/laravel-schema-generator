@@ -8,21 +8,17 @@ use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
-use RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use Spatie\LaravelData\DataCollection;
 
 class RequestClassGenerationTest extends TestCase
 {
-    protected RequestClassExtractor $extractor;
-
     protected ValidationSchemaGenerator $generator;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->extractor = $this->app->make(RequestClassExtractor::class);
         $this->generator = $this->app->make(ValidationSchemaGenerator::class);
     }
 
