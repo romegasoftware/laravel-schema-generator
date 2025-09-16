@@ -136,13 +136,14 @@ class LaravelValidationResolver
             [$ruleName, $parameters] = ValidationRuleParser::parse($rule);
 
             // Resolve the message using the message service
-            $message = $this->messageService->resolveCustomMessage(
-                $field,
-                $ruleName,
-                $validator,
-                $parameters,
-                $isNumericField
-            );
+            $message = $this->messageService->with(
+                field: $field,
+                ruleName: $ruleName,
+                validator: $validator,
+                parameters: $parameters,
+                isNumericField: $isNumericField,
+                rules: $rules,
+            )->resolveCustomMessage();
 
             $resolvedValidation = new ResolvedValidation(
                 rule: $ruleName,

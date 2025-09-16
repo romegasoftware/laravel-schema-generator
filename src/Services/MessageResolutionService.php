@@ -13,6 +13,18 @@ use ReflectionClass;
  */
 class MessageResolutionService
 {
+    protected string $field;
+
+    protected string $ruleName;
+
+    protected Validator $validator;
+
+    protected array $parameters = [];
+
+    protected bool $isNumericField = false;
+
+    protected array $rules = [];
+
     /**
      * Resolve a custom message for a field and rule combination
      *
@@ -21,81 +33,98 @@ class MessageResolutionService
      * @param  Validator  $validator  The validator instance
      * @param  array  $parameters  The rule parameters
      * @param  bool  $isNumericField  Whether the field is numeric
-     * @return string The resolved message
+     * @param  array  $rules  An array of all the rules on the object, to determine numeric or file types
      */
-    public function resolveCustomMessage(
+    public function with(
         string $field,
         string $ruleName,
         Validator $validator,
         array $parameters = [],
-        bool $isNumericField = false
-    ): string {
-        // Check for custom message first
-        $customMessageKey = $field.'.'.lcfirst($ruleName);
+        bool $isNumericField = false,
+        array $rules = []
+    ): self {
+        $this->field = $field;
+        $this->ruleName = $ruleName;
+        $this->validator = $validator;
+        $this->parameters = $parameters;
+        $this->isNumericField = $isNumericField;
+        $this->rules = $rules;
 
-        if (isset($validator->customMessages[$customMessageKey])) {
-            return $validator->customMessages[$customMessageKey];
+        return $this;
+    }
+
+    /**
+     * Resolve a custom message for a field and rule combination
+     *
+     * @return string The resolved message
+     */
+    public function resolveCustomMessage(): string
+    {
+        if (empty($this->field) || empty($this->ruleName) || empty($this->validator)) {
+            throw new \InvalidArgumentException('The field, rule name, and validator must be set using with() prior to calling resolveCustomMessage.');
+        }
+
+        // Check for custom message first
+        $customMessageKey = $this->field.'.'.lcfirst($this->ruleName);
+
+        if (isset($this->validator->customMessages[$customMessageKey])) {
+            return $this->validator->customMessages[$customMessageKey];
         }
 
         // Fall back to default Laravel message
-        return $this->getDefaultMessage($field, $ruleName, $validator, $parameters, $isNumericField);
+        return $this->getDefaultMessage();
     }
 
     /**
      * Get the default Laravel validation message
      *
-     * @param  string  $field  The field name
-     * @param  string  $ruleName  The validation rule name
-     * @param  Validator  $validator  The validator instance
-     * @param  array  $parameters  The rule parameters
-     * @param  bool  $isNumericField  Whether the field is numeric
      * @return string The default message
      */
-    private function getDefaultMessage(
-        string $field,
-        string $ruleName,
-        Validator $validator,
-        array $parameters = [],
-        bool $isNumericField = false
-    ): string {
+    private function getDefaultMessage(): string
+    {
+        if (empty($this->field) || empty($this->ruleName) || empty($this->validator)) {
+            throw new \InvalidArgumentException('The field, rule name, and validator must be set using with() prior to calling resolveCustomMessage.');
+        }
+
         // For numeric fields with min/max rules, we need to help Laravel understand the type
-        if ($isNumericField && in_array(strtolower($ruleName), ['min', 'max'])) {
+        if ($this->isNumericField && in_array(strtolower($this->ruleName), ['min', 'max'])) {
             // Temporarily set numeric data for this field to get proper message
-            $originalData = $validator->getData();
+            $originalData = $this->validator->getData();
             $tempData = $originalData;
-            $this->setNestedValue($tempData, $field, 1); // Set a numeric value
-            $validator->setData($tempData);
+            $this->setNestedValue($tempData, $this->field, 1); // Set a numeric value
+            $this->validator->setData($tempData);
         }
 
         // Use reflection to access the protected getMessage method
-        $validatorReflection = new ReflectionClass($validator);
+        $validatorReflection = new ReflectionClass($this->validator);
+        $this->validator->setRules([$this->field => $this->rules]);
         $getMessage = $validatorReflection->getMethod('getMessage');
 
-        $rawMessage = $getMessage->invoke($validator, $field, $ruleName);
+        $rawMessage = $getMessage->invoke($this->validator, $this->field, $this->ruleName);
 
         // Handle password rules that may return arrays of messages
         if (is_array($rawMessage)) {
             // For password rules, try to find the specific constraint message
-            if (isset($rawMessage[$ruleName])) {
-                $message = $rawMessage[$ruleName];
+            if (isset($rawMessage[$this->ruleName])) {
+                $message = $rawMessage[$this->ruleName];
             } else {
                 // Fallback to first message or generic message
-                $message = reset($rawMessage) ?: "The {$field} field validation failed.";
+                $message = reset($rawMessage) ?: "The {$this->field} field validation failed.";
             }
         } else {
             $message = $rawMessage;
         }
 
-        $message = $validator->makeReplacements(
+        $message = $this->validator->makeReplacements(
             $message,
-            $field,
-            $ruleName,
-            $parameters
+            $this->field,
+            $this->ruleName,
+            $this->parameters
         );
 
         // Restore original data if we modified it
-        if ($isNumericField && in_array(strtolower($ruleName), ['min', 'max']) && isset($originalData)) {
-            $validator->setData($originalData);
+        if ($this->isNumericField && in_array(strtolower($this->ruleName), ['min', 'max']) && isset($originalData)) {
+            $this->validator->setData($originalData);
         }
 
         return $message;

@@ -26,7 +26,7 @@ class EnumZodGenerationTest extends TestCase
     {
         $reflection = new \ReflectionClass(TestLoginRequest::class);
         $extracted = $this->extractor->extract($reflection);
-        $schema = $this->generator->generate($extracted, 'TestLoginRequestSchema');
+        $schema = $this->generator->generate($extracted);
 
         // The login_as_user_type field should generate a z.enum()
         $this->assertStringContainsString('login_as_user_type: z.enum(["Super Admin"])', $schema,

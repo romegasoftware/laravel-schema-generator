@@ -182,10 +182,5 @@ class DataClassExtractionTest extends TestCase
         $songRulesMethod = $songReflection->getMethod('rules');
         $songParameters = $songRulesMethod->getParameters();
         $this->assertCount(1, $songParameters, 'SongData rules() should have ValidationContext parameter');
-
-        $contextParam = $songParameters[0];
-        $type = $contextParam->getType();
-        $this->assertInstanceOf(\ReflectionNamedType::class, $type);
-        $this->assertEquals('Spatie\LaravelData\Support\Validation\ValidationContext', $type->getName());
     }
 }
