@@ -1,6 +1,8 @@
-# Laravel Zod Generator
+# Laravel Schema Generator
 
-Generate TypeScript Zod validation schemas from your Laravel validation rules. This package supports Laravel FormRequest classes, Spatie Data classes, and custom validation classes through an extensible architecture.
+Generate TypeScript Schema validation schemas from your Laravel validation rules. This package supports Laravel FormRequest classes, Spatie Data classes, and custom validation classes through an extensible architecture.
+
+It will generate Zod schema out of the box, but can be extended for different schema generators.
 
 ## Features
 
@@ -27,6 +29,16 @@ composer require spatie/laravel-data
 # For TypeScript transformer integration
 composer require spatie/laravel-typescript-transformer
 ```
+
+## Configuration
+
+To publish the configuration file, run:
+
+```bash
+php artisan vendor:publish --provider="RomegaSoftware\LaravelSchemaGenerator\LaravelSchemaGeneratorServiceProvider"
+```
+
+This will create a `config/laravel-schema-generator.php` file where you can customize output paths, formats, and integration settings.
 
 ## Quick Start
 
@@ -58,7 +70,7 @@ php artisan schema:generate
 3. **Use in TypeScript**:
 
 ```typescript
-import { CreateUserSchema } from "@/types/zod-schemas";
+import { CreateUserSchema } from "@/types/schemas";
 
 const result = CreateUserSchema.safeParse(formData);
 if (result.success) {
