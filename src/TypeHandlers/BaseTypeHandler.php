@@ -2,6 +2,7 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\TypeHandlers;
 
+use Illuminate\Support\Str;
 use Illuminate\Support\Traits\Macroable;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\TypeHandlerInterface;
@@ -41,12 +42,14 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
             $type === 'file' => $this->factory->createFileBuilder(),
             $type === 'boolean' => $this->factory->createBooleanBuilder(),
             $type === 'number' => $this->factory->createNumberBuilder(),
+            $type === 'password' => $this->factory->createPasswordBuilder(),
             $type === 'array' => $this->factory->createArrayBuilder()
                 ->setProperty($this->property)
                 ->setup(),
             $type === 'object' => $this->createObjectBuilderFromProperty(),
             $type === 'email' => $this->factory->createEmailBuilder(),
-            str_starts_with($type, 'enum:') => $this->factory->createEnumBuilder()->setValues($type),
+            str_starts_with($type, 'enum:') => $this->factory->createEnumBuilder()
+                ->setValues($type),
             default => $this->factory->createStringBuilder(),
         };
 
@@ -70,7 +73,7 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
                 }
 
                 // Create a new SchemaPropertyData for the nested property
-                $nestedProperty = new \RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData(
+                $nestedProperty = new SchemaPropertyData(
                     name: $propName,
                     validator: $this->property->validator,
                     isOptional: ! $propValidation->isFieldRequired(),
@@ -78,7 +81,7 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
                 );
 
                 // Use UniversalTypeHandler to handle the nested property
-                $handler = new \RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler($this->factory);
+                $handler = new UniversalTypeHandler($this->factory);
                 $nestedBuilder = $handler->handle($nestedProperty);
 
                 $objectBuilder->property($propName, $nestedBuilder);
@@ -134,10 +137,14 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
      */
     public function applyGenericValidation(string $rule, array $parameters, ?string $customMessage): void
     {
+        $formattedMethod = Str::of(ucfirst(
+            Str::camel(str_replace('.', '_', $rule))
+        ))->prepend('validate');
+
         // Try to call a method with the rule name
-        if (method_exists($this->builder, "validate{$rule}")) {
+        if (method_exists(object_or_class: $this->builder, method: $formattedMethod)) {
             $args = array_merge([$parameters], [$customMessage]);
-            $this->callBuilderMethod("validate{$rule}", $args);
+            $this->callBuilderMethod($formattedMethod, $args);
         }
     }
 

@@ -71,8 +71,23 @@ class MessageResolutionService
         $validatorReflection = new ReflectionClass($validator);
         $getMessage = $validatorReflection->getMethod('getMessage');
 
+        $rawMessage = $getMessage->invoke($validator, $field, $ruleName);
+
+        // Handle password rules that may return arrays of messages
+        if (is_array($rawMessage)) {
+            // For password rules, try to find the specific constraint message
+            if (isset($rawMessage[$ruleName])) {
+                $message = $rawMessage[$ruleName];
+            } else {
+                // Fallback to first message or generic message
+                $message = reset($rawMessage) ?: "The {$field} field validation failed.";
+            }
+        } else {
+            $message = $rawMessage;
+        }
+
         $message = $validator->makeReplacements(
-            $getMessage->invoke($validator, $field, $ruleName),
+            $message,
             $field,
             $ruleName,
             $parameters

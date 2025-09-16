@@ -85,6 +85,11 @@ class TypeInferenceService
         // First, normalize the rule names to match Laravel's internal format
         $normalizedRules = $this->normalizeRuleNames($validations);
 
+        // Check for password type
+        if (isset($normalizedRules['Password'])) {
+            return 'password';
+        }
+
         // Check for boolean type
         if (isset($normalizedRules['Boolean']) || isset($normalizedRules['Bool'])) {
             return 'boolean';

@@ -12,6 +12,7 @@ use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodFileBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodInlineObjectBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodNumberBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodObjectBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodPasswordBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodStringBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
@@ -37,8 +38,13 @@ class ZodBuilderFactory
 
     /**
      * Helper method to set translator on builders
+     *
+     * @template TBuilder of BuilderInterface
+     *
+     * @param  TBuilder  $builder
+     * @return TBuilder
      */
-    private function setTranslatorOnBuilder(BuilderInterface $builder)
+    private function setTranslatorOnBuilder(BuilderInterface $builder): BuilderInterface
     {
         $builder->setTranslator($this->translator);
 
@@ -127,5 +133,13 @@ class ZodBuilderFactory
     public function createFileBuilder(): ZodFileBuilder
     {
         return $this->setTranslatorOnBuilder(new ZodFileBuilder);
+    }
+
+    /**
+     * Create a ZodPasswordBuilder instance
+     */
+    public function createPasswordBuilder(): ZodPasswordBuilder
+    {
+        return $this->setTranslatorOnBuilder(new ZodPasswordBuilder);
     }
 }

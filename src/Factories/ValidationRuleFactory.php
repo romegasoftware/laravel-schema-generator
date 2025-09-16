@@ -2,6 +2,9 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Factories;
 
+use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\Rules\Password;
+
 /**
  * Factory for normalizing and processing Laravel validation rules
  *
@@ -13,10 +16,8 @@ class ValidationRuleFactory
     /**
      * Normalize a rule to string format
      * Handles strings, arrays, and Laravel rule objects
-     *
-     * @param  mixed  $rule
      */
-    public function normalizeRule($rule): string
+    public function normalizeRule(mixed $rule): string
     {
         if (is_string($rule)) {
             return $rule;
@@ -29,7 +30,19 @@ class ValidationRuleFactory
                     $normalizedRules[] = $singleRule;
                 } elseif (is_object($singleRule)) {
                     // Handle Laravel rule objects
-                    $normalizedRules[] = $this->resolveRuleObject($singleRule);
+                    $resolved = $this->resolveRuleObject($singleRule);
+
+                    // Special handling for Password rules that may return arrays
+                    if ($singleRule instanceof \Illuminate\Validation\Rules\Password) {
+                        $expandedRules = $this->expandPasswordRule($singleRule);
+                        if (! empty($expandedRules)) {
+                            $normalizedRules = array_merge($normalizedRules, $expandedRules);
+
+                            continue;
+                        }
+                    }
+
+                    $normalizedRules[] = $resolved;
                 } else {
                     // Skip non-string, non-object rules
                     continue;
@@ -40,6 +53,14 @@ class ValidationRuleFactory
         }
 
         if (is_object($rule)) {
+            // Special handling for Password rules
+            if ($rule instanceof Password) {
+                $expandedRules = $this->expandPasswordRule($rule);
+                if (! empty($expandedRules)) {
+                    return implode('|', $expandedRules);
+                }
+            }
+
             return $this->resolveRuleObject($rule);
         }
 
@@ -49,10 +70,8 @@ class ValidationRuleFactory
 
     /**
      * Resolve a Laravel rule object to its string representation
-     *
-     * @param  object  $rule
      */
-    public function resolveRuleObject($rule): string
+    public function resolveRuleObject(object $rule): string
     {
         // Check if it's a Laravel validation rule object that implements __toString
         if (method_exists($rule, '__toString')) {
@@ -82,7 +101,7 @@ class ValidationRuleFactory
     /**
      * Extract enum values from an Enum rule object
      */
-    public function extractEnumValues(\Illuminate\Validation\Rules\Enum $enumRule): array
+    public function extractEnumValues(Enum $enumRule): array
     {
         try {
             // Use reflection to access the protected type property
@@ -123,5 +142,93 @@ class ValidationRuleFactory
         }
 
         return [];
+    }
+
+    /**
+     * Expand a Password rule object into individual validation rules
+     */
+    public function expandPasswordRule(Password $passwordRule): array
+    {
+        $rules = [];
+
+        try {
+            // Use reflection to access protected properties
+            $reflection = new \ReflectionClass($passwordRule);
+
+            // Add base password rule
+            $rules[] = 'password';
+
+            // Check for min length
+            if ($reflection->hasProperty('min')) {
+                $minProperty = $reflection->getProperty('min');
+                $minProperty->setAccessible(true);
+                $minValue = $minProperty->getValue($passwordRule);
+                if ($minValue !== null) {
+                    $rules[] = "min:$minValue";
+                }
+            }
+
+            // Check for max length
+            if ($reflection->hasProperty('max')) {
+                $maxProperty = $reflection->getProperty('max');
+                $maxProperty->setAccessible(true);
+                $maxValue = $maxProperty->getValue($passwordRule);
+                if ($maxValue !== null) {
+                    $rules[] = "max:$maxValue";
+                }
+            }
+
+            // Check for letters requirement
+            if ($reflection->hasProperty('letters')) {
+                $lettersProperty = $reflection->getProperty('letters');
+                $lettersProperty->setAccessible(true);
+                $lettersValue = $lettersProperty->getValue($passwordRule);
+                if ($lettersValue) {
+                    $rules[] = "password.letters:$lettersValue";
+                }
+            }
+
+            if ($reflection->hasProperty('mixedCase')) {
+                $mixedCaseProperty = $reflection->getProperty('mixedCase');
+                $mixedCaseProperty->setAccessible(true);
+                $mixedCaseValue = $mixedCaseProperty->getValue($passwordRule);
+                if ($mixedCaseValue) {
+                    $rules[] = "password.mixed:$mixedCaseValue";
+                }
+            }
+
+            if ($reflection->hasProperty('numbers')) {
+                $numbersProperty = $reflection->getProperty('numbers');
+                $numbersProperty->setAccessible(true);
+                $numbersValue = $numbersProperty->getValue($passwordRule);
+                if ($numbersValue) {
+                    $rules[] = "password.numbers:$numbersValue";
+                }
+            }
+
+            if ($reflection->hasProperty('symbols')) {
+                $symbolsProperty = $reflection->getProperty('symbols');
+                $symbolsProperty->setAccessible(true);
+                $symbolsValue = $symbolsProperty->getValue($passwordRule);
+                if ($symbolsValue) {
+                    $rules[] = "password.symbols:$symbolsValue";
+                }
+            }
+
+            if ($reflection->hasProperty('uncompromised')) {
+                $uncompromisedProperty = $reflection->getProperty('uncompromised');
+                $uncompromisedProperty->setAccessible(true);
+                $uncompromisedValue = $uncompromisedProperty->getValue($passwordRule);
+                if ($uncompromisedValue) {
+                    $rules[] = "password.uncompromised:$uncompromisedValue";
+                }
+            }
+
+        } catch (\Exception $e) {
+            // If we can't extract the rules, return the basic password rule
+            return ['password'];
+        }
+
+        return ! empty($rules) ? $rules : ['password'];
     }
 }
