@@ -5,7 +5,6 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
 use Spatie\LaravelData\Attributes\MergeValidationRules;
 use Spatie\LaravelData\Data;
-use Spatie\LaravelData\Support\Validation\ValidationContext;
 
 #[ValidationSchema]
 #[MergeValidationRules]
@@ -18,14 +17,14 @@ class SongMetaData extends Data
         public FileFormat $fileFormat,
     ) {}
 
-    public static function rules(ValidationContext $context): array
+    public static function rules($context = null): array
     {
         return [
             'lengthInSeconds' => ['required', 'min:10', 'max:300'],
         ];
     }
 
-    public static function messages(): array
+    public static function messages(...$args): array
     {
         return [
             'lengthInSeconds.min' => 'Song length must be greater than 10 seconds',

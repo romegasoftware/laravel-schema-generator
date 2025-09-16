@@ -8,7 +8,6 @@ use Spatie\LaravelData\Attributes\MapName;
 use Spatie\LaravelData\Attributes\MergeValidationRules;
 use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Data;
-use Spatie\LaravelData\Support\Validation\ValidationContext;
 
 #[ValidationSchema]
 #[MergeValidationRules]
@@ -28,7 +27,7 @@ class SongData extends Data
         public array $producers,
     ) {}
 
-    public static function rules(ValidationContext $context): array
+    public static function rules($context = null): array
     {
         return [
             'title' => ['max:20'],
