@@ -83,7 +83,7 @@ if (result.success) {
 
 For complete documentation, configuration options, advanced features, and examples, visit:
 
-**📚 [Official Documentation](https://laravel-schema-generator.romegasoftware.com)**
+~~**📚 [Official Documentation](https://laravel-schema-generator.romegasoftware.com)**~~ Coming Soon
 
 ## Contributing
 
