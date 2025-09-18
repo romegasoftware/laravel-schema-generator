@@ -12,6 +12,10 @@ class ZodNumberBuilder extends ZodBuilder
     {
         $content = 'z.number()';
 
+        if (isset($this->requiredMessage)) {
+            $content = "z.number({error: (val) => (val != undefined && val != null ? '{$this->requiredMessage}' : undefined)})";
+        }
+
         if (isset($this->integerMessage)) {
             $content = "z.number({error: (val) => (val != undefined && val != null ? '{$this->integerMessage}' : undefined)})";
         }
