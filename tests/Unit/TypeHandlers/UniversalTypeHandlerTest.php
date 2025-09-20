@@ -194,7 +194,7 @@ class UniversalTypeHandlerTest extends TestCase
 
         $this->assertInstanceOf(ZodNumberBuilder::class, $builder);
         // Numbers with integer validation use z.number({error:...})
-        $this->assertStringContainsString('z.number({error:', $result);
+        $this->assertStringContainsString('z.number({ error:', $result);
     }
 
     #[Test]

@@ -30,7 +30,7 @@ class NestedObjectValidationTest extends TestCase
         $this->assertStringContainsString('song_meta_data_custom_name: z.object({', $schema);
 
         // The nested properties should be inside the object
-        $this->assertStringContainsString('lengthInSeconds: z.number({error: (val) => (val != undefined && val != null ? \'The song_meta_data_custom_name.lengthInSeconds field is required.\' : undefined)})', $schema);
+        $this->assertStringContainsString('lengthInSeconds: z.number({ error: \'The song_meta_data_custom_name.lengthInSeconds field is required.\' })', $schema);
         $this->assertStringContainsString('fileFormat: z.enum(["MP3", "WAV"],', $schema);
 
         // These should NOT exist as separate top-level properties
@@ -40,7 +40,7 @@ class NestedObjectValidationTest extends TestCase
         // The producers array should contain proper TestUserData objects
         $this->assertStringContainsString('producers: z.array(z.object({', $schema);
         $this->assertStringContainsString('email: z.email(', $schema);
-        $this->assertStringContainsString('name: z.string()', $schema);
+        $this->assertStringContainsString('name: z.string(', $schema);
     }
 
     #[Test]

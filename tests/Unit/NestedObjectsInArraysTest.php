@@ -33,7 +33,7 @@ class NestedObjectsInArraysTest extends TestCase
         $this->assertStringContainsString('song_meta_data_custom_name: z.object({', $schema);
 
         // The nested object properties should be inside the object, not as separate fields
-        $this->assertStringContainsString('lengthInSeconds: z.number({error: (val) => (val != undefined && val != null ? \'The songs.*.song_meta_data_custom_name.*.lengthInSeconds field is required.\' : undefined)})', $schema);
+        $this->assertStringContainsString('lengthInSeconds: z.number({ error: \'The songs.*.song_meta_data_custom_name.*.lengthInSeconds field is required.\' })', $schema);
         $this->assertStringContainsString('fileFormat: z.enum(["MP3", "WAV"],', $schema);
 
         // These should NOT exist as separate fields with dot notation
@@ -72,7 +72,7 @@ class NestedObjectsInArraysTest extends TestCase
 
         // Check the overall structure
         $this->assertStringContainsString('z.object({', $schema);
-        $this->assertStringContainsString('album_title: z.string()', $schema);
+        $this->assertStringContainsString('album_title: z.string(', $schema);
 
         // Verify no flattened properties at the root level
         $this->assertStringNotContainsString('songs.*.song_meta_data_custom_name.lengthInSeconds', $schema);

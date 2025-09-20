@@ -27,7 +27,8 @@ class ZodPasswordBuilder extends ZodStringBuilder
 
         // Apply required message if set
         if (isset($this->requiredMessage)) {
-            $content .= ".refine((val) => val != undefined && val != null && val != '', { error: '{$this->requiredMessage}'})";
+            $content = "z.string({ error: '{$this->requiredMessage}' })";
+            $content .= ".refine((val) => val != undefined && val != null && val != '', { error: '{$this->requiredMessage}' })";
         }
 
         return $content;

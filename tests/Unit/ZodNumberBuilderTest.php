@@ -27,7 +27,7 @@ class ZodNumberBuilderTest extends TestCase
     public function test_integer_validation()
     {
         $schema = $this->builder->validateInteger([], 'Must be an integer')->build();
-        $this->assertStringContainsString('z.number({error: (val)', $schema);
+        $this->assertStringContainsString('z.number({ error: ', $schema);
         $this->assertStringContainsString('Must be an integer', $schema);
     }
 
@@ -121,7 +121,7 @@ class ZodNumberBuilderTest extends TestCase
             ->validateMultipleOf([5])
             ->build();
 
-        $this->assertStringContainsString('z.number({error:', $schema);
+        $this->assertStringContainsString('z.number({ error:', $schema);
         $this->assertStringContainsString('.min(1)', $schema);
         $this->assertStringContainsString('.max(100)', $schema);
         $this->assertStringContainsString('.multipleOf(5)', $schema);

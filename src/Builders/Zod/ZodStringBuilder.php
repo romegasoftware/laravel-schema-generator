@@ -12,10 +12,11 @@ class ZodStringBuilder extends ZodBuilder
     {
         $content = 'z.string()';
 
-        $this->replaceRule('trim', '.trim()');
-
         if (isset($this->requiredMessage)) {
-            $content .= ".refine((val) => val != undefined && val != null && val != '', { error: '{$this->requiredMessage}'})";
+            $content = "z.string({ error: '{$this->requiredMessage}' }).trim()";
+            $content .= ".refine((val) => val != undefined && val != null && val != '', { error: '{$this->requiredMessage}' })";
+        } else {
+            $this->replaceRule('trim', '.trim()');
         }
 
         return $content;

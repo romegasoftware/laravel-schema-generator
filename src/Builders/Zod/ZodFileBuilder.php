@@ -242,7 +242,7 @@ class ZodFileBuilder extends ZodBuilder
                 };
                 reader.readAsDataURL(file);
             }),
-            { error: '{$escapedMessage}'})";
+            { error: '{$escapedMessage}' })";
 
         $this->replaceRule('dimensions', $rule);
 

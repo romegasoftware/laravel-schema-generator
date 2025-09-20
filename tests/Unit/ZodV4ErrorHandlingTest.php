@@ -27,9 +27,9 @@ class ZodV4ErrorHandlingTest extends TestCase
         $result = $builder->validateRequired([], 'Username is required')->validateTrim()->build();
 
         // The actual implementation uses refine method
-        $this->assertStringContainsString('z.string()', $result);
+        $this->assertStringContainsString('z.string({ error: \'Username is required\' })', $result);
         $this->assertStringContainsString('.trim()', $result);
-        $this->assertStringContainsString('.refine((val) => val != undefined && val != null && val != \'\', { error: \'Username is required\'})', $result);
+        $this->assertStringContainsString('.refine((val) => val != undefined && val != null && val != \'\', { error: \'Username is required\' })', $result);
     }
 
     #[Test]
@@ -42,9 +42,9 @@ class ZodV4ErrorHandlingTest extends TestCase
             ->build();
 
         // Should have required using refine method
-        $this->assertStringContainsString('z.string()', $result);
+        $this->assertStringContainsString('z.string(', $result);
         $this->assertStringContainsString('.trim()', $result);
-        $this->assertStringContainsString('.refine((val) => val != undefined && val != null && val != \'\', { error: \'Title is required\'})', $result);
+        $this->assertStringContainsString('.refine((val) => val != undefined && val != null && val != \'\', { error: \'Title is required\' })', $result);
 
         // Should have separate min validation
         $this->assertStringContainsString('.min(5, \'Title must be at least 5 characters\')', $result);
@@ -170,7 +170,7 @@ class ZodV4ErrorHandlingTest extends TestCase
             ->build();
 
         // Should properly escape quotes and apostrophes for JavaScript
-        $this->assertStringContainsString('z.string()', $result);
+        $this->assertStringContainsString('z.string({ error', $result);
         $this->assertStringContainsString('.trim()', $result);
         $this->assertStringContainsString("Title can\\'t be empty or contain \\\"quotes\\\"", $result);
     }

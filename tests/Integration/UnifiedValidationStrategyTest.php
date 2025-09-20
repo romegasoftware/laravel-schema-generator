@@ -88,7 +88,7 @@ class UnifiedValidationStrategyTest extends TestCase
         $this->assertTrue($validationSet->hasValidation('Max'));
         $this->assertTrue($validationSet->hasValidation('Regex'));
 
-        $this->assertStringContainsString('z.string()', $ValidationSchema);
+        $this->assertStringContainsString('z.string(', $ValidationSchema);
         $this->assertStringContainsString('.min(8', $ValidationSchema);
         $this->assertStringContainsString('.max(100', $ValidationSchema);
         $this->assertStringContainsString('.regex(', $ValidationSchema);
@@ -116,7 +116,7 @@ class UnifiedValidationStrategyTest extends TestCase
 
         $this->assertEquals('number', $validationSet->inferredType);
         // Numbers with integer validation use z.number({error:...})
-        $this->assertStringContainsString('z.number({error:', $ValidationSchema);
+        $this->assertStringContainsString('z.number({ error:', $ValidationSchema);
     }
 
     #[Test]

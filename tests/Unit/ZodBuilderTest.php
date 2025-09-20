@@ -90,7 +90,7 @@ class ZodBuilderTest extends TestCase
             ->build();
 
         // Should use the Zod v4 error callback approach for required messages
-        $this->assertEquals("z.email({ error: (val) => (val != undefined && val != null ? 'Email is required' : undefined) }).trim().min(1, 'Email is required')", $result);
+        $this->assertEquals("z.email({ error: 'Email is required' }).trim().min(1, 'Email is required')", $result);
     }
 
     #[Test]
@@ -103,7 +103,7 @@ class ZodBuilderTest extends TestCase
             ->build();
 
         // Should combine both approaches: Zod v4 error callback for required, and custom email message
-        $this->assertEquals("z.email({ error: (val) => (val != undefined && val != null ? 'Email field is mandatory' : undefined) }).trim().min(1, 'Email field is mandatory').max(255, 'Email too long')", $result);
+        $this->assertEquals("z.email({ error: 'Email field is mandatory' }).trim().min(1, 'Email field is mandatory').max(255, 'Email too long')", $result);
     }
 
     #[Test]
@@ -115,7 +115,7 @@ class ZodBuilderTest extends TestCase
             ->build();
 
         // Should properly escape quotes in JavaScript strings
-        $this->assertEquals("z.email({ error: (val) => (val != undefined && val != null ? 'Email field can\\'t be blank' : undefined) }).trim().min(1, 'Email field can\\'t be blank')", $result);
+        $this->assertEquals("z.email({ error: 'Email field can\\'t be blank' }).trim().min(1, 'Email field can\\'t be blank')", $result);
     }
 
     #[Test]

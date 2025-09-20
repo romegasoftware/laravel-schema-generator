@@ -137,7 +137,7 @@ class ValidationSchemaGeneratorTest extends TestCase
 
         // Test integer validation with proper messages
         // Numbers with integer validation use z.number({error:...})
-        $this->assertStringContainsString('count: z.number({error:', $schema);
+        $this->assertStringContainsString('count: z.number({ error:', $schema);
         $this->assertStringContainsString(".min(0, 'The count field must be at least 0.')", $schema);
         $this->assertStringContainsString(".max(100, 'The count field may not be greater than 100.')", $schema);
         // Integer validation is handled in the base definition, not as .int()
@@ -414,7 +414,7 @@ class ValidationSchemaGeneratorTest extends TestCase
         $this->assertStringContainsString('The email field may not be greater than 255 characters.', $schema);
 
         // Verify integer field: number with error callback for integer validation
-        $this->assertStringContainsString('age: z.number({error:', $schema);
+        $this->assertStringContainsString('age: z.number({ error:', $schema);
         $this->assertStringContainsString('The age field must be an integer.', $schema);
         $this->assertStringContainsString('.min(18, ', $schema);
         $this->assertStringContainsString('The age field must be at least 18.', $schema);

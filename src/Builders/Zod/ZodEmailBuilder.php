@@ -15,11 +15,11 @@ class ZodEmailBuilder extends ZodBuilder
         $content = 'z.email()';
 
         if (isset($this->requiredMessage) && ! isset($this->emailErrorMessage)) {
-            $content = "z.email({ error: (val) => (val != undefined && val != null ? '{$this->requiredMessage}' : undefined) })";
+            $content = "z.email({ error: '{$this->requiredMessage}' })";
         }
 
         if (isset($this->emailErrorMessage)) {
-            $content = "z.email({ error: (val) => (val != undefined && val != null ? '{$this->emailErrorMessage}' : undefined) })";
+            $content = "z.email({ error: '{$this->emailErrorMessage}' })";
         }
 
         $content .= '.trim()';
