@@ -90,17 +90,37 @@ class MessageResolutionService
 
         $lowerRule = strtolower($this->ruleName);
 
+        $messageParameters = $this->parameters;
+        $messageParameters['attribute'] = $this->field;
+
+        try {
+            $translator = $this->validator->getTranslator();
+            $messagePath = "validation.{$lowerRule}";
+            $translation = $translator->get($messagePath, $messageParameters);
+
+            if ($translation !== $messagePath) {
+                return $this->validator->makeReplacements(
+                    $translation,
+                    $this->field,
+                    $this->ruleName,
+                    $messageParameters
+                );
+            }
+        } catch (\Throwable) {
+            // ignore translation issues and fall back to validator resolution
+        }
+
         if ($this->isNumericField && in_array($lowerRule, $this->numericRules, true)) {
             $translator = $this->validator->getTranslator();
             $numericKey = "validation.{$lowerRule}.numeric";
-            $numericMessage = $translator->get($numericKey);
+            $numericMessage = $translator->get($numericKey, $messageParameters);
 
             if ($numericMessage !== $numericKey) {
                 return $this->validator->makeReplacements(
                     $numericMessage,
                     $this->field,
                     $this->ruleName,
-                    $this->parameters
+                    $messageParameters
                 );
             }
         }
@@ -138,7 +158,7 @@ class MessageResolutionService
             $message,
             $this->field,
             $this->ruleName,
-            $this->parameters
+            $messageParameters
         );
 
         // Restore original data if we modified it
