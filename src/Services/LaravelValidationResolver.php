@@ -68,12 +68,8 @@ class LaravelValidationResolver
      */
     private function resolveWildcardField(string $field, array $rules, Validator $validator): ResolvedValidationSet
     {
-        // Extract the item field name by removing the wildcard
-        // e.g., "tags.*" becomes "tags.*[item]"
-        $itemField = rtrim($field, '.*').'.*[item]';
-
-        // Convert rules to ResolvedValidation objects using the extracted method
-        $resolvedValidations = $this->resolveValidationRules($rules, $itemField, $validator);
+        // Keep the original wildcard notation so downstream consumers maintain context
+        $resolvedValidations = $this->resolveValidationRules($rules, $field, $validator);
 
         // Infer type for the nested item
         $rulesForInference = [];
@@ -89,7 +85,7 @@ class LaravelValidationResolver
             $nestedValidations = $this->resolveDeepNestedField($field, $rules, $validator);
         }
 
-        return ResolvedValidationSet::make($itemField, $resolvedValidations, $inferredType, $nestedValidations);
+        return ResolvedValidationSet::make($field, $resolvedValidations, $inferredType, $nestedValidations);
     }
 
     /**

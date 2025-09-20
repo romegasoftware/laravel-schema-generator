@@ -33,6 +33,10 @@ class NestedValidationBuilder
         // Check if this is a nested object based on metadata
         $fieldMeta = $metadata[$baseField] ?? null;
 
+        if (($fieldRules['isNestedObject'] ?? false) === true && (! $fieldMeta instanceof FieldMetadata || ! $fieldMeta->isNestedDataObject())) {
+            return $this->buildNestedObjectValidation($baseField, $fieldRules, $validator);
+        }
+
         if ($fieldMeta instanceof FieldMetadata && $fieldMeta->isNestedDataObject()) {
             return $this->buildNestedObjectValidation($baseField, $fieldRules, $validator);
         }
@@ -208,21 +212,91 @@ class NestedValidationBuilder
     ): array {
         $objectProperties = [];
 
-        if (! empty($fieldRules['nested'])) {
-            foreach ($fieldRules['nested'] as $property => $rules) {
-                // Ensure rules is a string
-                $rulesString = is_array($rules) ? ($rules['rules'] ?? '') : $rules;
+        if (empty($fieldRules['nested'])) {
+            return $objectProperties;
+        }
 
-                $propertyValidationSet = $this->validationResolver->resolve(
-                    $baseField.'.'.$property,
-                    $rulesString,
-                    $validator
-                );
-                $objectProperties[$property] = $propertyValidationSet;
+        foreach ($fieldRules['nested'] as $property => $rules) {
+            if (is_array($rules)) {
+                $isStructuredObject = ($rules['isNestedObject'] ?? false) === true;
+                $hasNestedChildren = ! empty($rules['nested'] ?? []);
+
+                if ($isStructuredObject || $hasNestedChildren) {
+                    $objectProperties[$property] = $this->buildStructuredNestedProperty(
+                        $baseField,
+                        $property,
+                        $rules,
+                        $validator
+                    );
+
+                    continue;
+                }
+
+                $rulesString = $rules['rules'] ?? '';
+            } else {
+                $rulesString = $rules;
             }
+
+            $objectProperties[$property] = $this->validationResolver->resolve(
+                $baseField.'.'.$property,
+                $rulesString,
+                $validator
+            );
         }
 
         return $objectProperties;
+    }
+
+    /**
+     * Build nested validation for a property that itself has structure (arrays or objects)
+     */
+    protected function buildStructuredNestedProperty(
+        string $baseField,
+        string $property,
+        array $rules,
+        Validator $validator
+    ): ResolvedValidationSet {
+        $nestedField = $baseField.'.'.$property;
+
+        if ($this->shouldTreatRulesAsArray($rules)) {
+            return $this->buildArrayValidation($nestedField, $rules, $validator);
+        }
+
+        return $this->buildNestedObjectValidation($nestedField, $rules, $validator);
+    }
+
+    /**
+     * Determine whether the given rule set should be treated as an array
+     */
+    protected function shouldTreatRulesAsArray(array $rules): bool
+    {
+        if (isset($rules['nested']['*'])) {
+            return true;
+        }
+
+        return $this->ruleSetIndicatesArray($rules['rules'] ?? null);
+    }
+
+    /**
+     * Check if the rule set indicates an array or list structure
+     */
+    protected function ruleSetIndicatesArray(mixed $ruleSet): bool
+    {
+        if (is_string($ruleSet)) {
+            $normalized = strtolower($ruleSet);
+
+            return str_contains($normalized, 'array') || str_contains($normalized, 'list');
+        }
+
+        if (is_array($ruleSet)) {
+            foreach ($ruleSet as $rule) {
+                if (is_string($rule) && $this->ruleSetIndicatesArray($rule)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

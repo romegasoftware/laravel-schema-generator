@@ -83,7 +83,10 @@ class NestedRuleGrouper
             }
         }
 
-        // Clean up - remove nested array if empty, mark as having nested rules if not
+        // Re-home dotted fields under their parent key before final cleanup
+        $this->restructureNestedFieldKeys($grouped);
+
+        // Clean up - remove empty nested array if empty, mark as having nested rules if not
         $this->cleanupGroupedRules($grouped);
 
         return $grouped;
@@ -466,9 +469,181 @@ class NestedRuleGrouper
             }
         }
 
+        // Re-home dotted fields under their parent key before final cleanup
+        $this->restructureNestedFieldKeys($grouped);
+
         // Clean up empty nested arrays
         $this->cleanupGroupedRules($grouped);
 
         return $grouped;
+    }
+
+    /**
+     * Ensure rules that were captured with dotted keys are reattached to their parent field
+     */
+    private function restructureNestedFieldKeys(array &$grouped): void
+    {
+        $fields = array_keys($grouped);
+
+        foreach ($fields as $field) {
+            if (! isset($grouped[$field])) {
+                continue;
+            }
+
+            if (is_array($grouped[$field]) && isset($grouped[$field]['nested']) && is_array($grouped[$field]['nested'])) {
+                $this->restructureNestedFieldKeys($grouped[$field]['nested']);
+            }
+
+            if (! str_contains($field, '.') || $this->isSpecialMarkerField($field)) {
+                continue;
+            }
+
+            $fieldData = $grouped[$field];
+            if (! is_array($fieldData)) {
+                $fieldData = [
+                    'rules' => $fieldData,
+                    'nested' => [],
+                ];
+            }
+            unset($grouped[$field]);
+
+            $this->insertFieldDataAtPath($grouped, $field, $fieldData);
+        }
+    }
+
+    /**
+     * Insert field data into the grouped structure at the proper nested path
+     */
+    private function insertFieldDataAtPath(array &$grouped, string $field, array $fieldData): void
+    {
+        if (! str_contains($field, '.')) {
+            return;
+        }
+
+        [$baseField, $nestedPath] = explode('.', $field, 2);
+
+        if ($nestedPath === '') {
+            return;
+        }
+
+        if (isset($grouped[$baseField]) && ! is_array($grouped[$baseField])) {
+            $existingRule = $grouped[$baseField];
+            $grouped[$baseField] = [
+                'rules' => $existingRule,
+                'nested' => [],
+            ];
+        }
+
+        if (! isset($grouped[$baseField])) {
+            $grouped[$baseField] = [
+                'rules' => null,
+                'nested' => [],
+                'isNestedObject' => true,
+            ];
+        } else {
+            $grouped[$baseField]['isNestedObject'] = $grouped[$baseField]['isNestedObject'] ?? false;
+            $grouped[$baseField]['isNestedObject'] = true;
+            $grouped[$baseField]['nested'] ??= [];
+        }
+
+        $normalizedFieldData = $this->normalizeFieldData($fieldData);
+
+        $this->mergeIntoNestedStructure($grouped[$baseField]['nested'], $nestedPath, $normalizedFieldData);
+    }
+
+    /**
+     * Normalize a grouped field data structure to ensure expected keys exist
+     */
+    private function normalizeFieldData(array $fieldData): array
+    {
+        $fieldData['rules'] = $fieldData['rules'] ?? null;
+        $fieldData['nested'] = $fieldData['nested'] ?? [];
+
+        return $fieldData;
+    }
+
+    /**
+     * Merge field data into the nested structure for dotted keys
+     */
+    private function mergeIntoNestedStructure(array &$container, string $path, array $fieldData): void
+    {
+        if ($path === '') {
+            return;
+        }
+
+        if (str_contains($path, '.')) {
+            [$segment, $remaining] = explode('.', $path, 2);
+
+            if (! isset($container[$segment])) {
+                $container[$segment] = [
+                    'rules' => null,
+                    'nested' => [],
+                    'isNestedObject' => str_contains($remaining, '.') || str_contains($remaining, '.*'),
+                ];
+            } elseif (is_string($container[$segment])) {
+                $container[$segment] = [
+                    'rules' => $container[$segment],
+                    'nested' => [],
+                ];
+            } else {
+                $container[$segment]['nested'] ??= [];
+            }
+
+            $container[$segment]['nested'] ??= [];
+
+            $this->mergeIntoNestedStructure($container[$segment]['nested'], ltrim($remaining, '.'), $fieldData);
+
+            return;
+        }
+
+        if (isset($container[$path]) && is_array($container[$path])) {
+            $container[$path] = $this->mergeFieldRuleData($container[$path], $fieldData);
+
+            return;
+        }
+
+        if (isset($container[$path]) && ! is_array($container[$path])) {
+            $existingRule = $container[$path];
+            $container[$path] = [
+                'rules' => $existingRule,
+                'nested' => [],
+            ];
+            $container[$path] = $this->mergeFieldRuleData($container[$path], $fieldData);
+
+            return;
+        }
+
+        $container[$path] = $fieldData;
+    }
+
+    /**
+     * Merge two grouped rule data structures together
+     */
+    private function mergeFieldRuleData(array $existing, array $incoming): array
+    {
+        $incoming = $this->normalizeFieldData($incoming);
+
+        if ($incoming['rules'] !== null) {
+            $existing['rules'] = $incoming['rules'];
+        }
+
+        if (isset($incoming['isNestedObject'])) {
+            $existing['isNestedObject'] = $existing['isNestedObject'] ?? false;
+            $existing['isNestedObject'] = $existing['isNestedObject'] || $incoming['isNestedObject'];
+        }
+
+        if (! empty($incoming['nested'])) {
+            $existing['nested'] = $existing['nested'] ?? [];
+
+            foreach ($incoming['nested'] as $key => $value) {
+                if (isset($existing['nested'][$key]) && is_array($existing['nested'][$key]) && is_array($value)) {
+                    $existing['nested'][$key] = $this->mergeFieldRuleData($existing['nested'][$key], $value);
+                } else {
+                    $existing['nested'][$key] = $value;
+                }
+            }
+        }
+
+        return $existing;
     }
 }

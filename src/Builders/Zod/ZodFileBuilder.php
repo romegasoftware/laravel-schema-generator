@@ -144,6 +144,7 @@ class ZodFileBuilder extends ZodBuilder
     /**
      * Add exact file size validation (in kilobytes)
      */
+    #[Override]
     public function validateSize(?array $parameters = [], ?string $message = null): self
     {
         [$sizeInKb] = $parameters;

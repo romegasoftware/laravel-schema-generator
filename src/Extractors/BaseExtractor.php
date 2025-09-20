@@ -163,6 +163,10 @@ abstract class BaseExtractor implements ExtractorInterface
             return $this->nestedValidationBuilder->buildFromMetadata($baseField, $fieldRules, $metadata, $validator);
         }
 
+        if (isset($fieldRules['isNestedObject']) && $fieldRules['isNestedObject'] === true) {
+            return $this->nestedValidationBuilder->buildNestedObjectValidation($baseField, $fieldRules, $validator);
+        }
+
         // Handle nested rules
         if (isset($fieldRules['nested'])) {
             return $this->resolveArrayFieldWithNestedRules($baseField, $fieldRules, $validator);

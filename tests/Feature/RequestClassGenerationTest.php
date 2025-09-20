@@ -377,7 +377,7 @@ class RequestClassGenerationTest extends TestCase
     {
         // Create nested validation set for array items
         $nestedValidations = ResolvedValidationSet::make(
-            'tags.*[item]',
+            'tags.*',
             [
                 new ResolvedValidation('string', [], null, false, false),
                 new ResolvedValidation('max', [50], 'Each tag must be 50 characters or less', false, false),
@@ -421,7 +421,7 @@ class RequestClassGenerationTest extends TestCase
     {
         // Create nested validation set for simple array items
         $nestedValidations = ResolvedValidationSet::make(
-            'tags.*[item]',
+            'tags.*',
             [
                 new ResolvedValidation('string', [], null, false, false),
                 new ResolvedValidation('max', [50], 'Each tag must be 50 characters or less', false, false),

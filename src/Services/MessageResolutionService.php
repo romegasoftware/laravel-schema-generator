@@ -25,6 +25,8 @@ class MessageResolutionService
 
     protected array $rules = [];
 
+    protected array $numericRules = ['size', 'min', 'max', 'between', 'gt', 'lt', 'gte', 'lte'];
+
     /**
      * Resolve a custom message for a field and rule combination
      *
@@ -86,8 +88,25 @@ class MessageResolutionService
             throw new \InvalidArgumentException('The field, rule name, and validator must be set using with() prior to calling resolveCustomMessage.');
         }
 
+        $lowerRule = strtolower($this->ruleName);
+
+        if ($this->isNumericField && in_array($lowerRule, $this->numericRules, true)) {
+            $translator = $this->validator->getTranslator();
+            $numericKey = "validation.{$lowerRule}.numeric";
+            $numericMessage = $translator->get($numericKey);
+
+            if ($numericMessage !== $numericKey) {
+                return $this->validator->makeReplacements(
+                    $numericMessage,
+                    $this->field,
+                    $this->ruleName,
+                    $this->parameters
+                );
+            }
+        }
+
         // For numeric fields with min/max rules, we need to help Laravel understand the type
-        if ($this->isNumericField && in_array(strtolower($this->ruleName), ['min', 'max'])) {
+        if ($this->isNumericField && in_array(strtolower($this->ruleName), $this->numericRules)) {
             // Temporarily set numeric data for this field to get proper message
             $originalData = $this->validator->getData();
             $tempData = $originalData;
@@ -123,7 +142,7 @@ class MessageResolutionService
         );
 
         // Restore original data if we modified it
-        if ($this->isNumericField && in_array(strtolower($this->ruleName), ['min', 'max']) && isset($originalData)) {
+        if ($this->isNumericField && in_array(strtolower($this->ruleName), $this->numericRules) && isset($originalData)) {
             $this->validator->setData($originalData);
         }
 
@@ -154,45 +173,57 @@ class MessageResolutionService
      */
     public function setNestedValue(array &$array, string $key, $value): void
     {
-        // Handle wildcard fields (e.g., songs.*.field)
-        if (str_contains($key, '.*')) {
-            // Split by .* and process
-            $parts = explode('.*', $key);
-            $baseKey = $parts[0];
-            $remainingKey = isset($parts[1]) ? ltrim($parts[1], '.') : '';
+        if ($key === '') {
+            return;
+        }
 
-            // Ensure the base array exists
-            if (! isset($array[$baseKey])) {
-                $array[$baseKey] = [[]]; // Create array with one empty item
-            } elseif (! is_array($array[$baseKey])) {
-                $array[$baseKey] = [[]];
-            } elseif (empty($array[$baseKey])) {
-                $array[$baseKey] = [[]];
-            }
+        $segments = explode('.', $key);
+        $this->assignValueToSegments($array, $segments, $value);
+    }
 
-            // Set the value in the first array item
-            if ($remainingKey) {
-                $this->setNestedValue($array[$baseKey][0], $remainingKey, $value);
-            } else {
-                $array[$baseKey][0] = $value;
-            }
+    /**
+     * Recursively assign a value using dot/wildcard notation segments
+     */
+    private function assignValueToSegments(&$target, array $segments, $value): void
+    {
+        if (empty($segments)) {
+            $target = $value;
 
             return;
         }
 
-        // Handle regular dot notation
-        $keys = explode('.', $key);
+        $segment = array_shift($segments);
 
-        while (count($keys) > 1) {
-            $key = array_shift($keys);
-
-            if (! isset($array[$key]) || ! is_array($array[$key])) {
-                $array[$key] = [];
+        if ($segment === '*') {
+            if (! is_array($target)) {
+                $target = [];
             }
 
-            $array = &$array[$key];
+            if (empty($target)) {
+                $target[0] = [];
+            } elseif (! isset($target[0]) || ! is_array($target[0])) {
+                $target[0] = [];
+            }
+
+            $this->assignValueToSegments($target[0], $segments, $value);
+
+            return;
         }
 
-        $array[array_shift($keys)] = $value;
+        if (! is_array($target)) {
+            $target = [];
+        }
+
+        if (! isset($target[$segment]) || ! is_array($target[$segment])) {
+            $target[$segment] = [];
+        }
+
+        if (empty($segments)) {
+            $target[$segment] = $value;
+
+            return;
+        }
+
+        $this->assignValueToSegments($target[$segment], $segments, $value);
     }
 }

@@ -4,12 +4,14 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Builders\Zod;
 
 use Illuminate\Contracts\Translation\Translator;
 use Illuminate\Support\Traits\Macroable;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\Traits\ValidatesSizeAttributes;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 
 abstract class ZodBuilder implements BuilderInterface
 {
     use Macroable;
+    use ValidatesSizeAttributes;
 
     protected ?Translator $translator = null;
 
@@ -222,61 +224,5 @@ abstract class ZodBuilder implements BuilderInterface
             ['\\\\', "\\'", '\\"', '\\n', '\\r', '\\t'],
             $str
         );
-    }
-
-    /**
-     * Add minimum length validation
-     */
-    public function validateMin(?array $parameters = [], ?string $message = null): self
-    {
-        [$length] = $parameters;
-        $resolvedMessage = $this->resolveMessage('min', $message, ['min' => $length]);
-        $messageStr = $this->formatMessageAsParameter($resolvedMessage);
-        $rule = ".min({$length}{$messageStr})";
-
-        $this->replaceRule('min', $rule);
-
-        return $this;
-    }
-
-    /**
-     * Add maximum array length validation
-     */
-    public function validateMax(?array $parameters = [], ?string $message = null): self
-    {
-        [$length] = $parameters;
-        $messageStr = $this->formatMessageAsParameter($message);
-        $rule = ".max({$length}{$messageStr})";
-
-        $this->replaceRule('max', $rule);
-
-        return $this;
-    }
-
-    /**
-     * Make field required using Zod refine approach
-     */
-    public function validateRequired(?array $parameters = [], ?string $message = null): self
-    {
-        $resolvedMessage = $this->resolveMessage('required', $message);
-
-        if ($resolvedMessage) {
-            $escapedMessage = $this->normalizeMessageForJS($resolvedMessage);
-            $this->requiredMessage = $escapedMessage;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Add trim validation
-     */
-    public function validateTrim(?array $parameters = [], ?string $message = null): self
-    {
-        if (! $this->hasRule('trim')) {
-            $this->addRule('.trim()');
-        }
-
-        return $this;
     }
 }
