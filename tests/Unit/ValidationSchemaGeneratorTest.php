@@ -354,6 +354,46 @@ class ValidationSchemaGeneratorTest extends TestCase
     }
 
     #[Test]
+    public function it_generates_super_refine_for_required_if_rules(): void
+    {
+        $passwordValidations = ResolvedValidationSet::make('password', [
+            new ResolvedValidation('Nullable', [], null, false, true),
+            new ResolvedValidation('RequiredIf', ['auth_type', 'password'], 'The password field is required.', false, false),
+        ], 'string');
+
+        $schemas = SchemaPropertyData::collect([
+            [
+                'name' => 'auth_type',
+                'isOptional' => false,
+                'validations' => ResolvedValidationSet::make('auth_type', [], 'string'),
+                'validator' => null,
+            ],
+            [
+                'name' => 'password',
+                'isOptional' => true,
+                'validations' => $passwordValidations,
+                'validator' => null,
+            ],
+        ]);
+
+        $extracted = new ExtractedSchemaData(
+            name: 'AuthSchema',
+            dependencies: [],
+            properties: $schemas,
+            type: '',
+            className: ''
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        $this->assertStringContainsString('.superRefine((data, ctx) => {', $schema);
+        $this->assertStringContainsString("if (data.auth_type === 'password' && (data.password === undefined || data.password === null || String(data.password).trim() === '')) {", $schema);
+        $this->assertStringContainsString("code: 'custom'", $schema);
+        $this->assertStringContainsString("message: 'The password field is required.'", $schema);
+        $this->assertStringContainsString("path: ['password']", $schema);
+    }
+
+    #[Test]
     public function it_properly_formats_laravel_validation_messages_in_zod_v4(): void
     {
         // This test demonstrates that Laravel validation messages are properly

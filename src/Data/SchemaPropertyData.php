@@ -26,6 +26,7 @@ class SchemaPropertyData
         foreach ($properties as $property) {
             if ($property instanceof self) {
                 $items[] = $property;
+
                 continue;
             }
 
@@ -40,6 +41,7 @@ class SchemaPropertyData
                     isOptional: $property['isOptional'] ?? false,
                     validations: $property['validations'] ?? null,
                 );
+
                 continue;
             }
 
