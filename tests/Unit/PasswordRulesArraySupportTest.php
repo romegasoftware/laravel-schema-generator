@@ -127,6 +127,26 @@ class PasswordRulesArraySupportTest extends TestCase
     }
 
     #[Test]
+    public function it_returns_string_messages_when_laravel_provides_arrays(): void
+    {
+        $passwordRule = Password::min(10)->letters()->numbers()->symbols();
+
+        $validator = new Validator(
+            app('translator'),
+            ['password' => null],
+            ['password' => $passwordRule]
+        );
+
+        $normalizedRule = $this->ruleFactory->normalizeRule($passwordRule);
+        $resolvedSet = $this->validationResolver->resolve('password', $normalizedRule, $validator);
+
+        foreach ($resolvedSet->validations as $validation) {
+            $this->assertIsString($validation->message);
+            $this->assertNotSame('', $validation->message);
+        }
+    }
+
+    #[Test]
     public function it_builds_zod_schema_for_password_with_multiple_constraints(): void
     {
         // This test verifies the end-to-end flow

@@ -616,6 +616,34 @@ class LaravelValidationResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_resolves_required_if_messages_with_expected_value(): void
+    {
+        $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
+        $translator->addLines([
+            'validation.required_if' => 'The :attribute field is required when :other is :value.',
+        ], 'en');
+
+        $validator = new \Illuminate\Validation\Validator(
+            $translator,
+            ['auth_type' => null, 'password' => null],
+            [
+                'auth_type' => 'required|in:password,private_key',
+                'password' => 'required_if:auth_type,password',
+            ]
+        );
+
+        $result = $this->resolver->resolve('password', 'required_if:auth_type,password', $validator);
+
+        $requiredIfValidation = $result->getValidation('RequiredIf');
+
+        $this->assertNotNull($requiredIfValidation);
+        $this->assertSame(
+            'The password field is required when auth type is password.',
+            $requiredIfValidation->message
+        );
+    }
+
+    #[Test]
     public function it_never_returns_translation_keys_as_messages()
     {
         $testCases = [

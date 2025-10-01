@@ -2,6 +2,7 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Services;
 
+use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationRuleParser;
 use Illuminate\Validation\Validator;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
@@ -31,8 +32,18 @@ class LaravelValidationResolver
             return ResolvedValidationSet::make($field, [], 'string', null);
         }
 
-        $explodedRules = (new ValidationRuleParser($validator->getData()))
-            ->explode(ValidationRuleParser::filterConditionalRules([$rules], $validator->getData()));
+        $originalData = $validator->getData();
+        $preparedData = $this->prepareDataForConditionalRules($rules, $originalData);
+        $dataWasModified = $preparedData !== $originalData;
+
+        if ($dataWasModified) {
+            $validator->setData($preparedData);
+        }
+
+        $currentData = $validator->getData();
+
+        $explodedRules = (new ValidationRuleParser($currentData))
+            ->explode(ValidationRuleParser::filterConditionalRules([$rules], $currentData));
 
         // Convert rules to ResolvedValidation objects
         $resolvedValidations = $this->resolveValidationRules($explodedRules->rules[0], $field, $validator);
@@ -52,7 +63,13 @@ class LaravelValidationResolver
             $nestedValidations = $this->resolveWildcardField($field, $explodedRules->rules[0], $validator);
         }
 
-        return ResolvedValidationSet::make($field, $resolvedValidations, $inferredType, $nestedValidations);
+        $resolvedSet = ResolvedValidationSet::make($field, $resolvedValidations, $inferredType, $nestedValidations);
+
+        if ($dataWasModified) {
+            $validator->setData($originalData);
+        }
+
+        return $resolvedSet;
     }
 
     /**
@@ -172,5 +189,34 @@ class LaravelValidationResolver
         }
 
         return $resolvedValidations;
+    }
+
+    private function prepareDataForConditionalRules(string $rules, array $data): array
+    {
+        if ($rules === '') {
+            return $data;
+        }
+
+        $segments = explode('|', $rules);
+
+        foreach ($segments as $segment) {
+            if (! is_string($segment) || $segment === '') {
+                continue;
+            }
+
+            [$ruleName, $parameters] = ValidationRuleParser::parse($segment);
+
+            if (strcasecmp($ruleName, 'RequiredIf') === 0 && isset($parameters[0], $parameters[1])) {
+                $dependentField = $parameters[0];
+
+                if ($dependentField === '' || Arr::has($data, $dependentField)) {
+                    continue;
+                }
+
+                Arr::set($data, $dependentField, $parameters[1]);
+            }
+        }
+
+        return $data;
     }
 }

@@ -2,8 +2,10 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Services;
 
+use Illuminate\Support\Str;
 use Illuminate\Validation\Validator;
 use ReflectionClass;
+use Throwable;
 
 /**
  * Service for resolving and managing validation messages
@@ -89,84 +91,260 @@ class MessageResolutionService
         }
 
         $lowerRule = strtolower($this->ruleName);
+        $snakeRule = Str::snake($this->ruleName);
 
         $messageParameters = $this->parameters;
         $messageParameters['attribute'] = $this->field;
 
+        $originalData = $this->validator->getData();
+        $tempData = $originalData;
+        $dataModified = false;
+
+        if ($this->isNumericField && in_array($lowerRule, $this->numericRules, true)) {
+            $this->setNestedValue($tempData, $this->field, 1);
+            $dataModified = true;
+        }
+
+        if ($snakeRule === 'required_if' && $this->applyRequiredIfValue($tempData)) {
+            $dataModified = true;
+        }
+
+        if ($dataModified) {
+            $this->validator->setData($tempData);
+        }
+
+        $message = null;
+
         try {
             $translator = $this->validator->getTranslator();
-            $messagePath = "validation.{$lowerRule}";
+            $messagePath = "validation.{$snakeRule}";
             $translation = $translator->get($messagePath, $messageParameters);
 
             if ($translation !== $messagePath) {
-                return $this->validator->makeReplacements(
-                    $translation,
-                    $this->field,
-                    $this->ruleName,
-                    $messageParameters
-                );
+                $normalized = $this->normalizeMessage($translation);
+
+                if ($normalized !== null) {
+                    $message = $this->applyMessageReplacements($normalized, $messageParameters);
+                }
             }
         } catch (\Throwable) {
             // ignore translation issues and fall back to validator resolution
         }
 
-        if ($this->isNumericField && in_array($lowerRule, $this->numericRules, true)) {
+        if ($message === null && $this->isNumericField && in_array($lowerRule, $this->numericRules, true)) {
             $translator = $this->validator->getTranslator();
-            $numericKey = "validation.{$lowerRule}.numeric";
+            $numericKey = "validation.{$snakeRule}.numeric";
             $numericMessage = $translator->get($numericKey, $messageParameters);
 
             if ($numericMessage !== $numericKey) {
-                return $this->validator->makeReplacements(
-                    $numericMessage,
-                    $this->field,
-                    $this->ruleName,
-                    $messageParameters
-                );
+                $normalized = $this->normalizeMessage($numericMessage);
+
+                if ($normalized !== null) {
+                    $message = $this->applyMessageReplacements($normalized, $messageParameters);
+                }
             }
         }
 
-        // For numeric fields with min/max rules, we need to help Laravel understand the type
-        if ($this->isNumericField && in_array(strtolower($this->ruleName), $this->numericRules)) {
-            // Temporarily set numeric data for this field to get proper message
-            $originalData = $this->validator->getData();
-            $tempData = $originalData;
-            $this->setNestedValue($tempData, $this->field, 1); // Set a numeric value
-            $this->validator->setData($tempData);
+        if ($message === null) {
+            $validatorReflection = new ReflectionClass($this->validator);
+            $this->validator->setRules([$this->field => $this->rules]);
+            $getMessage = $validatorReflection->getMethod('getMessage');
+
+            $rawMessage = $getMessage->invoke($this->validator, $this->field, $this->ruleName);
+
+            $normalized = $this->normalizeMessage($rawMessage) ?? "The {$this->field} field validation failed.";
+
+            $message = $this->applyMessageReplacements($normalized, $messageParameters);
         }
 
-        // Use reflection to access the protected getMessage method
-        $validatorReflection = new ReflectionClass($this->validator);
-        $this->validator->setRules([$this->field => $this->rules]);
-        $getMessage = $validatorReflection->getMethod('getMessage');
-
-        $rawMessage = $getMessage->invoke($this->validator, $this->field, $this->ruleName);
-
-        // Handle password rules that may return arrays of messages
-        if (is_array($rawMessage)) {
-            // For password rules, try to find the specific constraint message
-            if (isset($rawMessage[$this->ruleName])) {
-                $message = $rawMessage[$this->ruleName];
-            } else {
-                // Fallback to first message or generic message
-                $message = reset($rawMessage) ?: "The {$this->field} field validation failed.";
-            }
-        } else {
-            $message = $rawMessage;
-        }
-
-        $message = $this->validator->makeReplacements(
-            $message,
-            $this->field,
-            $this->ruleName,
-            $messageParameters
-        );
-
-        // Restore original data if we modified it
-        if ($this->isNumericField && in_array(strtolower($this->ruleName), $this->numericRules) && isset($originalData)) {
+        if ($dataModified) {
             $this->validator->setData($originalData);
         }
 
+        return $message ?? '';
+    }
+
+    private function applyRequiredIfValue(array &$data): bool
+    {
+        $otherField = $this->parameters[0] ?? null;
+
+        if (! is_string($otherField) || $otherField === '') {
+            return false;
+        }
+
+        $values = array_slice($this->parameters, 1);
+
+        if (empty($values)) {
+            return false;
+        }
+
+        $value = $values[0] ?? null;
+
+        $this->setNestedValue($data, $otherField, $value);
+
+        return true;
+    }
+
+    private function normalizeMessage(mixed $message): ?string
+    {
+        if (is_string($message)) {
+            return $message;
+        }
+
+        if (is_array($message)) {
+            $preferredKey = $this->determinePreferredMessageKey($message);
+
+            if ($preferredKey !== null && isset($message[$preferredKey]) && is_string($message[$preferredKey])) {
+                return $message[$preferredKey];
+            }
+
+            if (isset($message[$this->ruleName]) && is_string($message[$this->ruleName])) {
+                return $message[$this->ruleName];
+            }
+
+            foreach ($message as $value) {
+                if (is_string($value) && $value !== '') {
+                    return $value;
+                }
+            }
+
+            $first = reset($message);
+
+            return is_string($first) && $first !== '' ? $first : null;
+        }
+
+        if (is_object($message) && method_exists($message, '__toString')) {
+            return (string) $message;
+        }
+
+        if (is_scalar($message)) {
+            $stringMessage = (string) $message;
+
+            return $stringMessage !== '' ? $stringMessage : null;
+        }
+
+        return null;
+    }
+
+    private function applyMessageReplacements(string $message, array $parameters): string
+    {
+        $replaced = $this->validator->makeReplacements(
+            $message,
+            $this->field,
+            $this->ruleName,
+            $parameters
+        );
+
+        if (is_array($replaced)) {
+            return $this->normalizeMessage($replaced)
+                ?? "The {$this->field} field validation failed.";
+        }
+
+        $message = is_array($replaced)
+            ? $this->normalizeMessage($replaced) ?? "The {$this->field} field validation failed."
+            : $replaced;
+
+        return $this->ensureDisplayableAttribute($message);
+    }
+
+    private function ensureDisplayableAttribute(string $message): string
+    {
+        $displayable = $this->getDisplayableAttribute();
+
+        if ($displayable !== null && $displayable !== $this->field && str_contains($message, $this->field)) {
+            $pattern = '/\b'.preg_quote($this->field, '/').'\b/u';
+            $message = preg_replace($pattern, $displayable, $message) ?? $message;
+        }
+
         return $message;
+    }
+
+    private function getDisplayableAttribute(): ?string
+    {
+        try {
+            $validatorReflection = new ReflectionClass($this->validator);
+
+            if ($validatorReflection->hasMethod('getDisplayableAttribute')) {
+                $method = $validatorReflection->getMethod('getDisplayableAttribute');
+                $method->setAccessible(true);
+
+                $displayable = $method->invoke($this->validator, $this->field);
+
+                if (is_string($displayable) && $displayable !== '') {
+                    return $displayable;
+                }
+            }
+        } catch (Throwable) {
+            // ignore reflection issues and fall back to basic formatting
+        }
+
+        $formatted = str_replace('_', ' ', Str::snake($this->field));
+
+        return $formatted !== '' ? $formatted : null;
+    }
+
+    private function determinePreferredMessageKey(array $messages): ?string
+    {
+        $context = $this->determineMessageContextKey();
+
+        if ($context !== null && isset($messages[$context]) && is_string($messages[$context])) {
+            return $context;
+        }
+
+        $normalizedMessages = array_change_key_case($messages, CASE_LOWER);
+
+        if ($context !== null && isset($normalizedMessages[$context]) && is_string($normalizedMessages[$context])) {
+            return $context;
+        }
+
+        return null;
+    }
+
+    private function determineMessageContextKey(): ?string
+    {
+        if ($this->isNumericField) {
+            return 'numeric';
+        }
+
+        if ($this->hasRule('array')) {
+            return 'array';
+        }
+
+        if ($this->hasFileRule()) {
+            return 'file';
+        }
+
+        return 'string';
+    }
+
+    private function hasRule(string $rule): bool
+    {
+        foreach ($this->rules as $candidate) {
+            if (! is_string($candidate)) {
+                continue;
+            }
+
+            $name = strtolower(strtok($candidate, ':'));
+
+            if ($name === $rule) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasFileRule(): bool
+    {
+        $fileRules = ['file', 'image', 'mimes', 'mimetypes'];
+
+        foreach ($fileRules as $fileRule) {
+            if ($this->hasRule($fileRule)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -4,6 +4,7 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Feature;
 
 use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\FormRequests\AuthTypeRequest;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\FormRequests\DeploymentOptionsRequest;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\FormRequests\TestLoginRequest;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
@@ -163,9 +164,26 @@ class TestLoginRequestExtractionTest extends TestCase
         $this->assertStringContainsString('options: z.object({', $schema);
         $this->assertStringNotContainsString('options: z.array(', $schema);
         $this->assertStringContainsString('gitignore: z.string()', $schema);
+        $this->assertStringContainsString("max(255, 'The options.gitignore field must not be greater than 255 characters.')", $schema);
         $this->assertStringContainsString('workflow: z.string()', $schema);
         $this->assertStringContainsString('plugin_url: z.preprocess((val) => (val === \'\' ? undefined : val), z.url(', $schema);
         $this->assertStringContainsString('repository: z.object({', $schema);
         $this->assertStringContainsString('sftp_path: z.string()', $schema);
+    }
+
+    #[Test]
+    public function it_generates_super_refine_for_required_if_rules_in_form_requests(): void
+    {
+        $reflection = new \ReflectionClass(AuthTypeRequest::class);
+
+        $result = $this->getRequestExtractor()->extract($reflection);
+        $schema = $this->app->make(ValidationSchemaGenerator::class)->generate($result);
+
+        $this->assertStringContainsString('.superRefine((data, ctx) => {', $schema);
+        $this->assertStringContainsString("data.auth_type === 'password'", $schema);
+        $this->assertStringContainsString("ctx.addIssue({", $schema);
+        $this->assertStringContainsString("'The password field is required when auth type is password.'", $schema);
+        $this->assertStringContainsString("'The base path field must not be greater than 255 characters.'", $schema);
+        $this->assertStringNotContainsString("base_path field", $schema);
     }
 }
