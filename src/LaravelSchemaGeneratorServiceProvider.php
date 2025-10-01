@@ -43,7 +43,7 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider implements D
     protected function registerConfig(): void
     {
         // Provide default Spatie Data config if not already configured
-        if (! config()->has('data')) {
+        if (! config()->has('data') && $this->spatieDataAvailable()) {
             $this->mergeConfigFrom(__DIR__.'/../config/data-defaults.php', 'data');
         }
 
