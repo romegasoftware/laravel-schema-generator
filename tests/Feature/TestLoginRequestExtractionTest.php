@@ -3,6 +3,8 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Feature;
 
 use PHPUnit\Framework\Attributes\Test;
+use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\FormRequests\DeploymentOptionsRequest;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\FormRequests\TestLoginRequest;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
@@ -141,5 +143,29 @@ class TestLoginRequestExtractionTest extends TestCase
         $maxValidation = $passwordProperty->validations->getValidation('Max');
         $this->assertNotNull($maxValidation, 'Password Max validation should exist');
         $this->assertEquals([128], $maxValidation->parameters);
+    }
+
+    #[Test]
+    public function it_handles_nested_objects_defined_with_dot_notation(): void
+    {
+        $reflection = new \ReflectionClass(DeploymentOptionsRequest::class);
+
+        $result = $this->getRequestExtractor()->extract($reflection);
+        $properties = $result->properties->toCollection();
+
+        $optionsProperty = $properties->firstWhere('name', 'options');
+        $this->assertNotNull($optionsProperty, 'Options property should exist');
+        $this->assertSame('object', $optionsProperty->validations->inferredType, 'Options should resolve to an object schema');
+
+        $generator = $this->app->make(ValidationSchemaGenerator::class);
+        $schema = $generator->generate($result);
+
+        $this->assertStringContainsString('options: z.object({', $schema);
+        $this->assertStringNotContainsString('options: z.array(', $schema);
+        $this->assertStringContainsString('gitignore: z.string()', $schema);
+        $this->assertStringContainsString('workflow: z.string()', $schema);
+        $this->assertStringContainsString('plugin_url: z.string()', $schema);
+        $this->assertStringContainsString('repository: z.object({', $schema);
+        $this->assertStringContainsString('sftp_path: z.string()', $schema);
     }
 }

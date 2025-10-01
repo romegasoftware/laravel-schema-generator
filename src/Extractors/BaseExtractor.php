@@ -49,7 +49,14 @@ abstract class BaseExtractor implements ExtractorInterface
         $properties = [];
 
         foreach ($groupedRules as $baseField => $fieldRules) {
-            if (isset($fieldRules['nested'])) {
+            if (($fieldRules['isNestedObject'] ?? false) === true) {
+                // Treat structured fields without wildcards as objects instead of arrays
+                $resolvedValidationSet = $this->nestedValidationBuilder->buildNestedObjectValidation(
+                    $baseField,
+                    $fieldRules,
+                    $validator
+                );
+            } elseif (isset($fieldRules['nested'])) {
                 // This is an array field with nested rules
                 $resolvedValidationSet = $this->resolveArrayFieldWithNestedRules(
                     $baseField,
@@ -58,7 +65,11 @@ abstract class BaseExtractor implements ExtractorInterface
                 );
             } else {
                 // Regular field without nesting
-                $resolvedValidationSet = $this->validationResolver->resolve($baseField, $fieldRules['rules'], $validator);
+                $resolvedValidationSet = $this->validationResolver->resolve(
+                    $baseField,
+                    $fieldRules['rules'] ?? '',
+                    $validator
+                );
             }
 
             $properties[] = new SchemaPropertyData(
