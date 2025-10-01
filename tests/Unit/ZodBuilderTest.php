@@ -179,7 +179,10 @@ class ZodBuilderTest extends TestCase
             ->optional()
             ->build();
 
-        $this->assertEquals("z.url({ error: 'Must use HTTPS', protocol: /^https$/ }).optional()", $result);
+        $this->assertEquals(
+            "z.preprocess((val) => (val === '' ? undefined : val), z.url({ error: 'Must use HTTPS', protocol: /^https$/ }).optional())",
+            $result,
+        );
     }
 
     #[Test]
@@ -192,5 +195,36 @@ class ZodBuilderTest extends TestCase
             ->build();
 
         $this->assertEquals('z.url({ protocol: /^(?:http|https)$/ })', $result);
+    }
+
+    #[Test]
+    public function it_preprocesses_empty_strings_for_nullable_urls(): void
+    {
+        $builder = new ZodUrlBuilder;
+
+        $result = $builder
+            ->validateUrl()
+            ->nullable()
+            ->build();
+
+        $this->assertEquals(
+            "z.preprocess((val) => (val === '' ? null : val), z.url().nullable())",
+            $result,
+        );
+    }
+
+    #[Test]
+    public function it_doesnt_preprocesses_empty_strings_for_required_fields(): void
+    {
+        $builder = new ZodUrlBuilder;
+
+        $result = $builder
+            ->validateUrl()
+            ->build();
+
+        $this->assertEquals(
+            'z.url()',
+            $result,
+        );
     }
 }

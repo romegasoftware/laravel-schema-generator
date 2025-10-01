@@ -42,6 +42,23 @@ class ZodUrlBuilder extends ZodStringBuilder
         return $content;
     }
 
+    #[Override]
+    public function build(): string
+    {
+        $zodString = parent::build();
+
+        $shouldPreprocessEmptyStrings = ($this->optional || $this->nullable)
+            && ! isset($this->requiredMessage);
+
+        if (! $shouldPreprocessEmptyStrings) {
+            return $zodString;
+        }
+
+        $emptyValueReplacement = $this->optional ? 'undefined' : 'null';
+
+        return "z.preprocess((val) => (val === '' ? {$emptyValueReplacement} : val), {$zodString})";
+    }
+
     /**
      * Handle URL validation rule details like protocol filters and custom messages.
      */

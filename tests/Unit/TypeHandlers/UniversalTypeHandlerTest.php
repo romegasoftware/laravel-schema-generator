@@ -9,7 +9,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEmailBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEnumBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodNumberBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodStringBuilder;
-use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodUrlBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;

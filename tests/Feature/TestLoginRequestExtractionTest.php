@@ -164,7 +164,7 @@ class TestLoginRequestExtractionTest extends TestCase
         $this->assertStringNotContainsString('options: z.array(', $schema);
         $this->assertStringContainsString('gitignore: z.string()', $schema);
         $this->assertStringContainsString('workflow: z.string()', $schema);
-        $this->assertStringContainsString('plugin_url: z.url(', $schema);
+        $this->assertStringContainsString('plugin_url: z.preprocess((val) => (val === \'\' ? undefined : val), z.url(', $schema);
         $this->assertStringContainsString('repository: z.object({', $schema);
         $this->assertStringContainsString('sftp_path: z.string()', $schema);
     }
