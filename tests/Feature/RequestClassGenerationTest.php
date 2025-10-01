@@ -331,7 +331,7 @@ class RequestClassGenerationTest extends TestCase
                     'validations' => ResolvedValidationSet::make('website', [
                         new ResolvedValidation('required', [], null, true, false),
                         new ResolvedValidation('url', [], null, false, false),
-                    ], 'string'),
+                    ], 'url'),
                 ],
             ]),
             type: '',
@@ -340,8 +340,7 @@ class RequestClassGenerationTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        $this->assertStringContainsString('website: z.string()', $schema);
-        $this->assertStringContainsString('.url(', $schema);
+        $this->assertStringContainsString('website: z.url(', $schema);
     }
 
     #[Test]

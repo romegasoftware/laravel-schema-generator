@@ -48,6 +48,7 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
                 ->setup(),
             $type === 'object' => $this->createObjectBuilderFromProperty(),
             $type === 'email' => $this->factory->createEmailBuilder(),
+            $type === 'url' => $this->factory->createUrlBuilder(),
             str_starts_with($type, 'enum:') => $this->factory->createEnumBuilder()
                 ->setValues($type),
             default => $this->factory->createStringBuilder(),

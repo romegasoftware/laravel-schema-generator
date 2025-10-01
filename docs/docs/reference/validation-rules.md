@@ -24,7 +24,7 @@ Complete reference for Laravel validation rules and their Zod schema equivalents
 | Laravel Rule      | Zod Schema                   | Notes                                 |
 | ----------------- | ---------------------------- | ------------------------------------- |
 | `email`           | `z.email()`                  | Email format validation               |
-| `url`             | `z.url()`                    | URL format validation                 |
+| `url`             | `z.url()`                    | URL format validation; supports protocol parameters |
 | `uuid`            | `z.uuid()`                   | UUID format validation                |
 | `alpha`           | `.regex(/^[a-zA-Z]+$/)`      | Letters only                          |
 | `alpha_dash`      | `.regex(/^[a-zA-Z0-9_-]+$/)` | Letters, numbers, dashes, underscores |
@@ -46,8 +46,10 @@ Complete reference for Laravel validation rules and their Zod schema equivalents
 name: z.string().min(1).max(255),
 email: z.email().max(255),
 username: z.string().regex(/^[a-zA-Z0-9_-]+$/).min(3).max(20),
-website: z.string().url().nullable(),
+website: z.url().nullable(),
 ```
+
+Laravel's `url` rule parameters are converted to Zod's `protocol` option. For example, `'profile' => 'url:https'` becomes `profile: z.url({ protocol: /^https$/ })`.
 
 ## Numeric Validation
 
@@ -411,7 +413,7 @@ Consider nullable and optional fields:
 ```typescript
 // Handle all states properly
 phone: z.string().regex(/^\+?[\d\s-()]+$/).nullable(), // Can be null
-website: z.string().url().optional(), // Can be omitted
+website: z.url().optional(), // Can be omitted
 ```
 
 ### Preserve Error Messages

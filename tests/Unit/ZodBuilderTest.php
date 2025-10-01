@@ -7,6 +7,7 @@ use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEmailBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEnumBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodNumberBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodStringBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodUrlBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 
 class ZodBuilderTest extends TestCase
@@ -166,5 +167,30 @@ class ZodBuilderTest extends TestCase
             ->build();
 
         $this->assertEquals("z.string().min(1, 'Don\\'t forget quotes').trim()", $result);
+    }
+
+    #[Test]
+    public function it_builds_url_with_custom_message_and_single_protocol(): void
+    {
+        $builder = new ZodUrlBuilder;
+
+        $result = $builder
+            ->validateUrl(['https'], 'Must use HTTPS')
+            ->optional()
+            ->build();
+
+        $this->assertEquals("z.url({ error: 'Must use HTTPS', protocol: /^https$/ }).optional()", $result);
+    }
+
+    #[Test]
+    public function it_builds_url_with_multiple_protocols(): void
+    {
+        $builder = new ZodUrlBuilder;
+
+        $result = $builder
+            ->validateUrl(['http', 'https'])
+            ->build();
+
+        $this->assertEquals('z.url({ protocol: /^(?:http|https)$/ })', $result);
     }
 }

@@ -77,7 +77,7 @@ export const CreateUserRequestSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters long"),
   password_confirmation: z.string(),
   age: z.number().min(13).max(120).nullable(),
-  website: z.string().url().nullable(),
+  website: z.url().nullable(),
   terms_accepted: z.boolean(),
 });
 

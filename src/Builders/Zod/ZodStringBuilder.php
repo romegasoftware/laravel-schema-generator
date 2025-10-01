@@ -61,26 +61,6 @@ class ZodStringBuilder extends ZodBuilder
     }
 
     /**
-     * Add URL validation
-     */
-    public function validateUrl(?array $parameters = [], ?string $message = null): self
-    {
-        $resolvedMessage = $this->resolveMessage('url', $message);
-
-        if ($resolvedMessage === null) {
-            $rule = '.url()';
-        } else {
-            // For methods that only take a message parameter, we need to format it without leading comma
-            $escapedMessage = $this->normalizeMessageForJS($resolvedMessage);
-            $rule = ".url('{$escapedMessage}')";
-        }
-
-        $this->replaceRule('url', $rule);
-
-        return $this;
-    }
-
-    /**
      * Add UUID validation
      */
     public function validateUuid(?array $parameters = [], ?string $message = null): self

@@ -463,7 +463,7 @@ class ValidationSchemaGeneratorTest extends TestCase
 
         // Verify URL field: should have url() validation with message and be optional
         $this->assertStringContainsString('website: z.', $schema);
-        $this->assertStringContainsString('.url(\'The website field must be a valid URL.\')', $schema);
+        $this->assertStringContainsString("z.url({ error: 'The website field must be a valid URL.' })", $schema);
         $this->assertStringContainsString('.optional()', $schema);
 
         // Verify UUID field: should have uuid() validation with message

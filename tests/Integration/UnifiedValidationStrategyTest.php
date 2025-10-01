@@ -238,7 +238,7 @@ class UnifiedValidationStrategyTest extends TestCase
         $ValidationSchema = $builder->build();
 
         $this->assertEquals('url', $validationSet->inferredType);
-        $this->assertStringContainsString('.url(', $ValidationSchema);
+        $this->assertStringContainsString('z.url(', $ValidationSchema);
         $this->assertStringContainsString('.optional()', $ValidationSchema);
     }
 

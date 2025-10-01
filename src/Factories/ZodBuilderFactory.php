@@ -14,6 +14,7 @@ use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodNumberBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodObjectBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodPasswordBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodStringBuilder;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodUrlBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Traits\Makeable;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
@@ -88,6 +89,14 @@ class ZodBuilderFactory
     public function createStringBuilder(): ZodStringBuilder
     {
         return $this->setTranslatorOnBuilder(new ZodStringBuilder);
+    }
+
+    /**
+     * Create a ZodUrlBuilder instance
+     */
+    public function createUrlBuilder(): ZodUrlBuilder
+    {
+        return $this->setTranslatorOnBuilder(new ZodUrlBuilder);
     }
 
     /**
