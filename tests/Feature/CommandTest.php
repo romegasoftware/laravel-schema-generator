@@ -8,42 +8,20 @@ use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 class CommandTest extends TestCase
 {
     #[Test]
-    public function it_can_run_zod_generate_command(): void
+    public function it_writes_combined_schemas_to_configured_output(): void
     {
-        $this->artisan('schema:generate')
-            ->expectsOutput('🔍 Scanning for classes with #[ValidationSchema] attribute...')
-            ->assertExitCode(0);
-    }
+        config(['laravel-schema-generator.scan_paths' => [
+            __DIR__.'/../Fixtures/FormRequests',
+            __DIR__.'/../Fixtures/DataClasses',
+        ]]);
 
-    #[Test]
-    public function it_shows_no_classes_found_message_when_no_schemas(): void
-    {
-        // When no schemas are found, the command still succeeds
-        $this->artisan('schema:generate')
-            ->assertExitCode(0);
-    }
+        $this->artisan('schema:generate')->assertExitCode(0);
 
-    #[Test]
-    public function it_shows_available_features(): void
-    {
-        // Command runs successfully even with no schemas
-        $this->artisan('schema:generate')
-            ->assertExitCode(0);
-    }
+        $outputPath = config('laravel-schema-generator.zod.output.path');
+        $this->assertFileExists($outputPath);
 
-    #[Test]
-    public function it_accepts_custom_output_path(): void
-    {
-        $customPath = __DIR__.'/../temp/custom-schemas.ts';
-
-        $this->artisan('schema:generate', ['--path' => $customPath])
-            ->assertExitCode(0);
-    }
-
-    #[Test]
-    public function it_accepts_force_flag(): void
-    {
-        $this->artisan('schema:generate', ['--force' => true])
-            ->assertExitCode(0);
+        $content = file_get_contents($outputPath);
+        $this->assertStringContainsString('export const UnifiedValidationRequestSchema', $content);
+        $this->assertStringContainsString('export const UnifiedDataSchema', $content);
     }
 }

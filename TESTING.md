@@ -84,15 +84,17 @@ $extractor = $this->app->make(RequestClassExtractor::class);
 Place test classes in the appropriate fixtures directory:
 
 ```php
-// tests/Fixtures/FormRequests/TestLoginRequest.php
-#[ValidationSchema(name: 'LoginRequestSchema')]
-class TestLoginRequest extends FormRequest
+// tests/Fixtures/FormRequests/UnifiedValidationRequest.php
+#[ValidationSchema(name: 'UnifiedValidationRequestSchema')]
+class UnifiedValidationRequest extends FormRequest
 {
     public function rules(): array
     {
         return [
-            'email' => 'required|email',
-            'password' => 'required|min:8',
+            'auth_type' => ['required', 'in:password,otp'],
+            'credentials.email' => ['required', 'email', 'max:255'],
+            'profile.address.postal_code' => ['required', 'string', 'regex:/^[0-9]{5}$/'],
+            // ... additional comprehensive rules ...
         ];
     }
 }
@@ -106,12 +108,12 @@ class TestLoginRequest extends FormRequest
 public function test_extractor_handles_validation_rules()
 {
     $extractor = $this->getRequestExtractor();
-    $reflection = new ReflectionClass(TestLoginRequest::class);
+    $reflection = new ReflectionClass(UnifiedValidationRequest::class);
 
     $result = $extractor->extract($reflection);
 
     $this->assertInstanceOf(ExtractedSchemaData::class, $result);
-    $this->assertEquals('LoginRequestSchema', $result->name);
+    $this->assertEquals('UnifiedValidationRequestSchema', $result->name);
 }
 ```
 
