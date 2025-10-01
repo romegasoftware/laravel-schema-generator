@@ -142,6 +142,44 @@ class ZodArrayBuilder extends ZodBuilder
         return $this;
     }
 
+    public function validateDistinct(?array $parameters = [], ?string $message = null): self
+    {
+        $flags = array_map('strtolower', $parameters ?? []);
+        $ignoreCase = in_array('ignore_case', $flags, true);
+        $strict = in_array('strict', $flags, true);
+
+        $resolvedMessage = $this->resolveMessage('distinct', $message);
+        $messageText = $resolvedMessage ?? 'Duplicate values are not allowed.';
+        $escapedMessage = $this->normalizeMessageForJS($messageText);
+
+        $ignoreCaseFlag = $ignoreCase ? 'true' : 'false';
+        $strictFlag = $strict ? 'true' : 'false';
+
+        $rule = ".refine((values) => {"
+            .' if (!Array.isArray(values)) { return true; }'
+            .' const ignoreCase = '.$ignoreCaseFlag.';'
+            .' const strict = '.$strictFlag.';'
+            .' for (let i = 0; i < values.length; i++) {'
+            .'     for (let j = i + 1; j < values.length; j++) {'
+            .'         const left = values[i];'
+            .'         const right = values[j];'
+            .'         if (ignoreCase && typeof left === "string" && typeof right === "string") {'
+            .'             if (left.localeCompare(right, undefined, { sensitivity: "accent" }) === 0) {'
+            .'                 return false;'
+            .'             }'
+            .'             continue;'
+            .'         }'
+            .'         if (strict ? left === right : left == right) {'
+            .'             return false;'
+            .'         }'
+            .'     }'
+            .' }'
+            .' return true;'
+            ." }, { message: '{$escapedMessage}' })";
+
+        return $this->addRule($rule);
+    }
+
     /**
      * Get the current item type
      */

@@ -9,24 +9,19 @@ class ZodBooleanBuilder extends ZodBuilder
         return 'z.boolean()';
     }
 
-    /**
-     * Override build method since boolean types don't support additional validation chains
-     * except for nullable and optional
-     */
     public function build(): string
     {
-        $zodString = $this->getBaseType();
+        $base = parent::build();
 
-        // Add nullable if specified
-        if ($this->nullable) {
-            $zodString .= '.nullable()';
-        }
-
-        // Add optional if specified
-        if ($this->optional) {
-            $zodString .= '.optional()';
-        }
-
-        return $zodString;
+        return "z.preprocess((val) => {"
+            .' if (typeof val === "string") {'
+            .' const normalized = val.toLowerCase();'
+            .' if (normalized === "true" || normalized === "1" || normalized === "on" || normalized === "yes") { return true; }'
+            .' if (normalized === "false" || normalized === "0" || normalized === "off" || normalized === "no") { return false; }'
+            .' }'
+            .' if (val === 1) { return true; }'
+            .' if (val === 0) { return false; }'
+            .' return val;'
+            ." }, {$base})";
     }
 }

@@ -58,7 +58,7 @@ class ValidationSchemaGenerator extends BaseGenerator
         $superRefineBlocks = [];
 
         foreach ($properties as $property) {
-            $superRefineBlocks = array_merge($superRefineBlocks, $this->buildRequiredIfRefinementsForProperty($property));
+            $superRefineBlocks = array_merge($superRefineBlocks, $this->buildSuperRefinementsForProperty($property));
 
             // Skip properties with dots in their names for cleaner TypeScript schemas
             if (str_contains($property->name, '.')) {
@@ -99,6 +99,23 @@ class ValidationSchemaGenerator extends BaseGenerator
         $builder = $handler->handle($property);
 
         return $builder->build();
+    }
+
+    /**
+     * Aggregate all superRefine blocks for the given property.
+     *
+     * @return array<int, string>
+     */
+    protected function buildSuperRefinementsForProperty(SchemaPropertyData $property): array
+    {
+        $blocks = [];
+
+        $blocks = array_merge($blocks, $this->buildRequiredIfRefinementsForProperty($property));
+        $blocks = array_merge($blocks, $this->buildConditionalAcceptanceRefinementsForProperty($property));
+        $blocks = array_merge($blocks, $this->buildEqualityRefinementsForProperty($property));
+        $blocks = array_merge($blocks, $this->buildDateComparisonRefinementsForProperty($property));
+
+        return array_filter($blocks);
     }
 
     /**
@@ -185,6 +202,394 @@ class ValidationSchemaGenerator extends BaseGenerator
             '    });',
             '}',
         ]);
+    }
+
+    protected function buildAcceptedCheckExpression(string $targetAccessor): string
+    {
+        return sprintf('((val) => {'
+            .' if (val === undefined || val === null) { return false; }'
+            .' if (typeof val === "string") {'
+            .' const normalized = val.toLowerCase();'
+            .' if (normalized === "yes" || normalized === "on" || normalized === "true" || normalized === "1") { return true; }'
+            .' }'
+            .' return val === true || val === 1;'
+            .' })(%s)', $targetAccessor);
+    }
+
+    protected function buildDeclinedCheckExpression(string $targetAccessor): string
+    {
+        return sprintf('((val) => {'
+            .' if (val === undefined || val === null) { return false; }'
+            .' if (typeof val === "string") {'
+            .' const normalized = val.toLowerCase();'
+            .' if (normalized === "no" || normalized === "off" || normalized === "false" || normalized === "0") { return true; }'
+            .' }'
+            .' return val === false || val === 0;'
+            .' })(%s)', $targetAccessor);
+    }
+
+    /**
+     * Build conditional acceptance/decline refinements (accepted_if / declined_if).
+     */
+    protected function buildConditionalAcceptanceRefinementsForProperty(SchemaPropertyData $property): array
+    {
+        if ($property->validations === null || str_contains($property->name, '*')) {
+            return [];
+        }
+
+        $blocks = [];
+
+        foreach ($property->validations->getValidations('AcceptedIf') as $validation) {
+            if ($validation instanceof ResolvedValidation) {
+                $block = $this->buildConditionalAcceptanceBlock($validation, $property, true);
+                if ($block !== null) {
+                    $blocks[] = $block;
+                }
+            }
+        }
+
+        foreach ($property->validations->getValidations('DeclinedIf') as $validation) {
+            if ($validation instanceof ResolvedValidation) {
+                $block = $this->buildConditionalAcceptanceBlock($validation, $property, false);
+                if ($block !== null) {
+                    $blocks[] = $block;
+                }
+            }
+        }
+
+        return $blocks;
+    }
+
+    protected function buildConditionalAcceptanceBlock(ResolvedValidation $validation, SchemaPropertyData $property, bool $shouldBeAccepted): ?string
+    {
+        $parameters = $validation->getParameters();
+
+        if (count($parameters) < 2) {
+            return null;
+        }
+
+        $dependentField = array_shift($parameters);
+
+        if (! is_string($dependentField) || $dependentField === '' || str_contains($dependentField, '*')) {
+            return null;
+        }
+
+        $valueExpressions = [];
+        foreach ($parameters as $value) {
+            if (! is_string($value)) {
+                continue;
+            }
+
+            $valueExpressions[] = $this->convertParameterToJsValue($value);
+        }
+
+        if (empty($valueExpressions)) {
+            return null;
+        }
+
+        $dependentAccessor = $this->buildDataAccessor($dependentField);
+        $targetAccessor = $this->buildDataAccessor($property->name);
+        $pathLiteral = $this->buildPathLiteral($property->name);
+        $valueCondition = $this->buildValueConditionExpression($dependentAccessor, $valueExpressions);
+
+        $message = $validation->message ?? ($shouldBeAccepted
+            ? 'This field must be accepted.'
+            : 'This field must be declined.');
+        $escapedMessage = $this->escapeForJs($message);
+
+        $acceptanceCheck = $shouldBeAccepted
+            ? $this->buildAcceptedCheckExpression($targetAccessor)
+            : $this->buildDeclinedCheckExpression($targetAccessor);
+
+        return implode("\n", [
+            sprintf('if (%s && !(%s)) {', $valueCondition, $acceptanceCheck),
+            '    ctx.addIssue({',
+            "        code: 'custom',",
+            sprintf("        message: '%s',", $escapedMessage),
+            sprintf('        path: %s,', $pathLiteral),
+            '    });',
+            '}',
+        ]);
+    }
+
+    /**
+     * Build equality-based refinements (confirmed, same, different).
+     */
+    protected function buildEqualityRefinementsForProperty(SchemaPropertyData $property): array
+    {
+        if ($property->validations === null || str_contains($property->name, '*')) {
+            return [];
+        }
+
+        $blocks = [];
+        $validations = $property->validations;
+
+        $confirmed = $validations->getValidation('Confirmed');
+        if ($confirmed instanceof ResolvedValidation) {
+            $block = $this->buildConfirmedBlock($confirmed, $property);
+            if ($block !== null) {
+                $blocks[] = $block;
+            }
+        }
+
+        foreach ($validations->getValidations('Same') as $validation) {
+            if ($validation instanceof ResolvedValidation) {
+                $block = $this->buildSameBlock($validation, $property);
+                if ($block !== null) {
+                    $blocks[] = $block;
+                }
+            }
+        }
+
+        foreach ($validations->getValidations('Different') as $validation) {
+            if ($validation instanceof ResolvedValidation) {
+                $block = $this->buildDifferentBlock($validation, $property);
+                if ($block !== null) {
+                    $blocks[] = $block;
+                }
+            }
+        }
+
+        return $blocks;
+    }
+
+    protected function buildConfirmedBlock(ResolvedValidation $validation, SchemaPropertyData $property): ?string
+    {
+        $confirmationField = $property->name.'_confirmation';
+
+        $targetAccessor = $this->buildDataAccessor($property->name);
+        $confirmationAccessor = $this->buildDataAccessor($confirmationField);
+        $pathLiteral = $this->buildPathLiteral($property->name);
+
+        $message = $validation->message ?? 'The confirmation does not match.';
+        $escapedMessage = $this->escapeForJs($message);
+
+        return implode("\n", [
+            '{',
+            sprintf('    const confirmationValue = %s;', $confirmationAccessor),
+            sprintf('    const currentValue = %s;', $targetAccessor),
+            '    if (confirmationValue === undefined || confirmationValue === null) {',
+            '        ctx.addIssue({',
+            "            code: 'custom',",
+            sprintf("            message: '%s',", $escapedMessage),
+            sprintf('            path: %s,', $pathLiteral),
+            '        });',
+            '    } else if (String(currentValue ?? \'\') !== String(confirmationValue ?? \'\')) {',
+            '        ctx.addIssue({',
+            "            code: 'custom',",
+            sprintf("            message: '%s',", $escapedMessage),
+            sprintf('            path: %s,', $pathLiteral),
+            '        });',
+            '    }',
+            '}',
+        ]);
+    }
+
+    protected function buildSameBlock(ResolvedValidation $validation, SchemaPropertyData $property): ?string
+    {
+        $parameters = $validation->getParameters();
+        if (empty($parameters) || ! is_string($parameters[0]) || $parameters[0] === '' || str_contains($parameters[0], '*')) {
+            return null;
+        }
+
+        $otherField = $parameters[0];
+        $otherAccessor = $this->buildDataAccessor($otherField);
+        $targetAccessor = $this->buildDataAccessor($property->name);
+        $pathLiteral = $this->buildPathLiteral($property->name);
+
+        $message = $validation->message ?? 'The fields must match.';
+        $escapedMessage = $this->escapeForJs($message);
+
+        return implode("\n", [
+            '{',
+            sprintf('    const currentValue = %s;', $targetAccessor),
+            sprintf('    const otherValue = %s;', $otherAccessor),
+            '    if (String(currentValue ?? \'\') !== String(otherValue ?? \'\')) {',
+            '        ctx.addIssue({',
+            "            code: 'custom',",
+            sprintf("            message: '%s',", $escapedMessage),
+            sprintf('            path: %s,', $pathLiteral),
+            '        });',
+            '    }',
+            '}',
+        ]);
+    }
+
+    protected function buildDifferentBlock(ResolvedValidation $validation, SchemaPropertyData $property): ?string
+    {
+        $parameters = $validation->getParameters();
+        if (empty($parameters) || ! is_string($parameters[0]) || $parameters[0] === '' || str_contains($parameters[0], '*')) {
+            return null;
+        }
+
+        $otherField = $parameters[0];
+        $otherAccessor = $this->buildDataAccessor($otherField);
+        $targetAccessor = $this->buildDataAccessor($property->name);
+        $pathLiteral = $this->buildPathLiteral($property->name);
+
+        $message = $validation->message ?? 'The fields must be different.';
+        $escapedMessage = $this->escapeForJs($message);
+
+        return implode("\n", [
+            '{',
+            sprintf('    const currentValue = %s;', $targetAccessor),
+            sprintf('    const otherValue = %s;', $otherAccessor),
+            '    if (String(currentValue ?? \'\') === String(otherValue ?? \'\')) {',
+            '        ctx.addIssue({',
+            "            code: 'custom',",
+            sprintf("            message: '%s',", $escapedMessage),
+            sprintf('            path: %s,', $pathLiteral),
+            '        });',
+            '    }',
+            '}',
+        ]);
+    }
+
+    /**
+     * Build date comparison refinements (after/before/date_equals).
+     */
+    protected function buildDateComparisonRefinementsForProperty(SchemaPropertyData $property): array
+    {
+        if ($property->validations === null || str_contains($property->name, '*')) {
+            return [];
+        }
+
+        $blocks = [];
+        $validations = $property->validations;
+
+        foreach (['After', 'AfterOrEqual', 'Before', 'BeforeOrEqual', 'DateEquals'] as $ruleName) {
+            foreach ($validations->getValidations($ruleName) as $validation) {
+                if (! $validation instanceof ResolvedValidation) {
+                    continue;
+                }
+
+                $block = $this->buildDateComparisonBlock($validation, $property, $ruleName);
+                if ($block !== null) {
+                    $blocks[] = $block;
+                }
+            }
+        }
+
+        return $blocks;
+    }
+
+    protected function buildDateComparisonBlock(ResolvedValidation $validation, SchemaPropertyData $property, string $ruleName): ?string
+    {
+        $parameters = $validation->getParameters();
+        $reference = $parameters[0] ?? null;
+
+        if (! is_string($reference) || $reference === '') {
+            return null;
+        }
+
+        $targetAccessor = $this->buildDataAccessor($property->name);
+        $pathLiteral = $this->buildPathLiteral($property->name);
+
+        $comparison = $this->buildDateReferenceExpression($reference, $property);
+        if ($comparison === null) {
+            return null;
+        }
+
+        $messageKey = match ($ruleName) {
+            'After' => 'after',
+            'AfterOrEqual' => 'after_or_equal',
+            'Before' => 'before',
+            'BeforeOrEqual' => 'before_or_equal',
+            'DateEquals' => 'date_equals',
+            default => 'date',
+        };
+
+        $message = $validation->message ?? 'Invalid date comparison.';
+        $escapedMessage = $this->escapeForJs($message);
+
+        $comparisonOperator = match ($ruleName) {
+            'After' => '<=',
+            'AfterOrEqual' => '<',
+            'Before' => '>=',
+            'BeforeOrEqual' => '>',
+            'DateEquals' => '!==',
+            default => '!==',
+        };
+
+        $comparisonCheck = sprintf('(valueTimestamp %s referenceTimestamp)', $comparisonOperator);
+
+        return implode("\n", [
+            '{',
+            sprintf('    const currentRaw = %s;', $targetAccessor),
+            '    if (currentRaw === undefined || currentRaw === null || currentRaw === \'\') {',
+            '        return;',
+            '    }',
+            '    const valueTimestamp = Date.parse(String(currentRaw));',
+            '    if (Number.isNaN(valueTimestamp)) {',
+            '        ctx.addIssue({',
+            "            code: 'custom',",
+            sprintf("            message: '%s',", $escapedMessage),
+            sprintf('            path: %s,', $pathLiteral),
+            '        });',
+            '        return;',
+            '    }',
+            sprintf('    const referenceTimestamp = %s;', $comparison),
+            '    if (Number.isNaN(referenceTimestamp)) {',
+            '        return;',
+            '    }',
+            sprintf('    if (%s) {', $comparisonCheck),
+            '        ctx.addIssue({',
+            "            code: 'custom',",
+            sprintf("            message: '%s',", $escapedMessage),
+            sprintf('            path: %s,', $pathLiteral),
+            '        });',
+            '    }',
+            '}',
+        ]);
+    }
+
+    protected function buildDateReferenceExpression(string $reference, SchemaPropertyData $property): ?string
+    {
+        $reference = trim($reference);
+
+        if ($reference === 'now') {
+            return 'Date.now()';
+        }
+
+        if ($reference === 'today') {
+            return '(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); })()';
+        }
+
+        if ($reference === 'tomorrow') {
+            return '(() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1); return d.getTime(); })()';
+        }
+
+        if ($reference === 'yesterday') {
+            return '(() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - 1); return d.getTime(); })()';
+        }
+
+        if ($this->looksLikeDateString($reference)) {
+            $escaped = $this->escapeForJs($reference);
+            return "(() => { const ts = Date.parse('{$escaped}'); return Number.isNaN(ts) ? NaN : ts; })()";
+        }
+
+        if (str_contains($reference, '*')) {
+            return null;
+        }
+
+        $accessor = $this->buildDataAccessor($reference);
+
+        return sprintf('(() => { const raw = %s; if (raw === undefined || raw === null || raw === \'\') { return NaN; } const ts = Date.parse(String(raw)); return Number.isNaN(ts) ? NaN : ts; })()', $accessor);
+    }
+
+    protected function looksLikeDateString(string $value): bool
+    {
+        if ($value === '') {
+            return false;
+        }
+
+        if (in_array(strtolower($value), ['now', 'today', 'tomorrow', 'yesterday'], true)) {
+            return true;
+        }
+
+        $timestamp = strtotime($value);
+
+        return $timestamp !== false;
     }
 
     protected function buildDataAccessor(string $field): string

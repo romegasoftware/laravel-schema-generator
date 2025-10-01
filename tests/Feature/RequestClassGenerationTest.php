@@ -84,7 +84,8 @@ class RequestClassGenerationTest extends TestCase
         $this->assertStringContainsString('.max(255)', $schema);
         $this->assertStringContainsString('password: z.string()', $schema);
         $this->assertStringContainsString('.min(8)', $schema);
-        $this->assertStringContainsString('remember: z.boolean().optional()', $schema);
+        $this->assertStringContainsString('remember: z.preprocess((val) =>', $schema);
+        $this->assertStringContainsString('z.boolean().optional())', $schema);
     }
 
     #[Test]

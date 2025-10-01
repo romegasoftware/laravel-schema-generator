@@ -125,6 +125,48 @@ abstract class ZodBuilder implements BuilderInterface
     }
 
     /**
+     * Ensure a field is accepted (Laravel's accepted rule).
+     */
+    public function validateAccepted(?array $parameters = [], ?string $message = null): self
+    {
+        $resolvedMessage = $this->resolveMessage('accepted', $message);
+        $messageText = $resolvedMessage ?? 'This field must be accepted.';
+        $escapedMessage = $this->normalizeMessageForJS($messageText);
+
+        $rule = ".refine((val) => {"
+            .' if (val === undefined || val === null) { return false; }'
+            .' if (typeof val === "string") {'
+            .' const normalized = val.toLowerCase();'
+            .' if (normalized === "yes" || normalized === "on" || normalized === "true" || normalized === "1") { return true; }'
+            .' }'
+            .' return val === true || val === 1;'
+            ." }, { message: '{$escapedMessage}' })";
+
+        return $this->addRule($rule);
+    }
+
+    /**
+     * Ensure a field is declined (Laravel's declined rule).
+     */
+    public function validateDeclined(?array $parameters = [], ?string $message = null): self
+    {
+        $resolvedMessage = $this->resolveMessage('declined', $message);
+        $messageText = $resolvedMessage ?? 'This field must be declined.';
+        $escapedMessage = $this->normalizeMessageForJS($messageText);
+
+        $rule = ".refine((val) => {"
+            .' if (val === undefined || val === null) { return false; }'
+            .' if (typeof val === "string") {'
+            .' const normalized = val.toLowerCase();'
+            .' if (normalized === "no" || normalized === "off" || normalized === "false" || normalized === "0") { return true; }'
+            .' }'
+            .' return val === false || val === 0;'
+            ." }, { message: '{$escapedMessage}' })";
+
+        return $this->addRule($rule);
+    }
+
+    /**
      * Replace an existing rule of the same type (e.g., replace .min() with new .min())
      */
     protected function replaceRule(string $ruleType, string $newRule): self

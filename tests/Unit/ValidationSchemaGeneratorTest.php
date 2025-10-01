@@ -291,8 +291,8 @@ class ValidationSchemaGeneratorTest extends TestCase
 
         $schema = $this->generator->generate($extracted);
 
-        // Should generate boolean validation with a message
-        $this->assertStringContainsString('published: z.boolean(', $schema);
+        // Should generate boolean validation with preprocessing for truthy/falsey values
+        $this->assertStringContainsString('published: z.preprocess((val) =>', $schema);
 
         // Test email validation
         $emailValidator = new \Illuminate\Validation\Validator(
@@ -426,6 +426,147 @@ class ValidationSchemaGeneratorTest extends TestCase
         $schema = $this->generator->generate($extracted);
 
         $this->assertStringContainsString("['pro', 'enterprise'].includes(String(data.plan))", $schema);
+    }
+
+    #[Test]
+    public function it_generates_super_refine_for_confirmed_rules(): void
+    {
+        $properties = SchemaPropertyData::collect([
+            [
+                'name' => 'password',
+                'isOptional' => false,
+                'validations' => ResolvedValidationSet::make('password', [
+                    new ResolvedValidation('Confirmed', [], 'Passwords must match.'),
+                ], 'string'),
+                'validator' => null,
+            ],
+        ]);
+
+        $extracted = new ExtractedSchemaData(
+            name: 'ConfirmedSchema',
+            dependencies: [],
+            properties: $properties,
+            type: '',
+            className: ''
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        $this->assertStringContainsString('const confirmationValue = data.password_confirmation;', $schema);
+        $this->assertStringContainsString("message: 'Passwords must match.'", $schema);
+    }
+
+    #[Test]
+    public function it_generates_super_refine_for_same_and_different_rules(): void
+    {
+        $properties = SchemaPropertyData::collect([
+            [
+                'name' => 'email',
+                'isOptional' => false,
+                'validations' => ResolvedValidationSet::make('email', [], 'string'),
+                'validator' => null,
+            ],
+            [
+                'name' => 'backup_email',
+                'isOptional' => false,
+                'validations' => ResolvedValidationSet::make('backup_email', [
+                    new ResolvedValidation('Same', ['email'], 'Emails must match.'),
+                ], 'string'),
+                'validator' => null,
+            ],
+            [
+                'name' => 'username',
+                'isOptional' => false,
+                'validations' => ResolvedValidationSet::make('username', [
+                    new ResolvedValidation('Different', ['email'], 'Username must be unique from email.'),
+                ], 'string'),
+                'validator' => null,
+            ],
+        ]);
+
+        $extracted = new ExtractedSchemaData(
+            name: 'ComparisonSchema',
+            dependencies: [],
+            properties: $properties,
+            type: '',
+            className: ''
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        $this->assertStringContainsString('const otherValue = data.email;', $schema);
+        $this->assertStringContainsString("message: 'Emails must match.'", $schema);
+        $this->assertStringContainsString("message: 'Username must be unique from email.'", $schema);
+    }
+
+    #[Test]
+    public function it_generates_super_refine_for_accepted_if_rules(): void
+    {
+        $properties = SchemaPropertyData::collect([
+            [
+                'name' => 'plan',
+                'isOptional' => false,
+                'validations' => ResolvedValidationSet::make('plan', [], 'string'),
+                'validator' => null,
+            ],
+            [
+                'name' => 'terms',
+                'isOptional' => false,
+                'validations' => ResolvedValidationSet::make('terms', [
+                    new ResolvedValidation('AcceptedIf', ['plan', 'enterprise'], 'Terms must be accepted for enterprise.'),
+                ], 'string'),
+                'validator' => null,
+            ],
+        ]);
+
+        $extracted = new ExtractedSchemaData(
+            name: 'AcceptedIfSchema',
+            dependencies: [],
+            properties: $properties,
+            type: '',
+            className: ''
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        $this->assertStringContainsString('const normalized = val.toLowerCase();', $schema);
+        $this->assertStringContainsString("message: 'Terms must be accepted for enterprise.'", $schema);
+    }
+
+    #[Test]
+    public function it_generates_super_refine_for_date_comparisons(): void
+    {
+        $properties = SchemaPropertyData::collect([
+            [
+                'name' => 'start_date',
+                'isOptional' => false,
+                'validations' => ResolvedValidationSet::make('start_date', [
+                    new ResolvedValidation('Date', [], 'Start date must be valid.'),
+                ], 'string'),
+                'validator' => null,
+            ],
+            [
+                'name' => 'end_date',
+                'isOptional' => false,
+                'validations' => ResolvedValidationSet::make('end_date', [
+                    new ResolvedValidation('After', ['start_date'], 'End date must follow start date.'),
+                ], 'string'),
+                'validator' => null,
+            ],
+        ]);
+
+        $extracted = new ExtractedSchemaData(
+            name: 'DateSchema',
+            dependencies: [],
+            properties: $properties,
+            type: '',
+            className: ''
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        $this->assertStringContainsString('const referenceTimestamp = (() => { const raw = data.start_date;', $schema);
+        $this->assertStringContainsString("message: 'End date must follow start date.'", $schema);
     }
 
     #[Test]

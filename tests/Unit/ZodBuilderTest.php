@@ -3,6 +3,7 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\Test;
+use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodBooleanBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEmailBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodEnumBuilder;
 use RomegaSoftware\LaravelSchemaGenerator\Builders\Zod\ZodNumberBuilder;
@@ -195,6 +196,113 @@ class ZodBuilderTest extends TestCase
             ->build();
 
         $this->assertEquals('z.url({ protocol: /^(?:http|https)$/ })', $result);
+    }
+
+    #[Test]
+    public function it_builds_common_string_rule_shortcuts(): void
+    {
+        $builder = new ZodStringBuilder;
+
+        $result = $builder->validateAlpha()
+            ->validateAlphaDash()
+            ->validateLowercase([], 'Must be lowercase')
+            ->build();
+
+        $this->assertStringContainsString('.regex(/^[A-Za-z]+$/)', $result);
+        $this->assertStringContainsString(".lowercase('Must be lowercase')", $result);
+    }
+
+    #[Test]
+    public function it_builds_uppercase_rules(): void
+    {
+        $builder = new ZodStringBuilder;
+
+        $result = $builder->validateAlpha()
+            ->validateUppercase([], 'Must be uppercase')
+            ->build();
+
+        $this->assertStringContainsString(".uppercase('Must be uppercase')", $result);
+    }
+
+    #[Test]
+    public function it_builds_accepted_and_declined_refinements(): void
+    {
+        $builder = new ZodStringBuilder;
+
+        $result = $builder->validateAccepted([], 'Must be accepted')
+            ->validateDeclined([], 'Must be declined')
+            ->build();
+
+        $this->assertStringContainsString('.refine((val) => {', $result);
+        $this->assertStringContainsString("message: 'Must be accepted'", $result);
+        $this->assertStringContainsString("message: 'Must be declined'", $result);
+    }
+
+    #[Test]
+    public function it_uses_native_starts_with_for_single_prefix(): void
+    {
+        $builder = new ZodStringBuilder;
+
+        $result = $builder->validateStartsWith(['abc'])->build();
+
+        $this->assertStringContainsString(".startsWith('abc')", $result);
+    }
+
+    #[Test]
+    public function it_uses_native_ends_with_for_single_suffix(): void
+    {
+        $builder = new ZodStringBuilder;
+
+        $result = $builder->validateEndsWith(['xyz'], 'Custom message')->build();
+
+        $this->assertStringContainsString(".endsWith('xyz', 'Custom message')", $result);
+    }
+
+    #[Test]
+    public function it_uses_native_ip_builders(): void
+    {
+        $builder = new ZodStringBuilder;
+
+        $result = $builder->validateIp()->build();
+
+        $this->assertStringContainsString('z.union([z.ipv4(), z.ipv6()])', $result);
+
+        $builderIpv4 = new ZodStringBuilder;
+        $ipv4Result = $builderIpv4->validateIpv4([], 'IPv4 required')->build();
+        $this->assertStringContainsString("z.ipv4({ message: 'IPv4 required' })", $ipv4Result);
+
+        $builderUlid = new ZodStringBuilder;
+        $ulidResult = $builderUlid->validateUlid()->optional()->build();
+        $this->assertStringContainsString('z.ulid()', $ulidResult);
+        $this->assertStringContainsString('.optional()', $ulidResult);
+    }
+
+    #[Test]
+    public function it_builds_distinct_array_validation(): void
+    {
+        $factory = app(\RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory::class);
+        $universalTypeHandler = app(\RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler::class);
+        $factory->setUniversalTypeHandler($universalTypeHandler);
+
+        $builder = $factory->createArrayBuilder('z.string()');
+
+        $result = $builder->validateDistinct(['ignore_case'])
+            ->build();
+
+        $this->assertStringContainsString('const ignoreCase = true;', $result);
+        $this->assertStringContainsString('Duplicate values are not allowed.', $result);
+    }
+
+    #[Test]
+    public function it_normalizes_boolean_inputs_before_validation(): void
+    {
+        $builder = new ZodBooleanBuilder;
+
+        $result = $builder->optional()->build();
+
+        $this->assertStringContainsString('z.preprocess', $result);
+        $this->assertStringContainsString('normalized === "true"', $result);
+        $this->assertStringContainsString('.optional())', $result);
     }
 
     #[Test]
