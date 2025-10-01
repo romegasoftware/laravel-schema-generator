@@ -10,7 +10,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
-use Spatie\LaravelData\DataCollection;
 
 class RequestClassGenerationTest extends TestCase
 {
@@ -73,7 +72,7 @@ class RequestClassGenerationTest extends TestCase
                         new ResolvedValidation('boolean', [], null, false, false),
                     ], 'boolean'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -104,7 +103,7 @@ class RequestClassGenerationTest extends TestCase
                         new ResolvedValidation('string', [], null, false, false),
                     ], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -131,7 +130,7 @@ class RequestClassGenerationTest extends TestCase
                         new ResolvedValidation('array', [], null, false, false),
                     ], 'array'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -191,7 +190,7 @@ class RequestClassGenerationTest extends TestCase
                         $nestedObjectValidations
                     ),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -224,7 +223,7 @@ class RequestClassGenerationTest extends TestCase
                         new ResolvedValidation('in', [['pending', 'approved', 'rejected']], null, false, false),
                     ], 'enum:pending,approved,rejected'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -251,7 +250,7 @@ class RequestClassGenerationTest extends TestCase
                         new ResolvedValidation('email', [], 'Please enter a valid email', false, false),
                     ], 'email'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -277,7 +276,7 @@ class RequestClassGenerationTest extends TestCase
                         new ResolvedValidation('regex', ['/^\\d{3}-\\d{3}-\\d{4}$/'], null, false, false),
                     ], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -306,7 +305,7 @@ class RequestClassGenerationTest extends TestCase
                         new ResolvedValidation('max', [120], null, false, false),
                     ], 'number'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -334,7 +333,7 @@ class RequestClassGenerationTest extends TestCase
                         new ResolvedValidation('url', [], null, false, false),
                     ], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -361,7 +360,7 @@ class RequestClassGenerationTest extends TestCase
                         new ResolvedValidation('uuid', [], null, false, false),
                     ], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -403,7 +402,7 @@ class RequestClassGenerationTest extends TestCase
                         $nestedValidations
                     ),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -447,7 +446,7 @@ class RequestClassGenerationTest extends TestCase
                         $nestedValidations
                     ),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );

@@ -8,11 +8,11 @@ use RomegaSoftware\LaravelSchemaGenerator\Contracts\ExtractorInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyCollection;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Extractors\ExtractorManager;
 use RomegaSoftware\LaravelSchemaGenerator\Support\PackageDetector;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
-use Spatie\LaravelData\DataCollection;
 
 class ExtractorManagerTest extends TestCase
 {
@@ -59,7 +59,7 @@ class ExtractorManagerTest extends TestCase
             {
                 return new ExtractedSchemaData(
                     name: 'TestSchema',
-                    properties: new DataCollection(SchemaPropertyData::class, []),
+                    properties: SchemaPropertyCollection::make([]),
                     className: $class->getName(),
                     type: 'test',
                 );
@@ -91,7 +91,7 @@ class ExtractorManagerTest extends TestCase
             {
                 return new ExtractedSchemaData(
                     name: 'LowPriority',
-                    properties: new DataCollection(SchemaPropertyData::class, []),
+                    properties: SchemaPropertyCollection::make([]),
                     className: $class->getName(),
                     type: 'test',
                 );
@@ -114,7 +114,7 @@ class ExtractorManagerTest extends TestCase
             {
                 return new ExtractedSchemaData(
                     name: 'HighPriority',
-                    properties: new DataCollection(SchemaPropertyData::class, []),
+                    properties: SchemaPropertyCollection::make([]),
                     className: $class->getName(),
                     type: 'test',
                 );
@@ -149,7 +149,7 @@ class ExtractorManagerTest extends TestCase
             {
                 return new ExtractedSchemaData(
                     name: 'TestSchema',
-                    properties: new DataCollection(SchemaPropertyData::class, []),
+                    properties: SchemaPropertyCollection::make([]),
                     className: $class->getName(),
                     type: 'test',
                 );
@@ -218,7 +218,7 @@ class ExtractorManagerTest extends TestCase
             {
                 return new ExtractedSchemaData(
                     name: 'TestSchema',
-                    properties: new DataCollection(SchemaPropertyData::class, [
+                    properties: SchemaPropertyCollection::make([
                         new SchemaPropertyData(
                             name: 'email',
                             validator: null,
@@ -249,6 +249,6 @@ class ExtractorManagerTest extends TestCase
 
         $this->assertEquals('TestSchema', $result->name);
         $this->assertCount(1, $result->properties);
-        $this->assertEquals('email', $result->properties->toArray()[0]['name']);
+        $this->assertEquals('email', $result->properties[0]->name);
     }
 }

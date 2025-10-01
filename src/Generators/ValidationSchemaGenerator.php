@@ -3,9 +3,9 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Generators;
 
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyCollection;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
-use Spatie\LaravelData\DataCollection;
 
 class ValidationSchemaGenerator extends BaseGenerator
 {
@@ -47,11 +47,11 @@ class ValidationSchemaGenerator extends BaseGenerator
     /**
      * Build a Zod schema string from properties
      *
-     * @param  DataCollection<SchemaPropertyData>  $properties
+     * @param  SchemaPropertyCollection|null  $properties
      */
-    protected function buildValidationSchema(?DataCollection $properties): string
+    protected function buildValidationSchema(?SchemaPropertyCollection $properties): string
     {
-        if (empty($properties)) {
+        if ($properties === null || $properties->isEmpty()) {
             return 'z.object({})';
         }
 

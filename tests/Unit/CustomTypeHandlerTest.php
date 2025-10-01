@@ -9,11 +9,11 @@ use RomegaSoftware\LaravelSchemaGenerator\Contracts\TypeHandlerInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyCollection;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
-use Spatie\LaravelData\DataCollection;
 
 class CustomTypeHandlerTest extends TestCase
 {
@@ -76,7 +76,7 @@ class CustomTypeHandlerTest extends TestCase
 
         $extracted = new ExtractedSchemaData(
             name: 'TestSchema',
-            properties: new DataCollection(SchemaPropertyData::class, [$property]),
+            properties: SchemaPropertyCollection::make([$property]),
             className: 'TestClass',
             type: 'test',
         );
@@ -147,7 +147,7 @@ class CustomTypeHandlerTest extends TestCase
 
         $extracted = new ExtractedSchemaData(
             name: 'TestSchema',
-            properties: new DataCollection(SchemaPropertyData::class, [$property]),
+            properties: SchemaPropertyCollection::make([$property]),
             className: 'TestClass',
             type: 'test',
         );
@@ -218,7 +218,7 @@ class CustomTypeHandlerTest extends TestCase
 
         $extracted = new ExtractedSchemaData(
             name: 'TestSchema',
-            properties: new DataCollection(SchemaPropertyData::class, [$property]),
+            properties: SchemaPropertyCollection::make([$property]),
             className: 'TestClass',
             type: 'test',
         );

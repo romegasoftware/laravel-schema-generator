@@ -2,22 +2,19 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Data;
 
-use Spatie\LaravelData\Attributes\DataCollectionOf;
-use Spatie\LaravelData\Data;
-use Spatie\LaravelData\DataCollection;
+use Illuminate\Support\Collection;
 
 /**
  * Collection of resolved validations for a field with convenient access methods
  */
-class ResolvedValidationSet extends Data
+class ResolvedValidationSet
 {
     public function __construct(
         /** Field name this validation set applies to */
         public readonly string $fieldName,
 
         /** Collection of resolved validation rules */
-        #[DataCollectionOf(ResolvedValidation::class)]
-        public readonly DataCollection $validations,
+        public readonly ResolvedValidationCollection $validations,
 
         /** Inferred type based on validation rules */
         public readonly string $inferredType = 'string',
@@ -38,8 +35,13 @@ class ResolvedValidationSet extends Data
     /**
      * Create a new validation set from an array of ResolvedValidation objects
      */
-    public static function make(string $fieldName, array $validations, string $inferredType = 'string', ?ResolvedValidationSet $nestedValidations = null, array $objectProperties = []): self
-    {
+    public static function make(
+        string $fieldName,
+        array $validations,
+        string $inferredType = 'string',
+        ?ResolvedValidationSet $nestedValidations = null,
+        array $objectProperties = []
+    ): self {
         $isRequired = false;
         $isNullable = false;
 
@@ -54,7 +56,7 @@ class ResolvedValidationSet extends Data
 
         return new self(
             fieldName: $fieldName,
-            validations: ResolvedValidation::collect($validations, DataCollection::class),
+            validations: ResolvedValidation::collect($validations),
             inferredType: $inferredType,
             isRequired: $isRequired,
             isNullable: $isNullable,
@@ -82,7 +84,7 @@ class ResolvedValidationSet extends Data
     /**
      * Get all validations with a specific rule name (for rules that can appear multiple times)
      */
-    public function getValidations(string $rule): \Illuminate\Support\Enumerable
+    public function getValidations(string $rule): Collection
     {
         return $this->validations->toCollection()->filter(fn (ResolvedValidation $v) => $v->rule === $rule);
     }
@@ -186,7 +188,6 @@ class ResolvedValidationSet extends Data
         ];
 
         foreach ($this->validations as $validation) {
-            /** @var ResolvedValidation $validation */
             if ($validation->hasParameters()) {
                 if (count($validation->parameters) === 1) {
                     $result[$validation->rule] = $validation->getFirstParameter();

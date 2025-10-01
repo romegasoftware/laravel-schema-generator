@@ -2,12 +2,10 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Data;
 
-use Spatie\LaravelData\Data;
-
 /**
  * Structured validation data with IDE support for unified validation strategy
  */
-class ResolvedValidation extends Data
+class ResolvedValidation
 {
     public function __construct(
         /** The validation rule name (e.g., 'required', 'min', 'max') */
@@ -25,6 +23,16 @@ class ResolvedValidation extends Data
         /** Whether this validation makes the field nullable */
         public bool $isNullable = false,
     ) {}
+
+    /**
+     * Create a collection of resolved validations without relying on Spatie Data.
+     *
+     * @param  iterable<ResolvedValidation>  $validations
+     */
+    public static function collect(iterable $validations = []): ResolvedValidationCollection
+    {
+        return ResolvedValidationCollection::make($validations);
+    }
 
     /**
      * Check if this validation has a message

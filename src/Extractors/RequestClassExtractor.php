@@ -8,7 +8,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Attributes\ValidationSchema;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Support\SchemaNameGenerator;
-use Spatie\LaravelData\DataCollection;
 
 class RequestClassExtractor extends BaseExtractor
 {
@@ -41,7 +40,7 @@ class RequestClassExtractor extends BaseExtractor
 
         return new ExtractedSchemaData(
             name: $schemaName,
-            properties: SchemaPropertyData::collect($properties, DataCollection::class),
+            properties: SchemaPropertyData::collect($properties),
             className: $class->getName(),
             type: 'request',
         );

@@ -16,7 +16,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Services\MessageResolutionService;
 use RomegaSoftware\LaravelSchemaGenerator\Services\NestedMessageHandler;
 use RomegaSoftware\LaravelSchemaGenerator\Support\SchemaNameGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Traits\Makeable;
-use Spatie\LaravelData\DataCollection;
 use Spatie\LaravelData\Resolvers\DataValidatorResolver;
 
 /**
@@ -76,7 +75,7 @@ class DataClassExtractor extends BaseExtractor
 
         return new ExtractedSchemaData(
             name: $schemaName,
-            properties: SchemaPropertyData::collect($properties, DataCollection::class),
+            properties: SchemaPropertyData::collect($properties),
             className: $class->getName(),
             type: 'data',
             dependencies: $dependencies,

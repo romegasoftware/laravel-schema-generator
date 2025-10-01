@@ -18,6 +18,12 @@ It will generate Zod schema out of the box, but can be extended for different sc
 composer require romegasoftware/laravel-schema-generator
 ```
 
+Ensure Zod v4 is installed
+
+```bash
+npm install zod
+```
+
 ### Optional Packages
 
 For additional features, install these optional packages:

@@ -12,7 +12,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Extractors\ExtractorManager;
 use RomegaSoftware\LaravelSchemaGenerator\Support\PackageDetector;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
-use Spatie\LaravelData\DataCollection;
 
 class CustomExtractorTest extends TestCase
 {
@@ -31,7 +30,7 @@ class CustomExtractorTest extends TestCase
             {
                 $property = new SchemaPropertyData(
                     name: 'custom_field',
-                    type: 'string',
+                    validator: null,
                     isOptional: false,
                     validations: ResolvedValidationSet::make('custom_field', [
                         new ResolvedValidation('required', [], null, true, false),
@@ -40,7 +39,7 @@ class CustomExtractorTest extends TestCase
 
                 return new ExtractedSchemaData(
                     name: 'TestCustomSchema',
-                    properties: SchemaPropertyData::collect([$property], DataCollection::class),
+                    properties: SchemaPropertyData::collect([$property]),
                     className: $class->getName(),
                     type: 'custom',
                 );
@@ -114,7 +113,7 @@ class CustomExtractorTest extends TestCase
                                 new ResolvedValidation('max', [64], null, false, false),
                             ], 'string'),
                         ],
-                    ], DataCollection::class),
+                    ]),
                     className: $class->getName(),
                     type: 'custom',
                 );
@@ -210,7 +209,7 @@ class CustomExtractorTest extends TestCase
             {
                 return new ExtractedSchemaData(
                     name: 'EmptySchema',
-                    properties: SchemaPropertyData::collect([], DataCollection::class),
+                    properties: SchemaPropertyData::collect([]),
                     className: $class->getName(),
                     type: 'custom',
                 );
@@ -233,7 +232,7 @@ class CustomExtractorTest extends TestCase
             {
                 return new ExtractedSchemaData(
                     name: 'EmptySchema',
-                    properties: SchemaPropertyData::collect([], DataCollection::class),
+                    properties: SchemaPropertyData::collect([]),
                     className: $class->getName(),
                     type: 'custom',
                 );

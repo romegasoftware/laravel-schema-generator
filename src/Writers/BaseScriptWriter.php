@@ -7,6 +7,7 @@ use Illuminate\Support\Traits\Macroable;
 use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\SchemaTypeScriptWriter;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
+use RomegaSoftware\LaravelSchemaGenerator\Support\PackageDetector;
 use RomegaSoftware\LaravelSchemaGenerator\Traits\Makeable;
 
 abstract class BaseScriptWriter implements SchemaTypeScriptWriter
@@ -65,6 +66,10 @@ abstract class BaseScriptWriter implements SchemaTypeScriptWriter
     public function isDataClass(ExtractedSchemaData $schema): bool
     {
         if (! isset($schema->className)) {
+            return false;
+        }
+
+        if (! app(PackageDetector::class)->hasSpatieData()) {
             return false;
         }
 

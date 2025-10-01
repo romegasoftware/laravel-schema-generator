@@ -11,7 +11,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\Writers\ZodTypeScriptWriter;
-use Spatie\LaravelData\DataCollection;
 
 class ZodTypeScriptWriterTest extends TestCase
 {
@@ -49,7 +48,7 @@ class ZodTypeScriptWriterTest extends TestCase
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('name', [], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             className: 'App\\Data\\UserData',
             type: 'data',
             dependencies: []
@@ -64,7 +63,7 @@ class ZodTypeScriptWriterTest extends TestCase
                     'isOptional' => true,
                     'validations' => ResolvedValidationSet::make('bio', [], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             className: 'App\\Data\\ProfileData',
             type: 'data',
             dependencies: []
@@ -113,7 +112,7 @@ class ZodTypeScriptWriterTest extends TestCase
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('email', [], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             className: TestData::class,  // Use TestData which ends with 'Data'
             type: 'data',
             dependencies: []
@@ -160,7 +159,7 @@ class ZodTypeScriptWriterTest extends TestCase
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('name', [], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             className: TestNonDataClass::class,
             type: 'request',
             dependencies: []

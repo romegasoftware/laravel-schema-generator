@@ -9,7 +9,6 @@ use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
-use Spatie\LaravelData\DataCollection;
 
 class DataClassGenerationTest extends TestCase
 {
@@ -37,7 +36,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('max', [255], null, false, false),
                     ], 'email'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -63,7 +62,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('array', [], null, false, false),
                     ], 'array'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -89,7 +88,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('required', [], null, true, false),
                     ], 'object'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -115,7 +114,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('array', [], null, false, false),
                     ], 'array'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -142,7 +141,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('nullable', [], null, false, true),
                     ], 'array'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -168,7 +167,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('required', [], null, true, false),
                     ], 'enum'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -195,7 +194,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('enum', [], 'Please select a valid role', false, false),
                     ], 'enum'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -222,7 +221,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('array', [], null, false, false),
                     ], 'array'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -249,7 +248,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('regex', ['/^[A-Z]{3}$/'], 'Each code must be 3 uppercase letters', false, false),
                     ], 'array'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -273,7 +272,7 @@ class DataClassGenerationTest extends TestCase
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('profile', [], 'object'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -288,7 +287,7 @@ class DataClassGenerationTest extends TestCase
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('bio', [], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -318,7 +317,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('regex', ['/^\\d{5}(-\\d{4})?$/'], null, false, false),
                     ], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -345,7 +344,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('regex', ['/^\\d{5}(-\\d{4})?$/'], 'Postal Code must match ##### or #####-####', false, false),
                     ], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -375,7 +374,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('regex', ['/^\\d{5}(-\\d{4})?$/'], 'Postal Code must match ##### or #####-####', false, false),
                     ], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -404,7 +403,7 @@ class DataClassGenerationTest extends TestCase
                         new ResolvedValidation('nullable', [false], null, false, false),
                     ], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );

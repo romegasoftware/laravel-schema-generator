@@ -6,10 +6,10 @@ use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyCollection;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
-use Spatie\LaravelData\DataCollection;
 
 class ValidationSchemaGeneratorTest extends TestCase
 {
@@ -50,7 +50,7 @@ class ValidationSchemaGeneratorTest extends TestCase
                     'isOptional' => false,
                     'validations' => ResolvedValidationSet::make('test', [], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -97,7 +97,7 @@ class ValidationSchemaGeneratorTest extends TestCase
                         new ResolvedValidation('max', [100], 'The name field may not be greater than 100 characters.', false, false),
                     ], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -128,7 +128,7 @@ class ValidationSchemaGeneratorTest extends TestCase
                         new ResolvedValidation('max', [100], 'The count field may not be greater than 100.', false, false),
                     ], 'number'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -159,7 +159,7 @@ class ValidationSchemaGeneratorTest extends TestCase
                         new ResolvedValidation('regex', ['/^[A-Z]{2,4}$/'], 'The pattern field format is invalid.', false, false),
                     ], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -186,7 +186,7 @@ class ValidationSchemaGeneratorTest extends TestCase
                         new ResolvedValidation('regex', ['/^[a-zA-Z0-9\.\-_]+$/'], null, false, false),
                     ], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -203,7 +203,7 @@ class ValidationSchemaGeneratorTest extends TestCase
         $extracted1 = new ExtractedSchemaData(
             name: 'UserSchema',
             dependencies: [],
-            properties: new DataCollection(SchemaPropertyData::class, []),
+            properties: SchemaPropertyCollection::make([]),
             type: '',
             className: ''
         );
@@ -214,7 +214,7 @@ class ValidationSchemaGeneratorTest extends TestCase
         $extracted2 = new ExtractedSchemaData(
             name: 'CreateUserRequestSchema',
             dependencies: [],
-            properties: new DataCollection(SchemaPropertyData::class, []),
+            properties: SchemaPropertyCollection::make([]),
             type: '',
             className: ''
         );
@@ -234,7 +234,7 @@ class ValidationSchemaGeneratorTest extends TestCase
         $schema1 = new ExtractedSchemaData(
             name: 'OrderDataSchema',
             dependencies: ['CustomerDataSchema'],
-            properties: new DataCollection(SchemaPropertyData::class, []),
+            properties: SchemaPropertyCollection::make([]),
             type: '',
             className: ''
         );
@@ -242,7 +242,7 @@ class ValidationSchemaGeneratorTest extends TestCase
         $schema2 = new ExtractedSchemaData(
             name: 'CustomerDataSchema',
             dependencies: [],
-            properties: new DataCollection(SchemaPropertyData::class, []),
+            properties: SchemaPropertyCollection::make([]),
             type: '',
             className: ''
         );
@@ -284,7 +284,7 @@ class ValidationSchemaGeneratorTest extends TestCase
                     'isOptional' => false,
                     'validations' => $booleanValidationSet,
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -312,7 +312,7 @@ class ValidationSchemaGeneratorTest extends TestCase
                     'isOptional' => false,
                     'validations' => $emailValidationSet,
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -341,7 +341,7 @@ class ValidationSchemaGeneratorTest extends TestCase
                     'isOptional' => true,
                     'validations' => $arrayValidationSet,
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
@@ -401,7 +401,7 @@ class ValidationSchemaGeneratorTest extends TestCase
                         new ResolvedValidation('uuid', [], 'The uuid field must be a valid UUID.', false, false),
                     ], 'string'),
                 ],
-            ], DataCollection::class),
+            ]),
             type: '',
             className: ''
         );
