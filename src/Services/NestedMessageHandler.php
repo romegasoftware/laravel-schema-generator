@@ -15,6 +15,9 @@ use Spatie\LaravelData\Support\DataConfig;
  */
 class NestedMessageHandler
 {
+    /** @var array<string, bool> */
+    protected array $messageCollectionStack = [];
+
     public function __construct(protected ?MessageResolutionService $messageService = new MessageResolutionService) {}
 
     /**
@@ -22,13 +25,25 @@ class NestedMessageHandler
      */
     public function collectMessages(ReflectionClass $class, string $prefix = ''): array
     {
+        $className = $class->getName();
+
+        if ($this->messageCollectionStack[$className] ?? false) {
+            return [];
+        }
+
+        $this->messageCollectionStack[$className] = true;
+
         $messages = [];
 
-        // Get messages from the current class
-        $messages = array_merge($messages, $this->getClassMessages($class, $prefix));
+        try {
+            // Get messages from the current class
+            $messages = array_merge($messages, $this->getClassMessages($class, $prefix));
 
-        // Get messages from nested Data objects
-        $messages = array_merge($messages, $this->collectNestedMessages($class, $prefix));
+            // Get messages from nested Data objects
+            $messages = array_merge($messages, $this->collectNestedMessages($class, $prefix));
+        } finally {
+            unset($this->messageCollectionStack[$className]);
+        }
 
         return $messages;
     }
@@ -63,11 +78,19 @@ class NestedMessageHandler
             $fieldName = $property->inputMappedName ?? $property->name;
 
             if ($this->isNestedDataObject($property)) {
+                if ($this->messageCollectionStack[$property->type->dataClass] ?? false) {
+                    continue;
+                }
+
                 $messages = array_merge(
                     $messages,
                     $this->processNestedDataObject($property, $fieldName, $prefix)
                 );
             } elseif ($this->isDataCollection($property)) {
+                if ($this->messageCollectionStack[$property->type->dataClass] ?? false) {
+                    continue;
+                }
+
                 $messages = array_merge(
                     $messages,
                     $this->processDataCollection($property, $fieldName, $prefix)

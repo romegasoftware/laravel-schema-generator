@@ -25,6 +25,12 @@ class DataClassRuleProcessor
 {
     use Makeable;
 
+    /** @var array<string, array> */
+    protected array $cachedRules = [];
+
+    /** @var array<string, bool> */
+    protected array $processingClasses = [];
+
     public function __construct(
         protected DataConfig $dataConfig,
         protected RuleDenormalizer $ruleDenormalizer
@@ -35,10 +41,25 @@ class DataClassRuleProcessor
      */
     public function processDataClass(ReflectionClass $class): array
     {
+        $className = $class->getName();
+
+        if (isset($this->cachedRules[$className]) && ! ($this->processingClasses[$className] ?? false)) {
+            return $this->cachedRules[$className];
+        }
+
+        if ($this->processingClasses[$className] ?? false) {
+            return $this->cachedRules[$className] ?? [];
+        }
+
+        $this->processingClasses[$className] = true;
+
         $dataClass = $this->dataConfig->getDataClass($class->getName());
         $dataRules = DataRules::create();
         $fullPayload = [];
         $path = ValidationPath::create();
+
+        // Expose a reference for recursively nested Data classes
+        $this->cachedRules[$className] = &$dataRules->rules;
 
         foreach ($dataClass->properties as $dataProperty) {
             if ($dataProperty->validate === false) {
@@ -54,7 +75,14 @@ class DataClassRuleProcessor
         // Handle inherited validation
         $this->processInheritedValidation($class, $dataRules, $path);
 
-        return $dataRules->rules;
+        $rules = $dataRules->rules;
+
+        // Replace reference with the finalized rule set
+        unset($this->cachedRules[$className]);
+        $this->cachedRules[$className] = $rules;
+        unset($this->processingClasses[$className]);
+
+        return $rules;
     }
 
     /**

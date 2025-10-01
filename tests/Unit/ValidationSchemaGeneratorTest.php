@@ -387,10 +387,45 @@ class ValidationSchemaGeneratorTest extends TestCase
         $schema = $this->generator->generate($extracted);
 
         $this->assertStringContainsString('.superRefine((data, ctx) => {', $schema);
-        $this->assertStringContainsString("if (data.auth_type === 'password' && (data.password === undefined || data.password === null || String(data.password).trim() === '')) {", $schema);
+        $this->assertStringContainsString("if (String(data.auth_type) === 'password' && (data.password === undefined || data.password === null || String(data.password).trim() === '')) {", $schema);
         $this->assertStringContainsString("code: 'custom'", $schema);
         $this->assertStringContainsString("message: 'The password field is required.'", $schema);
         $this->assertStringContainsString("path: ['password']", $schema);
+    }
+
+    #[Test]
+    public function it_matches_required_if_parameters_using_string_comparison(): void
+    {
+        $flagValidations = ResolvedValidationSet::make('feature_flag', [
+            new ResolvedValidation('RequiredIf', ['plan', 'pro', 'enterprise'], 'Feature flag is required.', false, false),
+        ], 'string');
+
+        $properties = SchemaPropertyData::collect([
+            [
+                'name' => 'plan',
+                'isOptional' => false,
+                'validations' => ResolvedValidationSet::make('plan', [], 'string'),
+                'validator' => null,
+            ],
+            [
+                'name' => 'feature_flag',
+                'isOptional' => true,
+                'validations' => $flagValidations,
+                'validator' => null,
+            ],
+        ]);
+
+        $extracted = new ExtractedSchemaData(
+            name: 'PlanSchema',
+            dependencies: [],
+            properties: $properties,
+            type: '',
+            className: ''
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        $this->assertStringContainsString("['pro', 'enterprise'].includes(String(data.plan))", $schema);
     }
 
     #[Test]

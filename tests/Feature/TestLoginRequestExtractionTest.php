@@ -180,7 +180,7 @@ class TestLoginRequestExtractionTest extends TestCase
         $schema = $this->app->make(ValidationSchemaGenerator::class)->generate($result);
 
         $this->assertStringContainsString('.superRefine((data, ctx) => {', $schema);
-        $this->assertStringContainsString("data.auth_type === 'password'", $schema);
+        $this->assertStringContainsString("String(data.auth_type) === 'password'", $schema);
         $this->assertStringContainsString("ctx.addIssue({", $schema);
         $this->assertStringContainsString("'The password field is required when auth type is password.'", $schema);
         $this->assertStringContainsString("'The base path field must not be greater than 255 characters.'", $schema);

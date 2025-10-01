@@ -250,32 +250,20 @@ class ValidationSchemaGenerator extends BaseGenerator
 
     protected function buildValueConditionExpression(string $dependentAccessor, array $valueExpressions): string
     {
+        $stringAccessor = sprintf('String(%s)', $dependentAccessor);
+
         if (count($valueExpressions) === 1) {
-            return sprintf('%s === %s', $dependentAccessor, $valueExpressions[0]);
+            return sprintf('%s === %s', $stringAccessor, $valueExpressions[0]);
         }
 
         $values = '['.implode(', ', $valueExpressions).']';
 
-        return sprintf('%s.includes(%s)', $values, $dependentAccessor);
+        return sprintf('%s.includes(%s)', $values, $stringAccessor);
     }
 
     protected function convertParameterToJsValue(string $value): string
     {
         $trimmed = trim($value);
-
-        $lower = strtolower($trimmed);
-
-        if ($lower === 'true' || $lower === 'false') {
-            return $lower;
-        }
-
-        if ($lower === 'null') {
-            return 'null';
-        }
-
-        if ($trimmed !== '' && is_numeric($trimmed) && ! ($trimmed[0] === '0' && strlen($trimmed) > 1 && ! str_contains($trimmed, '.'))) {
-            return $trimmed;
-        }
 
         return "'".$this->escapeForJs($trimmed)."'";
     }

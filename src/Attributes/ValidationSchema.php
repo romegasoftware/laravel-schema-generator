@@ -10,7 +10,7 @@ use Attribute;
  * This attribute can be applied to:
  * - Spatie Data classes (when spatie/laravel-data is installed)
  * - Laravel FormRequest classes
- * - Any PHP class with a rules() method
+ * - Other PHP classes that expose a Laravel-style rules() method
  *
  * @example
  * #[ValidationSchema]

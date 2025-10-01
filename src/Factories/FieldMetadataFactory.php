@@ -15,67 +15,76 @@ use Spatie\LaravelData\Support\DataConfig;
  */
 class FieldMetadataFactory
 {
+    /** @var list<string> */
+    protected array $classStack = [];
+
     /**
      * Build field metadata for a Data class
      */
     public function buildFieldMetadata(ReflectionClass $class, string $prefix = ''): array
     {
-        $metadata = [];
-        $dataConfig = app(DataConfig::class)->getDataClass($class->getName());
+        $this->classStack[] = $class->getName();
 
-        foreach ($dataConfig->properties as $property) {
-            $fieldName = $property->inputMappedName ?? $property->name;
-            $fullFieldName = $prefix ? $prefix.'.'.$fieldName : $fieldName;
+        try {
+            $metadata = [];
+            $dataConfig = app(DataConfig::class)->getDataClass($class->getName());
 
-            // Determine field type
-            $fieldType = FieldType::Regular;
-            $dataClass = null;
+            foreach ($dataConfig->properties as $property) {
+                $fieldName = $property->inputMappedName ?? $property->name;
+                $fullFieldName = $prefix ? $prefix.'.'.$fieldName : $fieldName;
 
-            if ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataObject) {
-                $fieldType = FieldType::DataObject;
-                $dataClass = $property->type->dataClass;
-            } elseif ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataCollection) {
-                $fieldType = FieldType::DataCollection;
-                $dataClass = $property->type->dataClass;
-            } elseif ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataArray) {
-                $fieldType = FieldType::DataCollection;
-                $dataClass = $property->type->dataClass;
-            } elseif ($property->type->type == 'array') {
-                $fieldType = FieldType::Array;
-            }
+                // Determine field type
+                $fieldType = FieldType::Regular;
+                $dataClass = null;
 
-            $fieldMeta = new FieldMetadata(
-                fieldName: $fullFieldName,
-                propertyName: $property->name,
-                type: $fieldType,
-                dataClass: $dataClass,
-                mappedName: $property->inputMappedName,
-            );
-
-            // Recursively build metadata for nested Data objects
-            if ($fieldType === FieldType::DataObject && $dataClass) {
-                $nestedClass = new ReflectionClass($dataClass);
-                $nestedMetadata = $this->buildFieldMetadata($nestedClass, $fullFieldName);
-                foreach ($nestedMetadata as $child) {
-                    $fieldMeta->addChild($child);
+                if ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataObject) {
+                    $fieldType = FieldType::DataObject;
+                    $dataClass = $property->type->dataClass;
+                } elseif ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataCollection) {
+                    $fieldType = FieldType::DataCollection;
+                    $dataClass = $property->type->dataClass;
+                } elseif ($property->type->kind === \Spatie\LaravelData\Enums\DataTypeKind::DataArray) {
+                    $fieldType = FieldType::DataCollection;
+                    $dataClass = $property->type->dataClass;
+                } elseif ($property->type->type == 'array') {
+                    $fieldType = FieldType::Array;
                 }
-            } elseif ($fieldType === FieldType::DataCollection && $dataClass) {
-                // For collections, build metadata with .* prefix
-                $nestedClass = new ReflectionClass($dataClass);
-                $nestedMetadata = $this->buildFieldMetadata($nestedClass, $fullFieldName.'.*');
-                foreach ($nestedMetadata as $child) {
-                    $fieldMeta->addChild($child);
+
+                $fieldMeta = new FieldMetadata(
+                    fieldName: $fullFieldName,
+                    propertyName: $property->name,
+                    type: $fieldType,
+                    dataClass: $dataClass,
+                    mappedName: $property->inputMappedName,
+                );
+
+                // Recursively build metadata for nested Data objects
+                if ($fieldType === FieldType::DataObject && $dataClass && ! $this->isClassInStack($dataClass)) {
+                    $nestedClass = new ReflectionClass($dataClass);
+                    $nestedMetadata = $this->buildFieldMetadata($nestedClass, $fullFieldName);
+                    foreach ($nestedMetadata as $child) {
+                        $fieldMeta->addChild($child);
+                    }
+                } elseif ($fieldType === FieldType::DataCollection && $dataClass && ! $this->isClassInStack($dataClass)) {
+                    // For collections, build metadata with .* prefix
+                    $nestedClass = new ReflectionClass($dataClass);
+                    $nestedMetadata = $this->buildFieldMetadata($nestedClass, $fullFieldName.'.*');
+                    foreach ($nestedMetadata as $child) {
+                        $fieldMeta->addChild($child);
+                    }
+                }
+
+                // Store metadata by both property name and mapped name (if different)
+                $metadata[$property->name] = $fieldMeta;
+                if ($property->inputMappedName && $property->inputMappedName !== $property->name) {
+                    $metadata[$property->inputMappedName] = $fieldMeta;
                 }
             }
 
-            // Store metadata by both property name and mapped name (if different)
-            $metadata[$property->name] = $fieldMeta;
-            if ($property->inputMappedName && $property->inputMappedName !== $property->name) {
-                $metadata[$property->inputMappedName] = $fieldMeta;
-            }
+            return $metadata;
+        } finally {
+            array_pop($this->classStack);
         }
-
-        return $metadata;
     }
 
     /**
@@ -138,5 +147,10 @@ class FieldMetadataFactory
             // Recursively add children
             $this->addChildrenToFlattened($child, $flattened);
         }
+    }
+
+    protected function isClassInStack(string $className): bool
+    {
+        return in_array($className, $this->classStack, true);
     }
 }
