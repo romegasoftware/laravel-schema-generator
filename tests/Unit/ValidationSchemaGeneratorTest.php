@@ -429,6 +429,90 @@ class ValidationSchemaGeneratorTest extends TestCase
     }
 
     #[Test]
+    public function it_normalizes_required_if_references_from_denormalized_data_rules(): void
+    {
+        $dependentValidation = ResolvedValidationSet::make('existing_account_id', [
+            new ResolvedValidation(
+                'RequiredIf',
+                ['existing_account_id.connection_type', 'existing'],
+                'Existing account id is required.',
+                false,
+                false
+            ),
+        ], 'string');
+
+        $properties = SchemaPropertyData::collect([
+            [
+                'name' => 'connection_type',
+                'isOptional' => false,
+                'validations' => ResolvedValidationSet::make('connection_type', [], 'string'),
+                'validator' => null,
+            ],
+            [
+                'name' => 'existing_account_id',
+                'isOptional' => true,
+                'validations' => $dependentValidation,
+                'validator' => null,
+            ],
+        ]);
+
+        $extracted = new ExtractedSchemaData(
+            name: 'RequiredIfNormalizationSchema',
+            dependencies: [],
+            properties: $properties,
+            type: '',
+            className: ''
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        $this->assertStringContainsString("String(data.connection_type) === 'existing'", $schema);
+        $this->assertStringContainsString('Existing account id is required.', $schema);
+    }
+
+    #[Test]
+    public function it_normalizes_required_if_references_for_nested_data_properties(): void
+    {
+        $nestedValidation = ResolvedValidationSet::make('profile.existing_account_id', [
+            new ResolvedValidation(
+                'RequiredIf',
+                ['profile.existing_account_id.connection_type', 'existing'],
+                'Nested account id is required.',
+                false,
+                false
+            ),
+        ], 'string');
+
+        $properties = SchemaPropertyData::collect([
+            [
+                'name' => 'profile.connection_type',
+                'isOptional' => false,
+                'validations' => ResolvedValidationSet::make('profile.connection_type', [], 'string'),
+                'validator' => null,
+            ],
+            [
+                'name' => 'profile.existing_account_id',
+                'isOptional' => true,
+                'validations' => $nestedValidation,
+                'validator' => null,
+            ],
+        ]);
+
+        $extracted = new ExtractedSchemaData(
+            name: 'NestedRequiredIfNormalizationSchema',
+            dependencies: [],
+            properties: $properties,
+            type: '',
+            className: ''
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        $this->assertStringContainsString("String(data.profile?.connection_type) === 'existing'", $schema);
+        $this->assertStringContainsString('Nested account id is required.', $schema);
+    }
+
+    #[Test]
     public function it_generates_super_refine_for_confirmed_rules(): void
     {
         $properties = SchemaPropertyData::collect([

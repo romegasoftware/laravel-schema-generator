@@ -166,7 +166,13 @@ class ValidationSchemaGenerator extends BaseGenerator
 
         $dependentField = array_shift($parameters);
 
-        if (! is_string($dependentField) || $dependentField === '' || str_contains($dependentField, '*')) {
+        if (! is_string($dependentField)) {
+            return null;
+        }
+
+        $dependentField = $this->normalizeDependentField($dependentField, $property);
+
+        if ($dependentField === '' || str_contains($dependentField, '*')) {
             return null;
         }
 
@@ -228,6 +234,56 @@ class ValidationSchemaGenerator extends BaseGenerator
             .' })(%s)', $targetAccessor);
     }
 
+    protected function normalizeDependentField(string $dependentField, SchemaPropertyData $property): string
+    {
+        $dependentField = trim($dependentField);
+
+        if ($dependentField === '') {
+            return '';
+        }
+
+        $propertySegments = array_values(array_filter(
+            explode('.', $property->name),
+            static fn (string $segment): bool => $segment !== ''
+        ));
+
+        $dependentSegments = array_values(array_filter(
+            explode('.', $dependentField),
+            static fn (string $segment): bool => $segment !== ''
+        ));
+
+        if (empty($propertySegments) || empty($dependentSegments)) {
+            return $dependentField;
+        }
+
+        $propertySegmentCount = count($propertySegments);
+
+        if (count($dependentSegments) <= $propertySegmentCount) {
+            return $dependentField;
+        }
+
+        for ($index = 0; $index < $propertySegmentCount; $index++) {
+            if (! isset($dependentSegments[$index]) || $dependentSegments[$index] !== $propertySegments[$index]) {
+                return $dependentField;
+            }
+        }
+
+        $parentSegments = array_slice($propertySegments, 0, -1);
+        $remainingSegments = array_slice($dependentSegments, $propertySegmentCount);
+
+        if (empty($remainingSegments)) {
+            return $dependentField;
+        }
+
+        $normalizedSegments = array_merge($parentSegments, $remainingSegments);
+
+        if (empty($normalizedSegments)) {
+            return '';
+        }
+
+        return implode('.', $normalizedSegments);
+    }
+
     /**
      * Build conditional acceptance/decline refinements (accepted_if / declined_if).
      */
@@ -270,7 +326,13 @@ class ValidationSchemaGenerator extends BaseGenerator
 
         $dependentField = array_shift($parameters);
 
-        if (! is_string($dependentField) || $dependentField === '' || str_contains($dependentField, '*')) {
+        if (! is_string($dependentField)) {
+            return null;
+        }
+
+        $dependentField = $this->normalizeDependentField($dependentField, $property);
+
+        if ($dependentField === '' || str_contains($dependentField, '*')) {
             return null;
         }
 
