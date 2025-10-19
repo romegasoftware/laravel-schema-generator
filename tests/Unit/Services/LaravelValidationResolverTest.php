@@ -2,9 +2,11 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit\Services;
 
+use Illuminate\Validation\Rule;
 use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Factories\ValidationRuleFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 
@@ -694,5 +696,42 @@ class LaravelValidationResolverTest extends TestCase
             $this->assertFalse(str_starts_with($message, 'validation.'));
             $this->assertStringContainsString('title', $message);
         }
+    }
+
+    #[Test]
+    public function it_handles_rule_objects_that_normalize_to_optional_rules(): void
+    {
+        $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
+
+        $validator = new \Illuminate\Validation\Validator(
+            $translator,
+            [
+                'status' => 'processing',
+                'shipping_service_level' => null,
+            ],
+            [
+                'status' => 'required|in:processing,shipped',
+                'shipping_service_level' => ['nullable', 'string', Rule::requiredIf(fn (): bool => request()->input('status') === 'shipped')],
+            ]
+        );
+
+        $normalizedRules = (new ValidationRuleFactory)->normalizeRule([
+            'nullable',
+            'string',
+            Rule::requiredIf(fn (): bool => request()->input('status') === 'shipped'),
+        ]);
+
+        $result = $this->resolver->resolve('shipping_service_level', $normalizedRules, $validator);
+
+        $this->assertInstanceOf(ResolvedValidationSet::class, $result);
+        $this->assertSame('shipping_service_level', $result->fieldName);
+        $this->assertTrue($result->hasValidation('Nullable'));
+        $this->assertTrue($result->hasValidation('String'));
+        $this->assertFalse($result->hasValidation('Required'));
+
+        $requiredIf = $result->getValidation('RequiredIf');
+
+        $this->assertNotNull($requiredIf);
+        $this->assertSame(['status', 'shipped'], $requiredIf?->parameters);
     }
 }

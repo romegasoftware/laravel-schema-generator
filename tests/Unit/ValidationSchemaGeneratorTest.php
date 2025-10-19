@@ -2,13 +2,16 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
+use Illuminate\Validation\Rule;
 use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyCollection;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
+use RomegaSoftware\LaravelSchemaGenerator\Factories\ValidationRuleFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
+use RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 
 class ValidationSchemaGeneratorTest extends TestCase
@@ -391,6 +394,156 @@ class ValidationSchemaGeneratorTest extends TestCase
         $this->assertStringContainsString("code: 'custom'", $schema);
         $this->assertStringContainsString("message: 'The password field is required.'", $schema);
         $this->assertStringContainsString("path: ['password']", $schema);
+    }
+
+    #[Test]
+    public function it_generates_super_refine_for_required_if_rule_objects(): void
+    {
+        $factory = $this->app->make(\Illuminate\Validation\Factory::class);
+        $resolver = $this->app->make(LaravelValidationResolver::class);
+        $ruleFactory = new ValidationRuleFactory;
+
+        try {
+            request()->replace(['status' => 'shipped']);
+
+            $validator = $factory->make(
+                [
+                    'status' => 'shipped',
+                    'tracking_number' => null,
+                ],
+                [
+                    'status' => 'required|in:processing,shipped',
+                    'tracking_number' => [
+                        'nullable',
+                        'string',
+                        Rule::requiredIf(fn (): bool => request()->input('status') === 'shipped'),
+                    ],
+                ]
+            );
+
+            $statusValidations = $resolver->resolve(
+                'status',
+                'required|in:processing,shipped',
+                $validator
+            );
+
+            $trackingValidations = $resolver->resolve(
+                'tracking_number',
+                $ruleFactory->normalizeRule([
+                    'nullable',
+                    'string',
+                    Rule::requiredIf(fn (): bool => request()->input('status') === 'shipped'),
+                ]),
+                $validator
+            );
+
+            $properties = SchemaPropertyData::collect([
+                [
+                    'name' => 'status',
+                    'validator' => $validator,
+                    'isOptional' => ! $statusValidations->isFieldRequired(),
+                    'validations' => $statusValidations,
+                ],
+                [
+                    'name' => 'tracking_number',
+                    'validator' => $validator,
+                    'isOptional' => ! $trackingValidations->isFieldRequired(),
+                    'validations' => $trackingValidations,
+                ],
+            ]);
+
+            $extracted = new ExtractedSchemaData(
+                name: 'OrderStatusTransitionSchema',
+                dependencies: [],
+                properties: $properties,
+                type: '',
+                className: ''
+            );
+
+            $schema = $this->generator->generate($extracted);
+
+            $this->assertStringContainsString('.superRefine((data, ctx) => {', $schema);
+            $this->assertStringContainsString("if (String(data.status) === 'shipped' && (data.tracking_number === undefined || data.tracking_number === null || String(data.tracking_number).trim() === '')) {", $schema);
+            $this->assertStringContainsString("message: 'The tracking number field is required when status is shipped.'", $schema);
+            $this->assertStringContainsString("path: ['tracking_number']", $schema);
+        } finally {
+            request()->replace([]);
+        }
+    }
+
+    #[Test]
+    public function it_generates_super_refine_for_prohibited_if_rule_objects(): void
+    {
+        $factory = $this->app->make(\Illuminate\Validation\Factory::class);
+        $resolver = $this->app->make(LaravelValidationResolver::class);
+        $ruleFactory = new ValidationRuleFactory;
+
+        request()->replace(['status' => 'shipped']);
+
+        try {
+            $validator = $factory->make(
+                [
+                    'status' => 'shipped',
+                    'internal_note' => null,
+                ],
+                [
+                    'status' => 'required|in:processing,shipped',
+                    'internal_note' => [
+                        'nullable',
+                        'string',
+                        Rule::prohibitedIf(fn (): bool => request()->input('status') === 'shipped'),
+                    ],
+                ]
+            );
+
+            $statusValidations = $resolver->resolve(
+                'status',
+                'required|in:processing,shipped',
+                $validator
+            );
+
+            $noteValidations = $resolver->resolve(
+                'internal_note',
+                $ruleFactory->normalizeRule([
+                    'nullable',
+                    'string',
+                    Rule::prohibitedIf(fn (): bool => request()->input('status') === 'shipped'),
+                ]),
+                $validator
+            );
+
+            $properties = SchemaPropertyData::collect([
+                [
+                    'name' => 'status',
+                    'validator' => $validator,
+                    'isOptional' => ! $statusValidations->isFieldRequired(),
+                    'validations' => $statusValidations,
+                ],
+                [
+                    'name' => 'internal_note',
+                    'validator' => $validator,
+                    'isOptional' => ! $noteValidations->isFieldRequired(),
+                    'validations' => $noteValidations,
+                ],
+            ]);
+
+            $extracted = new ExtractedSchemaData(
+                name: 'OrderStatusWithProhibitedNote',
+                dependencies: [],
+                properties: $properties,
+                type: '',
+                className: ''
+            );
+
+            $schema = $this->generator->generate($extracted);
+
+            $this->assertStringContainsString('.superRefine((data, ctx) => {', $schema);
+            $this->assertStringContainsString("if (String(data.status) === 'shipped' && !(data.internal_note === undefined || data.internal_note === null || String(data.internal_note).trim() === '')) {", $schema);
+            $this->assertStringContainsString("message: 'The internal note field is prohibited when status is shipped.'", $schema);
+            $this->assertStringContainsString("path: ['internal_note']", $schema);
+        } finally {
+            request()->replace([]);
+        }
     }
 
     #[Test]

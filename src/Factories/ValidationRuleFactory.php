@@ -4,6 +4,9 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Factories;
 
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Rules\ProhibitedIf;
+use Illuminate\Validation\Rules\RequiredIf;
+use RomegaSoftware\LaravelSchemaGenerator\Support\ConditionalRuleAnalyzer;
 
 /**
  * Factory for normalizing and processing Laravel validation rules
@@ -13,6 +16,10 @@ use Illuminate\Validation\Rules\Password;
  */
 class ValidationRuleFactory
 {
+    public function __construct(
+        private readonly ConditionalRuleAnalyzer $conditionalAnalyzer = new ConditionalRuleAnalyzer
+    ) {}
+
     /**
      * Normalize a rule to string format
      * Handles strings, arrays, and Laravel rule objects
@@ -20,51 +27,17 @@ class ValidationRuleFactory
     public function normalizeRule(mixed $rule): string
     {
         if (is_string($rule)) {
-            return $rule;
+            return $this->normalizeStringRule($rule);
         }
 
         if (is_array($rule)) {
-            $normalizedRules = [];
-            foreach ($rule as $singleRule) {
-                if (is_string($singleRule)) {
-                    $normalizedRules[] = $singleRule;
-                } elseif (is_object($singleRule)) {
-                    // Handle Laravel rule objects
-                    $resolved = $this->resolveRuleObject($singleRule);
-
-                    // Special handling for Password rules that may return arrays
-                    if ($singleRule instanceof \Illuminate\Validation\Rules\Password) {
-                        $expandedRules = $this->expandPasswordRule($singleRule);
-                        if (! empty($expandedRules)) {
-                            $normalizedRules = array_merge($normalizedRules, $expandedRules);
-
-                            continue;
-                        }
-                    }
-
-                    $normalizedRules[] = $resolved;
-                } else {
-                    // Skip non-string, non-object rules
-                    continue;
-                }
-            }
-
-            return implode('|', $normalizedRules);
+            return $this->normalizeArrayRule($rule);
         }
 
         if (is_object($rule)) {
-            // Special handling for Password rules
-            if ($rule instanceof Password) {
-                $expandedRules = $this->expandPasswordRule($rule);
-                if (! empty($expandedRules)) {
-                    return implode('|', $expandedRules);
-                }
-            }
-
-            return $this->resolveRuleObject($rule);
+            return $this->normalizeObjectRule($rule);
         }
 
-        // Default to empty string for unhandled types
         return '';
     }
 
@@ -73,13 +46,21 @@ class ValidationRuleFactory
      */
     public function resolveRuleObject(object $rule): string
     {
+        if ($rule instanceof RequiredIf) {
+            return $this->normalizeRequiredIfRule($rule);
+        }
+
+        if ($rule instanceof ProhibitedIf) {
+            return $this->normalizeProhibitedIfRule($rule);
+        }
+
         // Check if it's a Laravel validation rule object that implements __toString
         if (method_exists($rule, '__toString')) {
             return (string) $rule;
         }
 
         // Special handling for Enum rule which doesn't have __toString
-        if ($rule instanceof \Illuminate\Validation\Rules\Enum) {
+        if ($rule instanceof Enum) {
             // Try to extract the enum values from the Enum rule
             $enumValues = $this->extractEnumValues($rule);
             if (! empty($enumValues)) {
@@ -230,5 +211,61 @@ class ValidationRuleFactory
         }
 
         return ! empty($rules) ? $rules : ['password'];
+    }
+
+    private function normalizeRequiredIfRule(RequiredIf $rule): string
+    {
+        return $this->conditionalAnalyzer->normalizeConditionalRule($rule->condition, 'required', 'required_if');
+    }
+
+    private function normalizeProhibitedIfRule(ProhibitedIf $rule): string
+    {
+        return $this->conditionalAnalyzer->normalizeConditionalRule($rule->condition, 'prohibited', 'prohibited_if');
+    }
+
+    private function normalizeStringRule(string $rule): string
+    {
+        $trimmed = trim($rule);
+
+        return $trimmed === '' ? '' : $trimmed;
+    }
+
+    private function normalizeArrayRule(array $rules): string
+    {
+        $normalized = [];
+
+        foreach ($rules as $singleRule) {
+            $result = $this->normalizeRule($singleRule);
+
+            if ($result === '') {
+                continue;
+            }
+
+            $normalized[] = $result;
+        }
+
+        return implode('|', $normalized);
+    }
+
+    private function normalizeObjectRule(object $rule): string
+    {
+        if ($rule instanceof Password) {
+            $expandedRules = $this->expandPasswordRule($rule);
+            $filtered = array_values(array_filter($expandedRules, static fn ($value) => is_string($value) && trim($value) !== ''));
+
+            return empty($filtered) ? '' : implode('|', $filtered);
+        }
+
+        if ($rule instanceof RequiredIf) {
+            return $this->normalizeRequiredIfRule($rule);
+        }
+
+        if ($rule instanceof ProhibitedIf) {
+            return $this->normalizeProhibitedIfRule($rule);
+        }
+
+        $resolved = $this->resolveRuleObject($rule);
+
+        return is_string($resolved) ? trim($resolved) : '';
     }
 }

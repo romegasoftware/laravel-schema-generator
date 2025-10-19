@@ -111,6 +111,7 @@ class ValidationSchemaGenerator extends BaseGenerator
         $blocks = [];
 
         $blocks = array_merge($blocks, $this->buildRequiredIfRefinementsForProperty($property));
+        $blocks = array_merge($blocks, $this->buildProhibitedIfRefinementsForProperty($property));
         $blocks = array_merge($blocks, $this->buildConditionalAcceptanceRefinementsForProperty($property));
         $blocks = array_merge($blocks, $this->buildEqualityRefinementsForProperty($property));
         $blocks = array_merge($blocks, $this->buildDateComparisonRefinementsForProperty($property));
@@ -201,6 +202,98 @@ class ValidationSchemaGenerator extends BaseGenerator
 
         return implode("\n", [
             sprintf('if (%s && (%s)) {', $valueCondition, $emptyCheck),
+            '    ctx.addIssue({',
+            "        code: 'custom',",
+            sprintf("        message: '%s',", $escapedMessage),
+            sprintf('        path: %s,', $pathLiteral),
+            '    });',
+            '}',
+        ]);
+    }
+
+    /**
+     * Build refinement snippets for prohibited_if validations on a property.
+     *
+     * @return array<int, string>
+     */
+    protected function buildProhibitedIfRefinementsForProperty(SchemaPropertyData $property): array
+    {
+        if ($property->validations === null) {
+            return [];
+        }
+
+        if (str_contains($property->name, '*')) {
+            return [];
+        }
+
+        $validations = $property->validations->getValidations('ProhibitedIf');
+
+        if ($validations->isEmpty()) {
+            return [];
+        }
+
+        $blocks = [];
+
+        foreach ($validations as $validation) {
+            if (! $validation instanceof ResolvedValidation) {
+                continue;
+            }
+
+            $block = $this->buildProhibitedIfBlock($validation, $property);
+
+            if ($block !== null) {
+                $blocks[] = $block;
+            }
+        }
+
+        return $blocks;
+    }
+
+    protected function buildProhibitedIfBlock(ResolvedValidation $validation, SchemaPropertyData $property): ?string
+    {
+        $parameters = $validation->getParameters();
+
+        if (count($parameters) < 2) {
+            return null;
+        }
+
+        $dependentField = array_shift($parameters);
+
+        if (! is_string($dependentField)) {
+            return null;
+        }
+
+        $dependentField = $this->normalizeDependentField($dependentField, $property);
+
+        if ($dependentField === '' || str_contains($dependentField, '*')) {
+            return null;
+        }
+
+        $valueExpressions = [];
+
+        foreach ($parameters as $value) {
+            if (! is_string($value)) {
+                continue;
+            }
+
+            $valueExpressions[] = $this->convertParameterToJsValue($value);
+        }
+
+        if (empty($valueExpressions)) {
+            return null;
+        }
+
+        $dependentAccessor = $this->buildDataAccessor($dependentField);
+        $targetAccessor = $this->buildDataAccessor($property->name);
+        $emptyCheck = $this->buildEmptyCheckExpression($targetAccessor, $property->validations->inferredType ?? 'string');
+        $pathLiteral = $this->buildPathLiteral($property->name);
+        $valueCondition = $this->buildValueConditionExpression($dependentAccessor, $valueExpressions);
+
+        $message = $validation->message ?? 'This field is prohibited.';
+        $escapedMessage = $this->escapeForJs($message);
+
+        return implode("\n", [
+            sprintf('if (%s && !(%s)) {', $valueCondition, $emptyCheck),
             '    ctx.addIssue({',
             "        code: 'custom',",
             sprintf("        message: '%s',", $escapedMessage),
@@ -627,6 +720,7 @@ class ValidationSchemaGenerator extends BaseGenerator
 
         if ($this->looksLikeDateString($reference)) {
             $escaped = $this->escapeForJs($reference);
+
             return "(() => { const ts = Date.parse('{$escaped}'); return Number.isNaN(ts) ? NaN : ts; })()";
         }
 
