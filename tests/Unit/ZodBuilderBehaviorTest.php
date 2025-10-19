@@ -20,7 +20,7 @@ class ZodBuilderBehaviorTest extends TestCase
     #[DataProvider('stringBuilderExpectations')]
     public function it_generates_expected_string_builder_output(callable $configure, string $expected): void
     {
-        $builder = new ZodStringBuilder();
+        $builder = new ZodStringBuilder;
         $result = $configure($builder)->build();
 
         $this->assertEquals($expected, $result);
@@ -66,7 +66,7 @@ class ZodBuilderBehaviorTest extends TestCase
     #[Test]
     public function it_generates_required_email_with_v4_error_callback(): void
     {
-        $builder = new ZodEmailBuilder();
+        $builder = new ZodEmailBuilder;
         $result = $builder->validateRequired([], 'Email is required')->build();
 
         $this->assertEquals("z.email({ error: 'Email is required' }).trim().min(1, 'Email is required')", $result);
@@ -75,7 +75,7 @@ class ZodBuilderBehaviorTest extends TestCase
     #[Test]
     public function it_supports_common_string_refinements(): void
     {
-        $builder = new ZodStringBuilder();
+        $builder = new ZodStringBuilder;
         $result = $builder
             ->validateAccepted([], 'Must be accepted')
             ->validateDeclined([], 'Must be declined')
@@ -92,21 +92,21 @@ class ZodBuilderBehaviorTest extends TestCase
     #[Test]
     public function it_handles_ip_and_ulid_shortcuts(): void
     {
-        $builder = new ZodStringBuilder();
+        $builder = new ZodStringBuilder;
         $result = $builder->validateIp()->build();
         $this->assertStringContainsString('z.union([z.ipv4(), z.ipv6()])', $result);
 
-        $builderIpv4 = new ZodStringBuilder();
+        $builderIpv4 = new ZodStringBuilder;
         $this->assertStringContainsString("z.ipv4({ message: 'IPv4 required' })", $builderIpv4->validateIpv4([], 'IPv4 required')->build());
 
-        $builderUlid = new ZodStringBuilder();
+        $builderUlid = new ZodStringBuilder;
         $this->assertStringContainsString('z.ulid().optional()', $builderUlid->validateUlid()->optional()->build());
     }
 
     #[Test]
     public function it_builds_number_constraints(): void
     {
-        $builder = new ZodNumberBuilder();
+        $builder = new ZodNumberBuilder;
         $result = $builder
             ->validateInteger([], 'Must be an integer')
             ->validateMin([0])
@@ -121,11 +121,11 @@ class ZodBuilderBehaviorTest extends TestCase
     #[Test]
     public function it_builds_decimal_and_digit_refinements(): void
     {
-        $builder = new ZodNumberBuilder();
+        $builder = new ZodNumberBuilder;
         $decimalExact = $builder->validateDecimal([2])->build();
         $this->assertStringContainsString('parts[1].length === 2', $decimalExact);
 
-        $builder = new ZodNumberBuilder();
+        $builder = new ZodNumberBuilder;
         $digitsBetween = $builder->validateDigitsBetween([3, 6])->build();
         $this->assertStringContainsString('str.length >= 3', $digitsBetween);
         $this->assertStringContainsString('str.length <= 6', $digitsBetween);
@@ -134,14 +134,14 @@ class ZodBuilderBehaviorTest extends TestCase
     #[Test]
     public function it_configures_url_protocol_rules(): void
     {
-        $builder = new ZodUrlBuilder();
+        $builder = new ZodUrlBuilder;
         $singleProtocol = $builder->validateUrl(['https'], 'Must use HTTPS')->optional()->build();
         $this->assertEquals(
             "z.preprocess((val) => (val === '' ? undefined : val), z.url({ error: 'Must use HTTPS', protocol: /^https$/ }).optional())",
             $singleProtocol,
         );
 
-        $builder = new ZodUrlBuilder();
+        $builder = new ZodUrlBuilder;
         $multiple = $builder->validateUrl(['http', 'https'])->build();
         $this->assertEquals('z.url({ protocol: /^(?:http|https)$/ })', $multiple);
     }
@@ -162,7 +162,7 @@ class ZodBuilderBehaviorTest extends TestCase
     #[Test]
     public function it_normalizes_boolean_inputs(): void
     {
-        $builder = new ZodBooleanBuilder();
+        $builder = new ZodBooleanBuilder;
         $result = $builder->optional()->build();
 
         $this->assertStringContainsString('z.preprocess', $result);

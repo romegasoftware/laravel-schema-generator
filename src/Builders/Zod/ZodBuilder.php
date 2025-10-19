@@ -133,7 +133,7 @@ abstract class ZodBuilder implements BuilderInterface
         $messageText = $resolvedMessage ?? 'This field must be accepted.';
         $escapedMessage = $this->normalizeMessageForJS($messageText);
 
-        $rule = ".refine((val) => {"
+        $rule = '.refine((val) => {'
             .' if (val === undefined || val === null) { return false; }'
             .' if (typeof val === "string") {'
             .' const normalized = val.toLowerCase();'
@@ -154,7 +154,7 @@ abstract class ZodBuilder implements BuilderInterface
         $messageText = $resolvedMessage ?? 'This field must be declined.';
         $escapedMessage = $this->normalizeMessageForJS($messageText);
 
-        $rule = ".refine((val) => {"
+        $rule = '.refine((val) => {'
             .' if (val === undefined || val === null) { return false; }'
             .' if (typeof val === "string") {'
             .' const normalized = val.toLowerCase();'

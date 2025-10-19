@@ -7,7 +7,6 @@ use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
-use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\FormRequests\UnifiedValidationRequest;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
@@ -155,6 +154,7 @@ class UnifiedValidationRequestExtractionTest extends TestCase
         foreach ($segments as $segment) {
             if ($segment === '*') {
                 $current = $current->getNestedValidations();
+
                 continue;
             }
 

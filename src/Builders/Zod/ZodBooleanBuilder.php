@@ -13,7 +13,7 @@ class ZodBooleanBuilder extends ZodBuilder
     {
         $base = parent::build();
 
-        return "z.preprocess((val) => {"
+        return 'z.preprocess((val) => {'
             .' if (typeof val === "string") {'
             .' const normalized = val.toLowerCase();'
             .' if (normalized === "true" || normalized === "1" || normalized === "on" || normalized === "yes") { return true; }'

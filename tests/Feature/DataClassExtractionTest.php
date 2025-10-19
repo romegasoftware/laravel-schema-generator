@@ -2,11 +2,9 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Feature;
 
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
-use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\UnifiedData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
@@ -120,5 +118,4 @@ class DataClassExtractionTest extends TestCase
         $this->assertNotNull($afterOrEqual);
         $this->assertEquals(['schedule.starts_at'], $afterOrEqual->parameters);
     }
-
 }

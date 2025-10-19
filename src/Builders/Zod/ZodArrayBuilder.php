@@ -155,7 +155,7 @@ class ZodArrayBuilder extends ZodBuilder
         $ignoreCaseFlag = $ignoreCase ? 'true' : 'false';
         $strictFlag = $strict ? 'true' : 'false';
 
-        $rule = ".refine((values) => {"
+        $rule = '.refine((values) => {'
             .' if (!Array.isArray(values)) { return true; }'
             .' const ignoreCase = '.$ignoreCaseFlag.';'
             .' const strict = '.$strictFlag.';'
