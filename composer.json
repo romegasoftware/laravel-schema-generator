@@ -29,8 +29,8 @@
     "laravel/pint": "^1.18"
   },
   "suggest": {
-    "spatie/laravel-data": "Required for Data class schema generation (^3.0|^4.0)",
-    "spatie/laravel-typescript-transformer": "Required for TypeScript type generation and for automatic hook integration with typescript:transform command (^2.0)"
+    "spatie/laravel-data": "Required if using Data class schema generation (^3.0|^4.0)",
+    "spatie/laravel-typescript-transformer": "We provide automatic hook integration with typescript:transform command, if desired (^2.0)"
   },
   "autoload": {
     "psr-4": {
