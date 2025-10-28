@@ -118,7 +118,7 @@ When working with collections of nested data, you can import every rule from a s
 use Closure;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\InheritValidationFrom;
 use Closure;
-use RomeoSoftware\LaravelSchemaGenerator\Support\SchemaRule;
+use RomegaSoftware\LaravelSchemaGenerator\Support\SchemaRule;
 use Spatie\LaravelData\Attributes\Validation\DataCollectionOf;
 use Spatie\LaravelData\Support\Validation\ValidationContext;
 

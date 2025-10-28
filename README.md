@@ -96,7 +96,7 @@ For complete documentation, configuration options, advanced features, and exampl
 When you need to keep bespoke Laravel validation logic but still describe the TypeScript shape, provide a literal override using the fluent helper. Prefix the snippet with `.` when you want to append behaviour to the inferred Zod builder instead of replacing it entirely:
 
 ```php
-use RomeoSoftware\LaravelSchemaGenerator\Support\SchemaRule;
+use RomegaSoftware\LaravelSchemaGenerator\Support\SchemaRule;
 
 'items' => [
     'required',
