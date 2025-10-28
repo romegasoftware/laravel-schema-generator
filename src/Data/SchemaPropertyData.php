@@ -11,6 +11,7 @@ class SchemaPropertyData
         public ?Validator $validator,
         public bool $isOptional,
         public ?ResolvedValidationSet $validations,
+        public ?SchemaFragment $schemaOverride = null,
     ) {}
 
     /**
@@ -40,6 +41,7 @@ class SchemaPropertyData
                     validator: $property['validator'] ?? null,
                     isOptional: $property['isOptional'] ?? false,
                     validations: $property['validations'] ?? null,
+                    schemaOverride: $property['schemaOverride'] ?? null,
                 );
 
                 continue;

@@ -7,6 +7,7 @@ use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaFragment;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyCollection;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Factories\ValidationRuleFactory;
@@ -22,6 +23,32 @@ class ValidationSchemaGeneratorTest extends TestCase
     {
         parent::setUp();
         $this->generator = $this->app->make(ValidationSchemaGenerator::class);
+    }
+
+    #[Test]
+    public function it_prefers_schema_override_when_present(): void
+    {
+        $override = SchemaFragment::literal('z.array(z.object({ qty: z.number() })).min(1)');
+
+        $extracted = new ExtractedSchemaData(
+            name: 'OverrideSchema',
+            dependencies: [],
+            properties: SchemaPropertyData::collect([
+                [
+                    'name' => 'items',
+                    'type' => 'array',
+                    'isOptional' => false,
+                    'validations' => ResolvedValidationSet::make('items', [], 'array'),
+                    'schemaOverride' => $override,
+                ],
+            ]),
+            type: '',
+            className: ''
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        $this->assertStringContainsString('items: z.array(z.object({ qty: z.number() })).min(1)', $schema);
     }
 
     #[Test]

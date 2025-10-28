@@ -227,6 +227,8 @@ class ApiUserValidator
 }
 ```
 
+> Need to reuse Laravel rule objects or closure validators? See the dedicated [Custom Validation Rules](./custom-validation-rules.md) guide for attaching Zod overrides without rewriting your validation logic.
+
 ## Array Validation
 
 Laravel Zod Generator properly handles array validation:

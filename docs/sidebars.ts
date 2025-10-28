@@ -29,7 +29,8 @@ const sidebars: SidebarsConfig = {
       collapsed: false,
       items: [
         'usage/basic-usage',
-        'usage/attributes', 
+        'usage/attributes',
+        'usage/custom-validation-rules',
         'usage/generation',
         'usage/typescript-usage',
       ],

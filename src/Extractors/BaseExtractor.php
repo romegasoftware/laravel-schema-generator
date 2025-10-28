@@ -5,7 +5,9 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Extractors;
 use Illuminate\Support\Traits\Macroable;
 use Illuminate\Validation\Validator;
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\ExtractorInterface;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\SchemaAnnotatedRule;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaFragment;
 use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\Factories\ValidationRuleFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver;
@@ -38,6 +40,8 @@ abstract class BaseExtractor implements ExtractorInterface
      */
     public function resolveRulesFromValidator(Validator $validator, array $rules): array
     {
+        $schemaOverrides = $this->extractSchemaOverrides($rules);
+
         // First, normalize all rules to string format
         $normalizedRules = [];
         foreach ($rules as $field => $rule) {
@@ -77,6 +81,7 @@ abstract class BaseExtractor implements ExtractorInterface
                 validator: $validator,
                 isOptional: ! $resolvedValidationSet->isFieldRequired(),
                 validations: $resolvedValidationSet,
+                schemaOverride: $this->resolveSchemaOverrideForField($baseField, $schemaOverrides),
             );
         }
 
@@ -131,6 +136,98 @@ abstract class BaseExtractor implements ExtractorInterface
     }
 
     /**
+     * Extract schema overrides defined directly on validation rules.
+     *
+     * @param  array<string, mixed>  $rules
+     * @return array<string, list<SchemaFragment>>
+     */
+    protected function extractSchemaOverrides(array $rules): array
+    {
+        $overrides = [];
+
+        foreach ($rules as $field => $rule) {
+            $fragment = $this->findSchemaFragment($rule);
+
+            if ($fragment !== null) {
+                $overrides[$field][] = $fragment;
+            }
+        }
+
+        return $overrides;
+    }
+
+    protected function findSchemaFragment(mixed $rule): ?SchemaFragment
+    {
+        if ($rule instanceof SchemaAnnotatedRule) {
+            return $rule->schemaFragment();
+        }
+
+        if (is_array($rule) || $rule instanceof \Traversable) {
+            foreach ($rule as $nestedRule) {
+                $fragment = $this->findSchemaFragment($nestedRule);
+
+                if ($fragment !== null) {
+                    return $fragment;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    protected function resolveSchemaOverrideForField(string $field, array $schemaOverrides): ?SchemaFragment
+    {
+        $fragments = $schemaOverrides[$field] ?? $schemaOverrides[$field.'.*'] ?? null;
+
+        if ($fragments === null) {
+            return null;
+        }
+
+        if ($fragments instanceof SchemaFragment) {
+            $fragments = [$fragments];
+        }
+
+        if (! is_array($fragments)) {
+            return null;
+        }
+
+        return $this->combineSchemaFragments($fragments);
+    }
+
+    /**
+     * @param  list<SchemaFragment>  $fragments
+     */
+    protected function combineSchemaFragments(array $fragments): ?SchemaFragment
+    {
+        $base = null;
+        $suffix = '';
+
+        foreach ($fragments as $fragment) {
+            if (! $fragment instanceof SchemaFragment) {
+                continue;
+            }
+
+            if ($fragment->replaces()) {
+                $base = $fragment->code();
+            } elseif ($fragment->appends()) {
+                $suffix .= $fragment->code();
+            } else {
+                $base ??= $fragment->code();
+            }
+        }
+
+        if ($base !== null) {
+            return SchemaFragment::literal($base.$suffix);
+        }
+
+        if ($suffix !== '') {
+            return SchemaFragment::literal($suffix);
+        }
+
+        return null;
+    }
+
+    /**
      * Normalize all rules to string format
      */
     protected function normalizeRules(array $rules): array
@@ -144,10 +241,46 @@ abstract class BaseExtractor implements ExtractorInterface
     }
 
     /**
+     * @param  array<string, list<SchemaFragment>>  $base
+     * @param  array<string, SchemaFragment|list<SchemaFragment>>  $additional
+     * @return array<string, list<SchemaFragment>>
+     */
+    protected function mergeSchemaOverrideBuckets(array $base, array $additional): array
+    {
+        foreach ($additional as $field => $fragments) {
+            $existing = $base[$field] ?? [];
+
+            if ($existing instanceof SchemaFragment) {
+                $existing = [$existing];
+            }
+
+            if (! is_array($existing)) {
+                $existing = [];
+            }
+
+            if ($fragments instanceof SchemaFragment) {
+                $fragments = [$fragments];
+            }
+
+            if (! is_array($fragments)) {
+                continue;
+            }
+
+            $base[$field] = array_merge($existing, $fragments);
+        }
+
+        return $base;
+    }
+
+    /**
      * Create validation properties from grouped rules
      */
-    protected function createPropertiesFromGroupedRules(array $groupedRules, Validator $validator, array $metadata = []): array
-    {
+    protected function createPropertiesFromGroupedRules(
+        array $groupedRules,
+        Validator $validator,
+        array $metadata = [],
+        array $schemaOverrides = []
+    ): array {
         $properties = [];
 
         foreach ($groupedRules as $baseField => $fieldRules) {
@@ -158,6 +291,7 @@ abstract class BaseExtractor implements ExtractorInterface
                 validator: $validator,
                 isOptional: ! $resolvedValidationSet->isFieldRequired(),
                 validations: $resolvedValidationSet,
+                schemaOverride: $this->resolveSchemaOverrideForField($baseField, $schemaOverrides),
             );
         }
 

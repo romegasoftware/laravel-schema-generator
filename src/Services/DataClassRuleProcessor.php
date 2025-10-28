@@ -2,9 +2,14 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Services;
 
+use Illuminate\Support\Arr;
 use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\InheritValidationFrom;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\SchemaAnnotatedRule;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaFragment;
+use RomegaSoftware\LaravelSchemaGenerator\Support\SchemaNameGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Traits\Makeable;
+use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\Validation\ArrayType;
 use Spatie\LaravelData\Attributes\Validation\Present;
 use Spatie\LaravelData\Support\DataConfig;
@@ -31,6 +36,9 @@ class DataClassRuleProcessor
     /** @var array<string, bool> */
     protected array $processingClasses = [];
 
+    /** @var array<string, array<string, SchemaFragment>> */
+    protected array $schemaOverridesByClass = [];
+
     public function __construct(
         protected DataConfig $dataConfig,
         protected RuleDenormalizer $ruleDenormalizer
@@ -52,6 +60,7 @@ class DataClassRuleProcessor
         }
 
         $this->processingClasses[$className] = true;
+        $this->schemaOverridesByClass[$className] = [];
 
         $dataClass = $this->dataConfig->getDataClass($class->getName());
         $dataRules = DataRules::create();
@@ -238,7 +247,9 @@ class DataClassRuleProcessor
         $shouldMergeRules = $dataClass->attributes->has(\Spatie\LaravelData\Attributes\MergeValidationRules::class);
 
         foreach ($overwrittenRules as $key => $rules) {
-            $rules = collect(\Illuminate\Support\Arr::wrap($rules))
+            $this->recordSchemaOverride($class->getName(), $key, $rules);
+
+            $rules = collect(Arr::wrap($rules))
                 ->map(fn (mixed $rule) => $this->ruleDenormalizer->execute($rule, $path))
                 ->flatten()
                 ->all();
@@ -269,10 +280,12 @@ class DataClassRuleProcessor
                 continue;
             }
 
+            $currentPropertyName = $parameter->getName();
+
             foreach ($inheritAttributes as $inheritAttribute) {
                 $inheritInstance = $inheritAttribute->newInstance();
                 $sourceClass = new ReflectionClass($inheritInstance->class);
-                $sourceProperty = $inheritInstance->property ?? $parameter->getName();
+                $sourceProperty = $inheritInstance->property ?? $currentPropertyName;
 
                 // Recursively extract rules from the source class
                 $sourceRules = $this->processDataClass($sourceClass);
@@ -280,13 +293,102 @@ class DataClassRuleProcessor
                 // Find the source property rules
                 if (isset($sourceRules[$sourceProperty])) {
                     // Override the current property's rules with inherited ones
-                    $currentPropertyName = $parameter->getName();
                     $dataRules->add(
                         $path->property($currentPropertyName),
                         $sourceRules[$sourceProperty]
                     );
+
+                    if (isset($this->schemaOverridesByClass[$inheritInstance->class][$sourceProperty])) {
+                        foreach ($this->schemaOverridesByClass[$inheritInstance->class][$sourceProperty] as $fragment) {
+                            $this->addSchemaFragment($class->getName(), $currentPropertyName, $fragment);
+                        }
+                    }
+                }
+
+                $collectionAttributes = [];
+                if ($class->hasProperty($currentPropertyName)) {
+                    $propertyReflection = $class->getProperty($currentPropertyName);
+                    $collectionAttributes = $propertyReflection->getAttributes(DataCollectionOf::class);
+                }
+
+                if (
+                    ! empty($collectionAttributes) &&
+                    $this->needsArrayBaseFragment($class->getName(), $currentPropertyName)
+                ) {
+                    $collectionInstance = $collectionAttributes[0]->newInstance();
+                    $schemaName = SchemaNameGenerator::fromClass(new ReflectionClass($collectionInstance->class));
+                    $this->addSchemaFragment(
+                        $class->getName(),
+                        $currentPropertyName,
+                        SchemaFragment::literal("z.array({$schemaName})")
+                    );
                 }
             }
         }
+    }
+
+    public function getSchemaOverridesForClass(string $className): array
+    {
+        return $this->schemaOverridesByClass[$className] ?? [];
+    }
+
+    protected function recordSchemaOverride(string $className, string $field, mixed $rules): void
+    {
+        $fragment = $this->findSchemaFragment($rules);
+
+        if ($fragment !== null) {
+            $this->addSchemaFragment($className, $field, $fragment);
+        }
+    }
+
+    protected function addSchemaFragment(string $className, string $field, SchemaFragment $fragment): void
+    {
+        $bucket = $this->schemaOverridesByClass[$className][$field] ?? [];
+
+        foreach ($bucket as $existing) {
+            if ($existing->code() === $fragment->code()) {
+                return;
+            }
+        }
+
+        $bucket[] = $fragment;
+
+        $this->schemaOverridesByClass[$className][$field] = $bucket;
+    }
+
+    protected function findSchemaFragment(mixed $rules): ?SchemaFragment
+    {
+        if ($rules instanceof SchemaAnnotatedRule) {
+            return $rules->schemaFragment();
+        }
+
+        if (is_array($rules) || $rules instanceof \Traversable) {
+            foreach ($rules as $rule) {
+                $fragment = $this->findSchemaFragment($rule);
+
+                if ($fragment !== null) {
+                    return $fragment;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    protected function needsArrayBaseFragment(string $className, string $field): bool
+    {
+        $bucket = $this->schemaOverridesByClass[$className][$field] ?? [];
+
+        if (empty($bucket)) {
+            return false;
+        }
+
+        foreach ($bucket as $fragment) {
+            if ($fragment instanceof SchemaFragment && $fragment->replaces()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -363,7 +363,9 @@ class DataClassExtractor extends BaseExtractor
         // Build a flattened metadata dictionary
         $flattenedMetadata = $this->metadataFactory->flattenMetadata($metadata);
 
-        return $this->resolveRulesFromValidatorWithMetadata($validator, $allRules, $flattenedMetadata);
+        $precomputedOverrides = $this->ruleProcessor->getSchemaOverridesForClass($class->getName());
+
+        return $this->resolveRulesFromValidatorWithMetadata($validator, $allRules, $flattenedMetadata, $precomputedOverrides);
     }
 
     /**
@@ -387,13 +389,17 @@ class DataClassExtractor extends BaseExtractor
     /**
      * Resolve rules from validator using field metadata
      */
-    protected function resolveRulesFromValidatorWithMetadata($validator, array $rules, array $metadata): array
+    protected function resolveRulesFromValidatorWithMetadata($validator, array $rules, array $metadata, array $precomputedOverrides = []): array
     {
         // Group rules considering metadata
         $groupedRules = $this->groupRulesByBaseFieldWithMetadata($rules, $metadata);
+        $schemaOverrides = $this->mergeSchemaOverrideBuckets(
+            $this->extractSchemaOverrides($rules),
+            $precomputedOverrides
+        );
 
         // Use base class method to create properties
-        return $this->createPropertiesFromGroupedRules($groupedRules, $validator, $metadata);
+        return $this->createPropertiesFromGroupedRules($groupedRules, $validator, $metadata, $schemaOverrides);
     }
 
     /**

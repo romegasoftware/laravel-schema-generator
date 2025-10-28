@@ -86,6 +86,23 @@ class ValidationSchemaGenerator extends BaseGenerator
      */
     protected function buildZodType(SchemaPropertyData $property): string
     {
+        $schemaOverride = $property->schemaOverride;
+
+        if ($schemaOverride !== null && $schemaOverride->replaces()) {
+            return $schemaOverride->code();
+        }
+
+        $baseType = $this->buildBaseZodType($property);
+
+        if ($schemaOverride !== null && $schemaOverride->appends()) {
+            return $baseType.$schemaOverride->code();
+        }
+
+        return $baseType;
+    }
+
+    protected function buildBaseZodType(SchemaPropertyData $property): string
+    {
         // Get the appropriate handler for this property
         $handler = $this->typeHandlerRegistry->getHandlerForProperty($property);
 

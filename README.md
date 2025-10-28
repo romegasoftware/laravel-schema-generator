@@ -91,6 +91,90 @@ For complete documentation, configuration options, advanced features, and exampl
 
 ~~**📚 [Official Documentation](https://laravel-schema-generator.romegasoftware.com)**~~ Coming Soon
 
+## Custom Schema Overrides
+
+When you need to keep bespoke Laravel validation logic but still describe the TypeScript shape, provide a literal override using the fluent helper. Prefix the snippet with `.` when you want to append behaviour to the inferred Zod builder instead of replacing it entirely:
+
+```php
+use RomegaSoftware\LaravelSchemaGenerator\Support\SchemaRule;
+
+'items' => [
+    'required',
+    'array',
+    SchemaRule::make(
+        static function ($attribute, $value, $fail, string $message): void {
+            if (collect($value)->sum('qty') < 12) {
+                $fail($message);
+            }
+        }
+    )
+        ->append(static function (string $encodedMessage): string {
+            return <<<ZOD
+                .superRefine((items, ctx) => {
+                    const total = items.reduce((sum, item) => sum + item.qty, 0);
+                    if (total < 12) {
+                        ctx.addIssue({
+                            code: 'custom',
+                            message: {$encodedMessage},
+                            path: ['items'],
+                        });
+                    }
+                })
+                ZOD;
+        })
+        ->failWith('You must order at least 12 total units.'),
+],
+```
+
+Because the override begins with `.`, the generator keeps the inferred base (`z.array(...)`) and simply appends your refinement. The callable passed to `append()` receives the JSON-encoded message as its first argument (and the raw message as a second argument if you declare it). When you want to replace the builder outright, omit the leading dot and provide the complete Zod expression (for example `z.array(z.object({ ... }))`).
+
+Prefer dedicated rule objects? Implement `SchemaAnnotatedRule` and reuse the same fluent API with the provided trait:
+
+```php
+use Closure;
+use Illuminate\Contracts\Validation\ValidationRule;
+use RomegaSoftware\LaravelSchemaGenerator\Concerns\InteractsWithSchemaFragment;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\SchemaAnnotatedRule;
+
+final class TotalOrderItemsRule implements SchemaAnnotatedRule, ValidationRule
+{
+    use InteractsWithSchemaFragment;
+
+    public function __construct()
+    {
+        $this->withFailureMessage('You must order at least 12 total cases.')
+            ->append(function (?string $encodedMessage) {
+                return <<<ZOD
+                .superRefine((items, ctx) => {
+                    const total = items.reduce((sum, item) => sum + item.quantity, 0);
+                    if (total < 12) {
+                        ctx.addIssue({
+                            code: 'custom',
+                            message: {$encodedMessage},
+                            path: ['items']
+                        });
+                    }
+                })
+                ZOD;
+            });
+    }
+
+    /**
+     * Run the validation rule.
+     *
+     * @param  Closure(string, ?string=): \Illuminate\Translation\PotentiallyTranslatedString  $fail
+     */
+    public function validate(string $attribute, mixed $value, Closure $fail): void
+    {
+        if (collect($value)->sum('quantity') < 12) {
+            $fail($this->failureMessage() ?? 'You must order at least 12 total units.');
+        }
+    }
+}
+```
+
+Both approaches surface the schema fragment directly alongside the validation logic and are picked up automatically by the generator for FormRequests and Spatie Data classes.
+
 ## Contributing
 
 Please see [CONTRIBUTING](CONTRIBUTING.md) for development setup and contribution guidelines.
