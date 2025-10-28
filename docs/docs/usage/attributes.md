@@ -110,6 +110,94 @@ class UpdateUserData extends Data
 }
 ```
 
+### Importing an Entire Validator
+
+When working with collections of nested data, you can import every rule from a source class without listing each property. Apply `#[InheritValidationFrom(SomeData::class)]` to a collection or nested object and the generator will merge the full schema.
+
+```php
+use Closure;
+use RomegaSoftware\LaravelSchemaGenerator\Attributes\InheritValidationFrom;
+use Closure;
+use RomeoSoftware\LaravelSchemaGenerator\Support\SchemaRule;
+use Spatie\LaravelData\Attributes\Validation\DataCollectionOf;
+use Spatie\LaravelData\Support\Validation\ValidationContext;
+
+#[ValidationSchema]
+final class OrderCreateRequestData extends Data
+{
+    public function __construct(
+        #[Required]
+        #[DataCollectionOf(OrderItemRequestData::class), InheritValidationFrom(OrderItemRequestData::class)]
+        public DataCollection $items,
+    ) {}
+
+    public static function rules(?ValidationContext $validationContext = null): array
+    {
+        return [
+            'items' => [
+                'required',
+                'array',
+                SchemaRule::make(
+                    static function (string $attribute, mixed $value, Closure $fail, string $message): void {
+                        if (collect($value)->sum('quantity') < 12) {
+                            $fail($message);
+                        }
+                    }
+                )
+                    ->append(static function (string $encodedMessage): string {
+                        return <<<ZOD
+                            .superRefine((items, ctx) => {
+                                const total = items.reduce((sum, item) => sum + item.quantity, 0);
+                                if (total < 12) {
+                                    ctx.addIssue({
+                                        code: 'custom',
+                                        message: {$encodedMessage},
+                                        path: ['items'],
+                                    });
+                                }
+                            })
+                            ZOD;
+                    })
+                    ->failWith('You must order at least 12 total units.'),
+            ],
+        ];
+    }
+}
+
+#[ValidationSchema]
+final class OrderItemRequestData extends Data
+{
+    public function __construct(
+        #[Required, IntegerType]
+        public int $item_id,
+
+        #[Required, IntegerType, Min(1), MultipleOf(3)]
+        public int $quantity,
+    ) {}
+}
+```
+
+Generates:
+
+```typescript
+export const OrderCreateRequestDataSchema = z.object({
+  items: z.array(OrderItemRequestDataSchema).superRefine((items, ctx) => {
+    const total = items.reduce((sum, item) => sum + item.quantity, 0);
+    if (total < 12) {
+      ctx.addIssue({
+        code: "custom",
+        message: "You must order at least 12 total cases.",
+        path: ["items"],
+      });
+    }
+  }),
+});
+```
+
+This is especially useful for reusing Spatie Data request objects across multiple entry points.
+
+Because the literal starts with `.`, the refinement is appended to the inferred array builder that comes from `#[InheritValidationFrom]`. The callable passed to `append()` receives the JSON-encoded message as its first argument (and the raw string as a second argument if you declare it). If you remove the dot, make sure the literal contains the complete builder (for example `z.array(z.object({ … }))`) because it replaces the default output instead of extending it.
+
 ### Complex Inheritance
 
 Inherit multiple rules from different sources:

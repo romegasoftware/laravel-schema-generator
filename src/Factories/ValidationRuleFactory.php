@@ -6,6 +6,7 @@ use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Rules\ProhibitedIf;
 use Illuminate\Validation\Rules\RequiredIf;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\SchemaAnnotatedRule;
 use RomegaSoftware\LaravelSchemaGenerator\Support\ConditionalRuleAnalyzer;
 
 /**
@@ -249,6 +250,10 @@ class ValidationRuleFactory
 
     private function normalizeObjectRule(object $rule): string
     {
+        if ($rule instanceof SchemaAnnotatedRule) {
+            return '';
+        }
+
         if ($rule instanceof Password) {
             $expandedRules = $this->expandPasswordRule($rule);
             $filtered = array_values(array_filter($expandedRules, static fn ($value) => is_string($value) && trim($value) !== ''));
