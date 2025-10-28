@@ -131,36 +131,42 @@ Because the override begins with `.`, the generator keeps the inferred base (`z.
 Prefer dedicated rule objects? Implement `SchemaAnnotatedRule` and reuse the same fluent API with the provided trait:
 
 ```php
-use Illuminate\Contracts\Validation\InvokableRule;
-use RomeoSoftware\LaravelSchemaGenerator\Concerns\InteractsWithSchemaFragment;
-use RomeoSoftware\LaravelSchemaGenerator\Contracts\SchemaAnnotatedRule;
+use Closure;
+use Illuminate\Contracts\Validation\ValidationRule;
+use RomegaSoftware\LaravelSchemaGenerator\Concerns\InteractsWithSchemaFragment;
+use RomegaSoftware\LaravelSchemaGenerator\Contracts\SchemaAnnotatedRule;
 
-final class TotalItemsRule implements InvokableRule, SchemaAnnotatedRule
+final class TotalOrderItemsRule implements SchemaAnnotatedRule, ValidationRule
 {
     use InteractsWithSchemaFragment;
 
     public function __construct()
     {
-        $this->withFailureMessage('You must order at least 12 total units.')
-            ->append(static function (string $encodedMessage): string {
+        $this->withFailureMessage('You must order at least 12 total cases.')
+            ->append(function (?string $encodedMessage) {
                 return <<<ZOD
-                    .superRefine((items, ctx) => {
-                        const total = items.reduce((sum, item) => sum + item.qty, 0);
-                        if (total < 12) {
-                            ctx.addIssue({
-                                code: 'custom',
-                                message: {$encodedMessage},
-                                path: ['items'],
-                            });
-                        }
-                    })
-                    ZOD;
+                .superRefine((items, ctx) => {
+                    const total = items.reduce((sum, item) => sum + item.quantity, 0);
+                    if (total < 12) {
+                        ctx.addIssue({
+                            code: 'custom',
+                            message: {$encodedMessage},
+                            path: ['items']
+                        });
+                    }
+                })
+                ZOD;
             });
     }
 
-    public function __invoke($attribute, $value, $fail): void
+    /**
+     * Run the validation rule.
+     *
+     * @param  Closure(string, ?string=): \Illuminate\Translation\PotentiallyTranslatedString  $fail
+     */
+    public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if (collect($value)->sum('qty') < 12) {
+        if (collect($value)->sum('quantity') < 12) {
             $fail($this->failureMessage() ?? 'You must order at least 12 total units.');
         }
     }
