@@ -200,7 +200,7 @@ class LaravelValidationResolver
         $segments = explode('|', $rules);
 
         foreach ($segments as $segment) {
-            if (! is_string($segment) || $segment === '') {
+            if ($segment === '') {
                 continue;
             }
 

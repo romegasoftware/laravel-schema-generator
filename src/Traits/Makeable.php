@@ -13,7 +13,7 @@ trait Makeable
     }
 
     /**
-     * @return Mockery\MockInterface&self
+     * @return MockInterface&static
      */
     public static function mock(): MockInterface
     {
@@ -23,8 +23,10 @@ trait Makeable
             return $instance;
         }
 
-        return tap(Mockery::getContainer()->mock(static::class), function ($instance): void {
-            app()->instance(static::class, $instance);
-        });
+        /** @var MockInterface&static $mock */
+        $mock = Mockery::getContainer()->mock(static::class);
+        app()->instance(static::class, $mock);
+
+        return $mock;
     }
 }

@@ -211,7 +211,7 @@ class ValidationRuleFactory
             return ['password'];
         }
 
-        return ! empty($rules) ? $rules : ['password'];
+        return $rules;
     }
 
     private function normalizeRequiredIfRule(RequiredIf $rule): string
@@ -271,6 +271,6 @@ class ValidationRuleFactory
 
         $resolved = $this->resolveRuleObject($rule);
 
-        return is_string($resolved) ? trim($resolved) : '';
+        return trim($resolved);
     }
 }

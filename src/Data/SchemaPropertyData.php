@@ -18,7 +18,7 @@ class SchemaPropertyData
      * Create a collection of schema properties without depending on Spatie Data.
      * Accepts arrays for backward compatibility with previous Data::collect behaviour.
      *
-     * @param  iterable<SchemaPropertyData|array>  $properties
+     * @param  iterable<SchemaPropertyData|array<string, mixed>|object>  $properties
      */
     public static function collect(iterable $properties = []): SchemaPropertyCollection
     {

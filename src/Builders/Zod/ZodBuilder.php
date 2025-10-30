@@ -117,7 +117,7 @@ abstract class ZodBuilder implements BuilderInterface
     /**
      * Add a validation rule to the chain
      */
-    protected function addRule(string $rule): self
+    protected function addRule(string $rule): static
     {
         $this->chain[] = $rule;
 
@@ -169,7 +169,7 @@ abstract class ZodBuilder implements BuilderInterface
     /**
      * Replace an existing rule of the same type (e.g., replace .min() with new .min())
      */
-    protected function replaceRule(string $ruleType, string $newRule): self
+    protected function replaceRule(string $ruleType, string $newRule): static
     {
         // Remove existing rule of the same type
         $this->chain = array_filter($this->chain, function ($rule) use ($ruleType) {

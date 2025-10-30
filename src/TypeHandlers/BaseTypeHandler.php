@@ -229,4 +229,47 @@ abstract class BaseTypeHandler implements TypeHandlerInterface
 
         $this->callBuilderMethod('extensions', [$parameters, $customMessage]);
     }
+
+    /**
+     * Map file extensions to MIME types used by Laravel's mimes rule.
+     *
+     * @param  array<int, string>  $extensions
+     * @return array<int, string>
+     */
+    protected function convertExtensionsToMimeTypes(array $extensions): array
+    {
+        $mimeMap = [
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'bmp' => 'image/bmp',
+            'svg' => 'image/svg+xml',
+            'webp' => 'image/webp',
+            'pdf' => 'application/pdf',
+            'doc' => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls' => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'csv' => 'text/csv',
+            'txt' => 'text/plain',
+            'zip' => 'application/zip',
+            'mp3' => 'audio/mpeg',
+            'mp4' => 'video/mp4',
+            'avi' => 'video/x-msvideo',
+            'mov' => 'video/quicktime',
+        ];
+
+        $mimeTypes = [];
+
+        foreach ($extensions as $extension) {
+            $normalized = strtolower($extension);
+
+            if (isset($mimeMap[$normalized])) {
+                $mimeTypes[] = $mimeMap[$normalized];
+            }
+        }
+
+        return array_values(array_unique($mimeTypes));
+    }
 }

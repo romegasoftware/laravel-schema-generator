@@ -173,7 +173,7 @@ class ZodFileBuilder extends ZodBuilder
     /**
      * Add image dimensions validation
      *
-     * @param  array  $constraints  Array with keys: min_width, max_width, min_height, max_height, width, height, ratio
+     * @param  array<string, mixed>|null  $parameters  Raw Laravel dimension constraints (e.g. ["min_width=100"])
      */
     public function validateDimensions(?array $parameters = [], ?string $message = null): self
     {

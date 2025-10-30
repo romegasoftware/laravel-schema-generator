@@ -165,7 +165,8 @@ class MessageResolutionService
             $this->validator->setData($originalData);
         }
 
-        return $message ?? '';
+        /** @var string $message */
+        return $message;
     }
 
     private function applyRequiredIfValue(array &$data): bool
@@ -240,6 +241,7 @@ class MessageResolutionService
 
     private function applyMessageReplacements(string $message, array $parameters): string
     {
+        /** @var string $replaced */
         $replaced = $this->validator->makeReplacements(
             $message,
             $this->field,
@@ -247,16 +249,7 @@ class MessageResolutionService
             $parameters
         );
 
-        if (is_array($replaced)) {
-            return $this->normalizeMessage($replaced)
-                ?? "The {$this->field} field validation failed.";
-        }
-
-        $message = is_array($replaced)
-            ? $this->normalizeMessage($replaced) ?? "The {$this->field} field validation failed."
-            : $replaced;
-
-        return $this->ensureDisplayableAttribute($message);
+        return $this->ensureDisplayableAttribute($replaced);
     }
 
     private function ensureDisplayableAttribute(string $message): string
@@ -299,20 +292,20 @@ class MessageResolutionService
     {
         $context = $this->determineMessageContextKey();
 
-        if ($context !== null && isset($messages[$context]) && is_string($messages[$context])) {
+        if (isset($messages[$context]) && is_string($messages[$context])) {
             return $context;
         }
 
         $normalizedMessages = array_change_key_case($messages, CASE_LOWER);
 
-        if ($context !== null && isset($normalizedMessages[$context]) && is_string($normalizedMessages[$context])) {
+        if (isset($normalizedMessages[$context]) && is_string($normalizedMessages[$context])) {
             return $context;
         }
 
         return null;
     }
 
-    private function determineMessageContextKey(): ?string
+    private function determineMessageContextKey(): string
     {
         if ($this->isNumericField) {
             return 'numeric';
@@ -492,10 +485,6 @@ class MessageResolutionService
         }
 
         $normalizedSegments = array_merge($parentSegments, $remainingSegments);
-
-        if (empty($normalizedSegments)) {
-            return '';
-        }
 
         return implode('.', $normalizedSegments);
     }

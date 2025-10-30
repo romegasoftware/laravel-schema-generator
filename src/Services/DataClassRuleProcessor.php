@@ -37,6 +37,9 @@ class DataClassRuleProcessor
     protected array $processingClasses = [];
 
     /** @var array<string, array<string, SchemaFragment>> */
+    /**
+     * @var array<string, array<string, list<SchemaFragment>>>
+     */
     protected array $schemaOverridesByClass = [];
 
     public function __construct(
@@ -242,7 +245,8 @@ class DataClassRuleProcessor
         }
 
         $validationContext = new ValidationContext($fullPayload, $fullPayload, $path);
-        $overwrittenRules = app()->call([$class->getName(), 'rules'], ['context' => $validationContext]);
+        /** @var array<string, mixed> $overwrittenRules */
+        $overwrittenRules = app()->call($class->getName().'::rules', ['context' => $validationContext]);
 
         $shouldMergeRules = $dataClass->attributes->has(\Spatie\LaravelData\Attributes\MergeValidationRules::class);
 
@@ -298,10 +302,10 @@ class DataClassRuleProcessor
                         $sourceRules[$sourceProperty]
                     );
 
-                    if (isset($this->schemaOverridesByClass[$inheritInstance->class][$sourceProperty])) {
-                        foreach ($this->schemaOverridesByClass[$inheritInstance->class][$sourceProperty] as $fragment) {
-                            $this->addSchemaFragment($class->getName(), $currentPropertyName, $fragment);
-                        }
+                    $inheritedFragments = $this->schemaOverridesByClass[$inheritInstance->class][$sourceProperty] ?? [];
+
+                    foreach ($inheritedFragments as $fragment) {
+                        $this->addSchemaFragment($class->getName(), $currentPropertyName, $fragment);
                     }
                 }
 
@@ -384,7 +388,7 @@ class DataClassRuleProcessor
         }
 
         foreach ($bucket as $fragment) {
-            if ($fragment instanceof SchemaFragment && $fragment->replaces()) {
+            if ($fragment->replaces()) {
                 return false;
             }
         }

@@ -387,10 +387,6 @@ class ValidationSchemaGenerator extends BaseGenerator
 
         $normalizedSegments = array_merge($parentSegments, $remainingSegments);
 
-        if (empty($normalizedSegments)) {
-            return '';
-        }
-
         return implode('.', $normalizedSegments);
     }
 

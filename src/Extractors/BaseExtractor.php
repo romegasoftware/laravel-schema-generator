@@ -183,15 +183,15 @@ abstract class BaseExtractor implements ExtractorInterface
             return null;
         }
 
-        if ($fragments instanceof SchemaFragment) {
-            $fragments = [$fragments];
-        }
+        $normalized = is_array($fragments)
+            ? array_values(array_filter($fragments, static fn ($fragment) => $fragment instanceof SchemaFragment))
+            : ($fragments instanceof SchemaFragment ? [$fragments] : []);
 
-        if (! is_array($fragments)) {
+        if ($normalized === []) {
             return null;
         }
 
-        return $this->combineSchemaFragments($fragments);
+        return $this->combineSchemaFragments($normalized);
     }
 
     /**
@@ -203,10 +203,6 @@ abstract class BaseExtractor implements ExtractorInterface
         $suffix = '';
 
         foreach ($fragments as $fragment) {
-            if (! $fragment instanceof SchemaFragment) {
-                continue;
-            }
-
             if ($fragment->replaces()) {
                 $base = $fragment->code();
             } elseif ($fragment->appends()) {
@@ -241,7 +237,7 @@ abstract class BaseExtractor implements ExtractorInterface
     }
 
     /**
-     * @param  array<string, list<SchemaFragment>>  $base
+     * @param  array<string, SchemaFragment|list<SchemaFragment>>  $base
      * @param  array<string, SchemaFragment|list<SchemaFragment>>  $additional
      * @return array<string, list<SchemaFragment>>
      */
@@ -249,24 +245,31 @@ abstract class BaseExtractor implements ExtractorInterface
     {
         foreach ($additional as $field => $fragments) {
             $existing = $base[$field] ?? [];
-
-            if ($existing instanceof SchemaFragment) {
-                $existing = [$existing];
+            $existingList = is_array($existing) ? $existing : [$existing];
+            /** @var array<int, SchemaFragment|mixed> $existingList */
+            $existingFragments = [];
+            foreach ($existingList as $fragment) {
+                if ($fragment instanceof SchemaFragment) {
+                    $existingFragments[] = $fragment;
+                }
             }
 
-            if (! is_array($existing)) {
-                $existing = [];
+            $incomingList = is_array($fragments) ? $fragments : [$fragments];
+            /** @var array<int, SchemaFragment|mixed> $incomingList */
+            $currentFragments = [];
+            foreach ($incomingList as $fragment) {
+                if ($fragment instanceof SchemaFragment) {
+                    $currentFragments[] = $fragment;
+                }
             }
 
-            if ($fragments instanceof SchemaFragment) {
-                $fragments = [$fragments];
-            }
+            if ($currentFragments === []) {
+                $base[$field] = $existingFragments;
 
-            if (! is_array($fragments)) {
                 continue;
             }
 
-            $base[$field] = array_merge($existing, $fragments);
+            $base[$field] = array_merge($existingFragments, $currentFragments);
         }
 
         return $base;

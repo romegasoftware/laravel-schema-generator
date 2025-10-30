@@ -23,6 +23,13 @@ class ZodEnumBuilder extends ZodBuilder
         return $this;
     }
 
+    public function message(?string $message): self
+    {
+        $this->requiredMessage = $message;
+
+        return $this;
+    }
+
     public function setValues(array|string $values = []): self
     {
         if (is_string($values)) {

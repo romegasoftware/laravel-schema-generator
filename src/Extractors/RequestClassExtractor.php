@@ -141,7 +141,10 @@ class RequestClassExtractor extends BaseExtractor
         $messages = $this->callOptionalValidationMethod($class, 'messages', $instance);
         $attributes = $this->callOptionalValidationMethod($class, 'attributes', $instance);
 
-        return $factory->make([], $rules, $messages, $attributes);
+        /** @var \Illuminate\Validation\Validator $validator */
+        $validator = $factory->make([], $rules, $messages, $attributes);
+
+        return $validator;
     }
 
     /**

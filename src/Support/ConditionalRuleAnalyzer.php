@@ -5,6 +5,7 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Support;
 use Closure;
 use PhpParser\Error;
 use PhpParser\Node;
+use PhpParser\Node\ArrayItem;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrowFunction;
 use PhpParser\Node\Expr\BinaryOp;
@@ -55,10 +56,6 @@ class ConditionalRuleAnalyzer
             return $condition ? $baseKeyword : '';
         }
 
-        if (! $condition instanceof Closure) {
-            return '';
-        }
-
         $parameters = $this->extractConditionalParametersFromClosure($condition);
 
         if ($parameters !== null) {
@@ -88,7 +85,7 @@ class ConditionalRuleAnalyzer
                     return (string) $value;
                 }
 
-                return is_scalar($value) ? (string) $value : null;
+                return null;
             }, $parameters['values']);
 
             $values = array_values(array_filter($values, static fn ($value) => is_string($value) && $value !== ''));
@@ -414,8 +411,11 @@ class ConditionalRuleAnalyzer
         if ($node instanceof Array_) {
             $values = [];
 
-            foreach ($node->items as $item) {
-                if ($item === null) {
+            /** @var array<int, ArrayItem|null|mixed> $items */
+            $items = $node->items;
+
+            foreach ($items as $item) {
+                if (! $item instanceof ArrayItem) {
                     continue;
                 }
 

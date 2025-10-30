@@ -4,6 +4,7 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Builders\Zod;
 
 use RomegaSoftware\LaravelSchemaGenerator\Contracts\BuilderInterface;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
+use RomegaSoftware\LaravelSchemaGenerator\Data\SchemaPropertyData;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
 
 /**
@@ -33,31 +34,35 @@ class ZodInlineObjectBuilder extends ZodBuilder
      */
     public function createObjectBuilderFromProperty(): ZodInlineObjectBuilder
     {
-        $objectBuilder = new ZodInlineObjectBuilder;
+        if (! isset($this->property) || $this->property->validations === null) {
+            throw new \RuntimeException('SchemaPropertyData with resolved validations is required to create object builder properties.');
+        }
 
-        foreach ($this->property->toArray() as $propertyName => $validationSet) {
+        $objectBuilder = new ZodInlineObjectBuilder($this->universalTypeHandler);
+        $objectProperties = $this->property->validations->getObjectProperties();
+
+        if (empty($objectProperties)) {
+            return $objectBuilder;
+        }
+
+        foreach ($objectProperties as $propertyName => $validationSet) {
             /** @var ResolvedValidationSet $validationSet */
             if ($this->universalTypeHandler === null) {
                 throw new \RuntimeException('UniversalTypeHandler must be injected to create object properties');
             }
+
+            $nestedProperty = new SchemaPropertyData(
+                name: $validationSet->fieldName,
+                validator: $this->property->validator,
+                isOptional: ! $validationSet->isFieldRequired(),
+                validations: $validationSet,
+                schemaOverride: null,
+            );
+
             $universalTypeHandler = clone $this->universalTypeHandler;
-            $universalTypeHandler->setProperty($this->property);
-            $universalTypeHandler->builder->setFieldName($validationSet->fieldName);
+            $nestedBuilder = $universalTypeHandler->handle($nestedProperty);
 
-            // Apply validations to the property builder
-            $universalTypeHandler->applyValidations();
-
-            // Handle optional properties
-            if (! $validationSet->isFieldRequired()) {
-                $universalTypeHandler->builder->optional();
-            }
-
-            // Handle nullable properties
-            if ($validationSet->isFieldNullable()) {
-                $universalTypeHandler->builder->nullable();
-            }
-
-            $objectBuilder->property($propertyName, $universalTypeHandler->builder);
+            $objectBuilder->property($propertyName, $nestedBuilder);
         }
 
         return $objectBuilder;
