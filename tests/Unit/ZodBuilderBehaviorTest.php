@@ -119,6 +119,19 @@ class ZodBuilderBehaviorTest extends TestCase
     }
 
     #[Test]
+    public function it_adds_required_refinement_when_integer_rule_present(): void
+    {
+        $builder = new ZodNumberBuilder;
+        $result = $builder
+            ->validateRequired([], 'Amount is required')
+            ->validateInteger([], 'Amount must be an integer')
+            ->build();
+
+        $this->assertStringContainsString("z.number({ error: 'Amount must be an integer' })", $result);
+        $this->assertStringContainsString(".refine((val) => val != undefined && val != null, { error: 'Amount is required' })", $result);
+    }
+
+    #[Test]
     public function it_builds_decimal_and_digit_refinements(): void
     {
         $builder = new ZodNumberBuilder;

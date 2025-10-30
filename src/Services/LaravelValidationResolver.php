@@ -174,14 +174,14 @@ class LaravelValidationResolver
                 isNullable: false
             );
 
-            switch ($ruleName) {
-                case 'Required':
+            $normalizedRuleName = strtolower($ruleName);
+
+            switch ($normalizedRuleName) {
+                case 'required':
+                case 'present':
                     $resolvedValidation->isRequired = true;
                     break;
-                case 'Present':
-                    $resolvedValidation->isRequired = true;
-                    break;
-                case 'Nullable':
+                case 'nullable':
                     $resolvedValidation->isNullable = true;
                     break;
             }
