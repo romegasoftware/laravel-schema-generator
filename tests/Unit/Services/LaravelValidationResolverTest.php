@@ -646,6 +646,41 @@ class LaravelValidationResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_normalizes_required_if_messages_from_relative_field_references(): void
+    {
+        $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
+        $translator->addLines([
+            'validation.required_if' => 'The :attribute field is required when :other is :value.',
+        ], 'en');
+
+        $validator = new \Illuminate\Validation\Validator(
+            $translator,
+            [
+                'connection_type' => 'new',
+                'existing_account_id' => null,
+            ],
+            [
+                'connection_type' => 'nullable|in:new,existing',
+                'existing_account_id' => 'required_if:existing_account_id.connection_type,existing|string',
+            ]
+        );
+
+        $result = $this->resolver->resolve(
+            'existing_account_id',
+            'required_if:existing_account_id.connection_type,existing|string',
+            $validator
+        );
+
+        $requiredIfValidation = $result->getValidation('RequiredIf');
+
+        $this->assertNotNull($requiredIfValidation);
+        $this->assertSame(
+            'The existing account id field is required when connection type is existing.',
+            $requiredIfValidation->message
+        );
+    }
+
+    #[Test]
     public function it_never_returns_translation_keys_as_messages()
     {
         $testCases = [

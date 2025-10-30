@@ -93,9 +93,6 @@ class MessageResolutionService
         $lowerRule = strtolower($this->ruleName);
         $snakeRule = Str::snake($this->ruleName);
 
-        $messageParameters = $this->parameters;
-        $messageParameters['attribute'] = $this->field;
-
         $originalData = $this->validator->getData();
         $tempData = $originalData;
         $dataModified = false;
@@ -105,9 +102,16 @@ class MessageResolutionService
             $dataModified = true;
         }
 
-        if ($snakeRule === 'required_if' && $this->applyRequiredIfValue($tempData)) {
-            $dataModified = true;
+        if ($snakeRule === 'required_if') {
+            if ($this->applyRequiredIfValue($tempData)) {
+                $dataModified = true;
+            } else {
+                $this->normalizeRequiredIfParameters();
+            }
         }
+
+        $messageParameters = $this->parameters;
+        $messageParameters['attribute'] = $this->field;
 
         if ($dataModified) {
             $this->validator->setData($tempData);
@@ -180,7 +184,15 @@ class MessageResolutionService
 
         $value = $values[0] ?? null;
 
-        $this->setNestedValue($data, $otherField, $value);
+        $normalizedField = $this->normalizeDependentField($otherField);
+
+        if ($normalizedField === '') {
+            $normalizedField = $otherField;
+        }
+
+        $this->parameters[0] = $normalizedField;
+
+        $this->setNestedValue($data, $normalizedField, $value);
 
         return true;
     }
@@ -423,5 +435,68 @@ class MessageResolutionService
         }
 
         $this->assignValueToSegments($target[$segment], $segments, $value);
+    }
+
+    private function normalizeRequiredIfParameters(): void
+    {
+        if (! isset($this->parameters[0]) || ! is_string($this->parameters[0])) {
+            return;
+        }
+
+        $normalized = $this->normalizeDependentField($this->parameters[0]);
+
+        if ($normalized !== '' && $normalized !== $this->parameters[0]) {
+            $this->parameters[0] = $normalized;
+        }
+    }
+
+    private function normalizeDependentField(string $dependentField): string
+    {
+        $dependentField = trim($dependentField);
+
+        if ($dependentField === '') {
+            return '';
+        }
+
+        $fieldSegments = array_values(array_filter(
+            explode('.', $this->field),
+            static fn (string $segment): bool => $segment !== ''
+        ));
+
+        $dependentSegments = array_values(array_filter(
+            explode('.', $dependentField),
+            static fn (string $segment): bool => $segment !== ''
+        ));
+
+        if (empty($fieldSegments) || empty($dependentSegments)) {
+            return $dependentField;
+        }
+
+        $fieldSegmentCount = count($fieldSegments);
+
+        if (count($dependentSegments) <= $fieldSegmentCount) {
+            return $dependentField;
+        }
+
+        for ($index = 0; $index < $fieldSegmentCount; $index++) {
+            if (! isset($dependentSegments[$index]) || $dependentSegments[$index] !== $fieldSegments[$index]) {
+                return $dependentField;
+            }
+        }
+
+        $parentSegments = array_slice($fieldSegments, 0, -1);
+        $remainingSegments = array_slice($dependentSegments, $fieldSegmentCount);
+
+        if (empty($remainingSegments)) {
+            return $dependentField;
+        }
+
+        $normalizedSegments = array_merge($parentSegments, $remainingSegments);
+
+        if (empty($normalizedSegments)) {
+            return '';
+        }
+
+        return implode('.', $normalizedSegments);
     }
 }
