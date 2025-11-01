@@ -19,6 +19,8 @@ use Spatie\LaravelData\Support\Validation\PropertyRules;
 use Spatie\LaravelData\Support\Validation\RuleDenormalizer;
 use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\LaravelData\Support\Validation\ValidationPath;
+use function in_array;
+use function is_string;
 
 /**
  * Service for processing Data class validation rules
@@ -296,9 +298,11 @@ class DataClassRuleProcessor
 
                 // Find the source property rules
                 if (isset($sourceRules[$sourceProperty])) {
-                    // Override the current property's rules with inherited ones
-                    $dataRules->add(
-                        $path->property($currentPropertyName),
+                    $propertyPath = $path->property($currentPropertyName);
+
+                    $this->mergeRulesIntoDataRules(
+                        $dataRules,
+                        $propertyPath,
                         $sourceRules[$sourceProperty]
                     );
 
@@ -329,6 +333,46 @@ class DataClassRuleProcessor
                 }
             }
         }
+    }
+
+    /**
+     * Merge a new set of rules into the DataRules collection for a given path.
+     */
+    protected function mergeRulesIntoDataRules(
+        DataRules $dataRules,
+        ValidationPath $path,
+        array $rules
+    ): void {
+        $key = $path->get();
+
+        if ($key === null) {
+            return;
+        }
+
+        $existing = $dataRules->rules[$key] ?? [];
+        $merged = $this->mergeRuleSet($existing, $rules);
+
+        $dataRules->add($path, $merged);
+    }
+
+    /**
+     * Merge two rule arrays, avoiding duplicate string rules.
+     */
+    protected function mergeRuleSet(array $existing, array $incoming): array
+    {
+        foreach ($incoming as $rule) {
+            if (is_string($rule)) {
+                if (! in_array($rule, $existing, true)) {
+                    $existing[] = $rule;
+                }
+
+                continue;
+            }
+
+            $existing[] = $rule;
+        }
+
+        return $existing;
     }
 
     public function getSchemaOverridesForClass(string $className): array

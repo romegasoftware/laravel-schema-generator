@@ -12,6 +12,8 @@ use Spatie\LaravelData\Support\Validation\RuleDenormalizer;
 use Spatie\LaravelData\Support\Validation\RuleNormalizer;
 use Spatie\LaravelData\Support\Validation\ValidationPath;
 
+use function in_array;
+use function is_string;
 use function str_starts_with;
 
 class InheritingDataValidationRulesResolver extends BaseResolver
@@ -118,7 +120,8 @@ class InheritingDataValidationRulesResolver extends BaseResolver
 
         foreach ($sourceRules as $key => $rules) {
             if ($key === $sourceProperty) {
-                $dataRules->add($basePath->property($targetProperty), $rules);
+                $targetPath = $basePath->property($targetProperty);
+                $this->mergeIntoDataRules($dataRules, $targetPath, $rules);
 
                 continue;
             }
@@ -132,10 +135,45 @@ class InheritingDataValidationRulesResolver extends BaseResolver
             $targetKey = $targetProperty.$suffix;
             $fullKey = $baseKey ? "{$baseKey}.{$targetKey}" : $targetKey;
 
-            $dataRules->add(
+            $this->mergeIntoDataRules(
+                $dataRules,
                 ValidationPath::create($fullKey),
                 $rules
             );
         }
+    }
+
+    protected function mergeIntoDataRules(
+        DataRules $dataRules,
+        ValidationPath $path,
+        array $rules
+    ): void {
+        $key = $path->get();
+
+        if ($key === null) {
+            return;
+        }
+
+        $existing = $dataRules->rules[$key] ?? [];
+        $merged = $this->mergeRuleSet($existing, $rules);
+
+        $dataRules->add($path, $merged);
+    }
+
+    protected function mergeRuleSet(array $existing, array $incoming): array
+    {
+        foreach ($incoming as $rule) {
+            if (is_string($rule)) {
+                if (! in_array($rule, $existing, true)) {
+                    $existing[] = $rule;
+                }
+
+                continue;
+            }
+
+            $existing[] = $rule;
+        }
+
+        return $existing;
     }
 }

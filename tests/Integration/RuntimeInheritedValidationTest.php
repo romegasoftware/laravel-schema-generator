@@ -7,6 +7,7 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Integration;
 use PHPUnit\Framework\Attributes\Test;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\InheritedPostalCodeData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\InheritedPostalCodeRuntimeDisabledData;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\InheritedPostalCodeWithLocalRulesData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use Spatie\LaravelData\Resolvers\DataValidatorResolver;
 
@@ -46,5 +47,28 @@ class RuntimeInheritedValidationTest extends TestCase
             ['postal_code' => 'ABCDE']
         );
         $this->assertFalse($invalid->fails());
+    }
+
+    #[Test]
+    public function it_merges_local_rules_with_inherited_rules_at_runtime(): void
+    {
+        $resolver = $this->app->make(DataValidatorResolver::class);
+
+        $missing = $resolver->execute(InheritedPostalCodeWithLocalRulesData::class, []);
+        $this->assertTrue($missing->fails());
+        $this->assertArrayHasKey('Required', $missing->failed()['postal_code']);
+
+        $invalid = $resolver->execute(
+            InheritedPostalCodeWithLocalRulesData::class,
+            ['postal_code' => '123']
+        );
+        $this->assertTrue($invalid->fails());
+        $this->assertArrayHasKey('Regex', $invalid->failed()['postal_code']);
+
+        $valid = $resolver->execute(
+            InheritedPostalCodeWithLocalRulesData::class,
+            ['postal_code' => '12345']
+        );
+        $this->assertFalse($valid->fails());
     }
 }

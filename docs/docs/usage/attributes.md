@@ -91,6 +91,34 @@ By default the attribute also applies the inherited rules when the Data class va
 public ?string $postal_code,
 ```
 
+### Runtime Validation
+
+When runtime enforcement is enabled (default), the attribute hooks into Spatie Data’s validator so any request payload must satisfy the inherited rules. This keeps schema generation and runtime validation perfectly in sync.
+
+### Combining with Local Rules
+
+Inherited rules are merged with rules defined on the consuming class. If you add stricter requirements locally—such as making a field required—they stack on top of the inherited rules:
+
+```php
+#[ValidationSchema]
+class FranchiseUpdateData extends Data
+{
+    public function __construct(
+        #[InheritValidationFrom(PostalCodeValidator::class, 'postal_code')]
+        public ?string $postal_code,
+    ) {}
+
+    public static function rules(?ValidationContext $context = null): array
+    {
+        return [
+            'postal_code' => ['required'],
+        ];
+    }
+}
+```
+
+The generated schema now reflects both sets of rules and the runtime validator enforces them together.
+
 ### Field Mapping
 
 You can inherit validation from a differently named field:
