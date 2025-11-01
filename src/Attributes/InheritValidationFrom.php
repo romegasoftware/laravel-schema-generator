@@ -40,6 +40,11 @@ class InheritValidationFrom
          * The property name in the target class to inherit from.
          * If null, uses the same property name as the current property.
          */
-        public ?string $property = null
+        public ?string $property = null,
+
+        /**
+         * Whether inherited rules should also be enforced at runtime validation.
+         */
+        public bool $enforceRuntime = true
     ) {}
 }

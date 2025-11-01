@@ -12,6 +12,8 @@ use RomegaSoftware\LaravelSchemaGenerator\Extractors\RequestClassExtractor;
 use RomegaSoftware\LaravelSchemaGenerator\Factories\FieldMetadataFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Factories\ZodBuilderFactory;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
+use RomegaSoftware\LaravelSchemaGenerator\Resolvers\InheritingDataValidationMessagesAndAttributesResolver;
+use RomegaSoftware\LaravelSchemaGenerator\Resolvers\InheritingDataValidationRulesResolver;
 use RomegaSoftware\LaravelSchemaGenerator\Services\DataClassRuleProcessor;
 use RomegaSoftware\LaravelSchemaGenerator\Services\LaravelValidationResolver;
 use RomegaSoftware\LaravelSchemaGenerator\Services\MessageResolutionService;
@@ -21,6 +23,12 @@ use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\EnumTypeHandler;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
 use RomegaSoftware\LaravelSchemaGenerator\Writers\ZodTypeScriptWriter;
+use Spatie\LaravelData\Resolvers\DataMorphClassResolver;
+use Spatie\LaravelData\Resolvers\DataValidationMessagesAndAttributesResolver;
+use Spatie\LaravelData\Resolvers\DataValidationRulesResolver;
+use Spatie\LaravelData\Support\DataConfig;
+use Spatie\LaravelData\Support\Validation\RuleDenormalizer;
+use Spatie\LaravelData\Support\Validation\RuleNormalizer;
 
 class LaravelSchemaGeneratorServiceProvider extends ServiceProvider implements DeferrableProvider
 {
@@ -70,6 +78,19 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider implements D
         // Register Spatie Data validator resolver if available
         if ($this->spatieDataAvailable()) {
             $this->app->singleton(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class);
+            $this->app->singleton(DataValidationRulesResolver::class, function ($app) {
+                return new InheritingDataValidationRulesResolver(
+                    $app->make(DataConfig::class),
+                    $app->make(RuleNormalizer::class),
+                    $app->make(RuleDenormalizer::class),
+                    $app->make(DataMorphClassResolver::class),
+                );
+            });
+            $this->app->singleton(DataValidationMessagesAndAttributesResolver::class, function ($app) {
+                return new InheritingDataValidationMessagesAndAttributesResolver(
+                    $app->make(DataConfig::class)
+                );
+            });
         }
     }
 
@@ -242,6 +263,8 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider implements D
             FieldMetadataFactory::class,
             DataClassRuleProcessor::class,
             NestedMessageHandler::class,
+            DataValidationRulesResolver::class,
+            DataValidationMessagesAndAttributesResolver::class,
             ZodBuilderFactory::class,
             EnumTypeHandler::class,
             UniversalTypeHandler::class,

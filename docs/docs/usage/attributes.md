@@ -84,6 +84,13 @@ class AddressData extends Data
 }
 ```
 
+By default the attribute also applies the inherited rules when the Data class validates incoming payloads. If you only need the rules for schema generation, disable runtime enforcement with the `enforceRuntime` flag:
+
+```php
+#[InheritValidationFrom(PostalCodeValidator::class, enforceRuntime: false)]
+public ?string $postal_code,
+```
+
 ### Field Mapping
 
 You can inherit validation from a differently named field:
