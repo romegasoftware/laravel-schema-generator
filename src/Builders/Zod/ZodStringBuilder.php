@@ -408,14 +408,104 @@ class ZodStringBuilder extends ZodBuilder
             $flags = $matches[2];
         }
 
-        // In JavaScript, dots don't need escaping inside character classes
+        // In JavaScript, dots and non-range hyphens don't need escaping inside character classes
         $pattern = preg_replace_callback(
             '/\[[^\]]*\]/',
-            fn ($matches) => str_replace('\.', '.', $matches[0]),
+            fn ($matches) => $this->normalizeCharacterClass($matches[0]),
             $pattern
         );
 
         // Return as a JavaScript regex literal with flags if present
         return '/'.$pattern.'/'.$flags;
+    }
+
+    protected function normalizeCharacterClass(string $characterClass): string
+    {
+        $length = strlen($characterClass);
+
+        if ($length < 2 || $characterClass[0] !== '[' || $characterClass[$length - 1] !== ']') {
+            return $characterClass;
+        }
+
+        $body = substr($characterClass, 1, -1);
+        $isNegated = str_starts_with($body, '^');
+
+        if ($isNegated) {
+            $body = substr($body, 1);
+            $body = $body === false ? '' : $body;
+        }
+
+        $body = $this->normalizeCharacterClassBody($body);
+
+        return '['.($isNegated ? '^' : '').$body.']';
+    }
+
+    /**
+     * Remove unnecessary escapes within a character class.
+     */
+    private function normalizeCharacterClassBody(string $body): string
+    {
+        $result = '';
+        $length = strlen($body);
+        $hasLiteralBefore = false;
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $body[$i];
+
+            if ($char === '\\') {
+                $nextChar = $body[$i + 1] ?? null;
+
+                if ($nextChar === null) {
+                    $result .= '\\';
+                    break;
+                }
+
+                if ($nextChar === '.') {
+                    $result .= '.';
+                    $hasLiteralBefore = true;
+                    $i++;
+                    continue;
+                }
+
+                if ($nextChar === '-') {
+                    $hasLiteralAfter = $this->characterClassBodyHasLiteralAfter($body, $i + 2);
+
+                    if ($hasLiteralBefore && $hasLiteralAfter) {
+                        $result .= '\-';
+                    } else {
+                        $result .= '-';
+                    }
+
+                    $hasLiteralBefore = true;
+                    $i++;
+                    continue;
+                }
+
+                $result .= '\\'.$nextChar;
+                $hasLiteralBefore = true;
+                $i++;
+                continue;
+            }
+
+            $result .= $char;
+            $hasLiteralBefore = true;
+        }
+
+        return $result;
+    }
+
+    private function characterClassBodyHasLiteralAfter(string $body, int $startIndex): bool
+    {
+        $length = strlen($body);
+
+        for ($i = $startIndex; $i < $length; $i++) {
+            if ($body[$i] === '\\') {
+                return isset($body[$i + 1]);
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }
