@@ -70,7 +70,7 @@ class ResolvedValidationSet
      */
     public function hasValidation(string $rule): bool
     {
-        return $this->validations->toCollection()->first(fn (ResolvedValidation $v) => $v->rule === $rule) !== null;
+        return $this->getValidation($rule) !== null;
     }
 
     /**
@@ -78,7 +78,11 @@ class ResolvedValidationSet
      */
     public function getValidation(string $rule): ?ResolvedValidation
     {
-        return $this->validations->toCollection()->first(fn (ResolvedValidation $v) => $v->rule === $rule);
+        $normalizedRule = strtolower($rule);
+
+        return $this->validations
+            ->toCollection()
+            ->first(fn (ResolvedValidation $v) => strtolower($v->rule) === $normalizedRule);
     }
 
     /**
@@ -86,7 +90,11 @@ class ResolvedValidationSet
      */
     public function getValidations(string $rule): Collection
     {
-        return $this->validations->toCollection()->filter(fn (ResolvedValidation $v) => $v->rule === $rule);
+        $normalizedRule = strtolower($rule);
+
+        return $this->validations
+            ->toCollection()
+            ->filter(fn (ResolvedValidation $v) => strtolower($v->rule) === $normalizedRule);
     }
 
     /**
