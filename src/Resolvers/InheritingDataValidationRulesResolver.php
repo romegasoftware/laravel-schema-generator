@@ -3,8 +3,8 @@
 namespace RomegaSoftware\LaravelSchemaGenerator\Resolvers;
 
 use ReflectionClass;
+use ReflectionMethod;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\InheritValidationFrom;
-use Spatie\LaravelData\Resolvers\DataMorphClassResolver;
 use Spatie\LaravelData\Resolvers\DataValidationRulesResolver as BaseResolver;
 use Spatie\LaravelData\Support\DataConfig;
 use Spatie\LaravelData\Support\Validation\DataRules;
@@ -22,14 +22,23 @@ class InheritingDataValidationRulesResolver extends BaseResolver
         DataConfig $dataConfig,
         RuleNormalizer $ruleAttributesResolver,
         RuleDenormalizer $ruleDenormalizer,
-        DataMorphClassResolver $dataMorphClassResolver,
+        ?object $dataMorphClassResolver = null,
     ) {
-        parent::__construct(
+        $parameters = [
             $dataConfig,
             $ruleAttributesResolver,
             $ruleDenormalizer,
-            $dataMorphClassResolver
-        );
+        ];
+
+        if (self::requiresDataMorphClassResolver()) {
+            if ($dataMorphClassResolver === null) {
+                throw new \RuntimeException('Spatie Laravel Data morph resolver is required but was not provided.');
+            }
+
+            $parameters[] = $dataMorphClassResolver;
+        }
+
+        parent::__construct(...$parameters);
     }
 
     public function execute(
@@ -175,5 +184,17 @@ class InheritingDataValidationRulesResolver extends BaseResolver
         }
 
         return $existing;
+    }
+
+    public static function requiresDataMorphClassResolver(): bool
+    {
+        static $requires;
+
+        if ($requires === null) {
+            $constructor = new ReflectionMethod(BaseResolver::class, '__construct');
+            $requires = $constructor->getNumberOfParameters() === 4;
+        }
+
+        return $requires;
     }
 }
