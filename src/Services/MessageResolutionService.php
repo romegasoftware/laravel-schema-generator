@@ -68,11 +68,10 @@ class MessageResolutionService
             throw new \InvalidArgumentException('The field, rule name, and validator must be set using with() prior to calling resolveCustomMessage.');
         }
 
-        // Check for custom message first
-        $customMessageKey = $this->field.'.'.lcfirst($this->ruleName);
+        $customMessage = $this->findCustomMessageForRule();
 
-        if (isset($this->validator->customMessages[$customMessageKey])) {
-            return $this->validator->customMessages[$customMessageKey];
+        if ($customMessage !== null) {
+            return $customMessage;
         }
 
         // Fall back to default Laravel message
@@ -250,6 +249,47 @@ class MessageResolutionService
         );
 
         return $this->ensureDisplayableAttribute($replaced);
+    }
+
+    /**
+     * Locate a custom message for the current rule, including known aliases.
+     */
+    private function findCustomMessageForRule(): ?string
+    {
+        foreach ($this->possibleCustomMessageKeys() as $customMessageKey) {
+            if (isset($this->validator->customMessages[$customMessageKey])) {
+                return $this->validator->customMessages[$customMessageKey];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Build the list of possible custom message keys to check.
+     */
+    private function possibleCustomMessageKeys(): array
+    {
+        $baseRule = lcfirst($this->ruleName);
+        $keys = [$this->field.'.'.$baseRule];
+
+        foreach ($this->getRuleMessageAliases($baseRule) as $alias) {
+            $keys[] = $this->field.'.'.$alias;
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    /**
+     * Return aliases for a validation rule where Laravel normalizes the rule name.
+     */
+    private function getRuleMessageAliases(string $ruleName): array
+    {
+        return match (strtolower($ruleName)) {
+            'in' => ['enum'],
+            'enum' => ['in'],
+            default => [],
+        };
     }
 
     private function ensureDisplayableAttribute(string $message): string

@@ -57,10 +57,18 @@ class EnumTypeHandler extends BaseTypeHandler
         }
 
         // Check for enum error messages
-        if (str_starts_with($type, 'enum:') && $validations->getMessage('enum')) {
-            $builder->message($validations->getMessage('enum'));
-        } elseif ($validations->hasValidation('in') && $validations->getMessage('in')) {
-            $builder->message($validations->getMessage('in'));
+        $enumMessage = null;
+
+        if (str_starts_with($type, 'enum:')) {
+            $enumMessage = $validations->getMessage('Enum');
+        }
+
+        if ($enumMessage === null && $validations->hasValidation('In')) {
+            $enumMessage = $validations->getMessage('In');
+        }
+
+        if ($enumMessage !== null) {
+            $builder->message($enumMessage);
         }
 
         // Handle nullable
