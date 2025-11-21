@@ -41,10 +41,10 @@ class EnumValidationIntegrationTest extends TestCase
         $schema = $this->generator->generate($extracted, 'TestRequestWithRootEnumSchema');
 
         // Root level enum should be properly formatted (using double quotes as per Zod standard)
-        $this->assertStringContainsString('payment_method: z.enum(["credit_card", "paypal", "bank_transfer"])', $schema);
+        $this->assertStringContainsString('payment_method: z.enum(["credit_card", "paypal", "bank_transfer"], { message: "The selected payment method is invalid." })', $schema);
 
         // Nested enum should also be properly formatted
-        $this->assertStringContainsString('component: z.enum(["base", "tax", "discount"]', $schema);
+        $this->assertStringContainsString('component: z.enum(["base", "tax", "discount"], { message: "The items.*.pricing.*.component field is required." })', $schema);
 
         // Should NOT contain malformed enum
         $this->assertStringNotContainsString('z.enum(App.', $schema);
@@ -72,7 +72,7 @@ class EnumValidationIntegrationTest extends TestCase
         $schema = $this->generator->generate($extracted, 'StatusEnumSchema');
 
         // Should generate enum correctly even without required|string
-        $this->assertStringContainsString('status: z.enum(["active", "inactive", "pending"])', $schema);
+        $this->assertStringContainsString('status: z.enum(["active", "inactive", "pending"], { message: "The selected status is invalid." })', $schema);
     }
 
     #[Test]
@@ -93,6 +93,6 @@ class EnumValidationIntegrationTest extends TestCase
         $schema = $this->generator->generate($extracted, 'PriorityEnumSchema');
 
         // Should generate enum correctly with required
-        $this->assertStringContainsString('priority: z.enum(["low", "medium", "high"])', $schema);
+        $this->assertStringContainsString('priority: z.enum(["low", "medium", "high"], { message: "The selected priority is invalid." })', $schema);
     }
 }
