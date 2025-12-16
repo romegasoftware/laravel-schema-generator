@@ -43,6 +43,14 @@ return [
 
             // If using namespace format, specify the namespace name.
             'namespace' => 'Schemas',
+
+            // If true, each schema will be generated in its own file.
+            'separate_files' => false,
+
+            // Optional: The directory where separate files will be generated.
+            // If null, it defaults to the directory of 'path' or a 'Schemas' subdirectory if convenient.
+            // In the implementation, we will fallback to dirname(path).
+            'directory' => null,
         ],
     ],
 

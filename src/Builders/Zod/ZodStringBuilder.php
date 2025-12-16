@@ -464,6 +464,7 @@ class ZodStringBuilder extends ZodBuilder
                     $result .= '.';
                     $hasLiteralBefore = true;
                     $i++;
+
                     continue;
                 }
 
@@ -478,12 +479,14 @@ class ZodStringBuilder extends ZodBuilder
 
                     $hasLiteralBefore = true;
                     $i++;
+
                     continue;
                 }
 
                 $result .= '\\'.$nextChar;
                 $hasLiteralBefore = true;
                 $i++;
+
                 continue;
             }
 

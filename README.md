@@ -46,6 +46,27 @@ php artisan vendor:publish --provider="RomegaSoftware\LaravelSchemaGenerator\Lar
 
 This will create a `config/laravel-schema-generator.php` file where you can customize output paths, formats, and integration settings.
 
+### Generating Separate Files
+
+By default, all schemas are generated into a single TypeScript file. You can configure the package to generate separate files for each schema (e.g., `UserSchema.ts`, `PostSchema.ts`) by enabling `separate_files` in the configuration.
+
+```php
+// config/laravel-schema-generator.php
+
+'zod' => [
+    'output' => [
+        'path' => resource_path('js/types/schemas.ts'), // fallback/default path
+        'separate_files' => true,
+        // Optional: specify a dedicated directory for separate files
+        'directory' => resource_path('js/types/schemas'),
+    ],
+],
+```
+
+When enabled, the generator will:
+1. Create individual `.ts` files for each schema.
+2. Automatically resolve and inject imports for dependent schemas (e.g., if `UserSchema` references `AddressSchema`).
+
 ## Quick Start
 
 1. **Add the attribute** to your Laravel validation classes:
