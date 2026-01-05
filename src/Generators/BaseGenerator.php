@@ -18,6 +18,13 @@ abstract class BaseGenerator implements SchemaGeneratorInterface
 
     public array $schemaDependencies = [];
 
+    /**
+     * Bidirectional registry mapping between schema names and class names
+     *
+     * @var array<string, string>
+     */
+    protected static array $schemaRegistry = [];
+
     public function __construct(protected TypeHandlerRegistry $typeHandlerRegistry) {}
 
     /**
@@ -50,11 +57,41 @@ abstract class BaseGenerator implements SchemaGeneratorInterface
     }
 
     /**
-     * Generate schema name from class name
+     * Generate schema name from class name and register it
      */
     public function generateSchemaName(string $className): string
     {
-        return SchemaNameGenerator::generate($className);
+        $schemaName = SchemaNameGenerator::generate($className);
+
+        // Track bidirectional mapping
+        self::$schemaRegistry[$schemaName] = $className;
+        self::$schemaRegistry[$className] = $schemaName;
+
+        return $schemaName;
+    }
+
+    /**
+     * Get class name from schema name
+     */
+    public static function getClassNameFromSchemaName(string $schemaName): ?string
+    {
+        return self::$schemaRegistry[$schemaName] ?? null;
+    }
+
+    /**
+     * Get schema name from class name
+     */
+    public static function getSchemaNameFromClassName(string $className): ?string
+    {
+        return self::$schemaRegistry[$className] ?? null;
+    }
+
+    /**
+     * Clear the schema registry (useful for testing)
+     */
+    public static function clearSchemaRegistry(): void
+    {
+        self::$schemaRegistry = [];
     }
 
     /**
