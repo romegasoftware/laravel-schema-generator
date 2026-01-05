@@ -7,7 +7,6 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Feature;
 use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
-use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\OrderCreateRequestData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\OrderItemRequestData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;

@@ -102,7 +102,6 @@ class DataClassExtractorTest extends TestCase
         $this->assertTrue($nested->hasObjectProperties());
         $this->assertArrayHasKey('name', $nested->getObjectProperties());
     }
-
 }
 
 // Test classes for the extractor
