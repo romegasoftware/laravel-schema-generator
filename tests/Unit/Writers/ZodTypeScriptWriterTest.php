@@ -500,6 +500,77 @@ class ZodTypeScriptWriterTest extends TestCase
         $this->assertStringContainsString('export const Schema1 = z.object({ field1: z.string() });', $content);
         $this->assertStringContainsString('export const Schema2 = z.object({ field2: z.number() });', $content);
     }
+
+    #[Test]
+    public function it_generates_separate_files_with_dependencies(): void
+    {
+        config(['laravel-schema-generator.zod.output.separate_files' => true]);
+        $outputDir = '/tmp/schemas';
+        config(['laravel-schema-generator.zod.output.directory' => $outputDir]);
+
+        $depSchema = new ExtractedSchemaData(
+            name: 'AddressSchema',
+            properties: null,
+            className: AddressData::class,
+            type: 'data',
+            dependencies: []
+        );
+
+        $mainSchema = new ExtractedSchemaData(
+            name: 'UserSchema',
+            properties: null,
+            className: UserData::class,
+            type: 'data',
+            dependencies: [AddressData::class]
+        );
+
+        $schemas = [$depSchema, $mainSchema];
+
+        // Mocks for File operations
+        File::shouldReceive('exists')->with($outputDir)->andReturn(false);
+        File::shouldReceive('makeDirectory')->with($outputDir, 0755, true)->once();
+
+        // Mocks for Generator
+        // 1. Initial generation loop
+        $this->mockGenerator->shouldReceive('generate')->with($depSchema)->andReturn('z.object({ street: z.string() })');
+        $this->mockGenerator->shouldReceive('generate')->with($mainSchema)->andReturn('z.object({ address: AddressSchema })');
+
+        // 2. Dependencies
+        $this->mockGenerator->shouldReceive('getSchemaDependencies')->andReturn([
+            'UserSchema' => [AddressData::class],
+        ]);
+
+        // Mock generateSchemaName calls
+        $this->mockGenerator->shouldReceive('generateSchemaName')->with(AddressData::class)->andReturn('AddressSchema');
+
+        // 3. Header loop for each schema
+        $this->mockGenerator->shouldReceive('generateHeader')->with([$depSchema])->andReturn("import { z } from 'zod';\n");
+        $this->mockGenerator->shouldReceive('generateHeader')->with([$mainSchema])->andReturn("import { z } from 'zod';\n");
+
+        // 4. App Types check
+        $this->mockGenerator->shouldReceive('needsAppTypesImport')->with([$depSchema])->andReturn(false);
+        $this->mockGenerator->shouldReceive('needsAppTypesImport')->with([$mainSchema])->andReturn(false);
+
+        // 5. File::put calls
+        // Expect write for AddressSchema
+        File::shouldReceive('put')
+            ->with($outputDir.DIRECTORY_SEPARATOR.'AddressSchema.ts', Mockery::on(function ($content) {
+                return str_contains($content, 'export const AddressSchema = z.object({ street: z.string() });');
+            }))
+            ->once();
+
+        // Expect write for UserSchema (should have imports)
+        File::shouldReceive('put')
+            ->with($outputDir.DIRECTORY_SEPARATOR.'UserSchema.ts', Mockery::on(function ($content) {
+                return str_contains($content, "import { AddressSchema } from './AddressSchema';")
+                    && str_contains($content, 'export const UserSchema = z.object({ address: AddressSchema });');
+            }))
+            ->once();
+
+        $this->writer->write($schemas);
+
+        $this->assertTrue(true);
+    }
 }
 
 // Test helper classes
@@ -521,5 +592,19 @@ class TestNonDataClass
 {
     public function __construct(
         public string $name
+    ) {}
+}
+
+class AddressData extends \Spatie\LaravelData\Data
+{
+    public function __construct(
+        public string $street
+    ) {}
+}
+
+class UserData extends \Spatie\LaravelData\Data
+{
+    public function __construct(
+        public AddressData $address
     ) {}
 }

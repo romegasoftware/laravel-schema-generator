@@ -465,8 +465,86 @@ class DataClassExtractor extends BaseExtractor
                     $dependencies[] = $type;
                 }
             }
+
+            // Extract dependencies from schema override fragments
+            if ($property->schemaOverride !== null) {
+                $fragmentDeps = $this->extractDependenciesFromFragment($property->schemaOverride);
+                foreach ($fragmentDeps as $dep) {
+                    if (! in_array($dep, $dependencies)) {
+                        $dependencies[] = $dep;
+                    }
+                }
+            }
         }
 
         return $dependencies;
+    }
+
+    /**
+     * Extract schema dependencies from a schema fragment
+     *
+     * Detects patterns like:
+     * - z.array(OrderItemRequestDataSchema)
+     * - OrderItemRequestDataSchema.optional()
+     * - z.union([ProductDataSchema, ServiceDataSchema])
+     *
+     * @param  \RomegaSoftware\LaravelSchemaGenerator\Data\SchemaFragment  $fragment  The schema fragment to analyze
+     * @return array<string> Array of fully-qualified PHP class names
+     */
+    protected function extractDependenciesFromFragment(\RomegaSoftware\LaravelSchemaGenerator\Data\SchemaFragment $fragment): array
+    {
+        $dependencies = [];
+        $code = $fragment->code();
+
+        // Match schema name pattern: CapitalizedWordsSchema (not followed by Type|Builder|Fragment)
+        // Positive: OrderItemRequestDataSchema, UserSchema
+        // Negative: SchemaType, schema, OrderItemRequestDataSchemaType
+        preg_match_all(
+            '/\b([A-Z][a-zA-Z0-9]*Schema)\b(?!Type|Builder|Fragment)/',
+            $code,
+            $matches
+        );
+
+        if (! empty($matches[1])) {
+            foreach ($matches[1] as $schemaName) {
+                // Convert schema name to class name
+                $className = $this->schemaNameToClassName($schemaName);
+                if ($className && ! in_array($className, $dependencies)) {
+                    $dependencies[] = $className;
+                }
+            }
+        }
+
+        return $dependencies;
+    }
+
+    /**
+     * Convert schema name to PHP class name
+     *
+     * Uses the schema registry to map schema names back to their original class names.
+     * Falls back to convention-based naming if not found in registry.
+     *
+     * @param  string  $schemaName  e.g., "OrderItemRequestDataSchema"
+     * @return string|null Class name e.g., "App\Data\OrderItemRequestData" or null if not found
+     */
+    protected function schemaNameToClassName(string $schemaName): ?string
+    {
+        // Try to get from registry first
+        $className = \RomegaSoftware\LaravelSchemaGenerator\Generators\BaseGenerator::getClassNameFromSchemaName($schemaName);
+
+        if ($className) {
+            return $className;
+        }
+
+        // Fallback: Remove "Schema" suffix and add "Data" suffix if needed
+        $baseName = preg_replace('/Schema$/', '', $schemaName);
+
+        if (! str_ends_with($baseName, 'Data')) {
+            $baseName .= 'Data';
+        }
+
+        // Check if this class name pattern exists in processed schemas
+        // We'll return the base name and let the validation happen downstream
+        return $baseName;
     }
 }

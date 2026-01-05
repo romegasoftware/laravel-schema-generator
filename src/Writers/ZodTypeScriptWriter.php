@@ -2,6 +2,7 @@
 
 namespace RomegaSoftware\LaravelSchemaGenerator\Writers;
 
+use Illuminate\Support\Facades\File;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Generators\ValidationSchemaGenerator;
 
@@ -28,6 +29,99 @@ class ZodTypeScriptWriter extends BaseScriptWriter
         }
 
         return $this->generateModuleContent($schemas);
+    }
+
+    /**
+     * Write schemas to TypeScript file(s)
+     *
+     * @param  ExtractedSchemaData[]  $schemas
+     */
+    public function write(array $schemas): void
+    {
+        if (! config('laravel-schema-generator.zod.output.separate_files', false)) {
+            parent::write($schemas);
+
+            return;
+        }
+
+        $this->writeSeparateFiles($schemas);
+    }
+
+    /**
+     * Write schemas to separate files
+     *
+     * @param  ExtractedSchemaData[]  $schemas
+     */
+    protected function writeSeparateFiles(array $schemas): void
+    {
+        $baseDirectory = config('laravel-schema-generator.zod.output.directory');
+
+        if (! $baseDirectory) {
+            $basePath = config('laravel-schema-generator.zod.output.path', resource_path('js/types/schemas.ts'));
+            $baseDirectory = dirname($basePath);
+        }
+
+        if (! File::exists($baseDirectory)) {
+            File::makeDirectory($baseDirectory, 0755, true);
+        }
+
+        // Process all schemas first (needed across all files for dependency reference)
+        $generatedSchemas = [];
+        foreach ($schemas as $schema) {
+            $generatedSchemas[$schema->name] = $this->generator->generate($schema);
+        }
+
+        $dependencies = $this->generator->getSchemaDependencies();
+
+        foreach ($schemas as $schema) {
+            $content = $this->generator->generateHeader([$schema]);
+
+            // Add imports for dependencies
+            if (isset($dependencies[$schema->name])) {
+                $imports = [];
+                foreach ($dependencies[$schema->name] as $dependencyClass) {
+                    $depSchemaName = $this->generator->generateSchemaName($dependencyClass);
+                    // Don't import self
+                    if ($depSchemaName === $schema->name) {
+                        continue;
+                    }
+                    $imports[] = sprintf("import { %s } from './%s';", $depSchemaName, $depSchemaName);
+                }
+
+                if (! empty($imports)) {
+                    $content .= implode("\n", array_unique($imports))."\n\n";
+                }
+            }
+
+            // Generate content for this specific schema
+            // We use the already generated schema body from the loop above
+            $schemaVarName = $schema->name;
+            $typeVarName = str_replace('Schema', 'SchemaType', $schema->name);
+            $originalClassName = $this->getOriginalClassName($schema);
+            $isDataTypeClass = $this->isDataClass($schema);
+            $schemaDefinition = $generatedSchemas[$schemaVarName] ?? 'z.object({})';
+
+            if ($this->generator->needsAppTypesImport([$schema]) && $originalClassName && $isDataTypeClass) {
+                $content .= sprintf(
+                    "export const %s: z.ZodType<%s.%s> = %s;\n",
+                    $schemaVarName,
+                    config('laravel-schema-generator.app_prefix', 'App'),
+                    $originalClassName,
+                    $schemaDefinition
+                );
+            } else {
+                $content .= sprintf(
+                    "export const %s = %s;\n",
+                    $schemaVarName,
+                    $schemaDefinition
+                );
+            }
+
+            $content .= sprintf("export type %s = z.infer<typeof %s>;\n", $typeVarName, $schemaVarName);
+
+            $filePath = $baseDirectory.DIRECTORY_SEPARATOR.$schema->name.'.ts';
+            File::put($filePath, $content);
+        }
     }
 
     /**
