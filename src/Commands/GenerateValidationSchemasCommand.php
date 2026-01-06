@@ -135,7 +135,31 @@ class GenerateValidationSchemasCommand extends Command
         $this->info('📝 Writing schemas to file...');
         $this->getWriter()->write($schemas);
 
-        $this->info(sprintf('✅ Generated %d Zod schemas in %s', count($schemas), $this->getWriter()->getOutputPath()));
+        // Display success message based on configuration mode
+        if (config('laravel-schema-generator.zod.output.separate_files', false)) {
+            $baseDirectory = config('laravel-schema-generator.zod.output.directory')
+                ?? dirname(config('laravel-schema-generator.zod.output.path', resource_path('js/types/schemas.ts')));
+
+            $schemaWord = count($schemas) === 1 ? 'schema' : 'schemas';
+            $fileWord = count($schemas) === 1 ? 'file' : 'files';
+
+            $this->info(sprintf(
+                '✅ Generated %d Zod %s in %d separate %s at %s',
+                count($schemas),
+                $schemaWord,
+                count($schemas),
+                $fileWord,
+                $baseDirectory
+            ));
+        } else {
+            $schemaWord = count($schemas) === 1 ? 'schema' : 'schemas';
+            $this->info(sprintf(
+                '✅ Generated %d Zod %s in %s',
+                count($schemas),
+                $schemaWord,
+                $this->getWriter()->getOutputPath()
+            ));
+        }
 
         // Show any errors that occurred
         if (! empty($errors)) {
