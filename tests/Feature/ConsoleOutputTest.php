@@ -54,15 +54,16 @@ class ConsoleOutputTest extends TestCase
     #[Test]
     public function it_uses_correct_pluralization_for_single_schema(): void
     {
-        // Create a directory with only one class
+        // Use a directory with only one class
         config(['laravel-schema-generator.scan_paths' => [
-            __DIR__.'/../Fixtures/DataClasses/OrderItemRequestData.php',
+            __DIR__.'/../Fixtures/SingleSchema',
         ]]);
         config(['laravel-schema-generator.zod.output.separate_files' => false]);
 
-        // This test may be tricky because scan_paths expects directories, not files
-        // Skip this test for now - the other tests cover pluralization
-        $this->markTestSkipped('Scan paths must be directories, not files. Pluralization is tested in other tests.');
+        $this->artisan('schema:generate')
+            ->expectsOutputToContain('1 Zod schema in')
+            ->doesntExpectOutputToContain('schemas in')  // not plural
+            ->assertExitCode(0);
     }
 
     #[Test]
