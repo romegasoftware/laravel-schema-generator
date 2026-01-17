@@ -86,12 +86,24 @@ class ZodInlineObjectBuilder extends ZodBuilder
 
         $propertyStrings = [];
         foreach ($this->properties as $name => $builder) {
-            $propertyStrings[] = "{$name}: {$builder->build()}";
+            $propertyKey = $this->formatPropertyKey($name);
+            $propertyStrings[] = "{$propertyKey}: {$builder->build()}";
         }
 
         $propertiesString = implode(', ', $propertyStrings);
 
         return "z.object({ {$propertiesString} })";
+    }
+
+    protected function formatPropertyKey(string $name): string
+    {
+        if (preg_match('/^[A-Za-z_$][A-Za-z0-9_$]*$/', $name) === 1) {
+            return $name;
+        }
+
+        $encoded = json_encode($name, JSON_UNESCAPED_SLASHES);
+
+        return $encoded !== false ? $encoded : '"'.addcslashes($name, "\\\"").'"';
     }
 
     /**

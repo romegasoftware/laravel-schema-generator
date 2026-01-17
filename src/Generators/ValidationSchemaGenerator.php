@@ -66,7 +66,8 @@ class ValidationSchemaGenerator extends BaseGenerator
             }
 
             $zodType = $this->buildZodType($property);
-            $zodProperties[] = sprintf('    %s: %s', $property->name, $zodType);
+            $propertyKey = $this->formatPropertyKey($property->name);
+            $zodProperties[] = sprintf('    %s: %s', $propertyKey, $zodType);
         }
 
         $schema = sprintf("z.object({\n%s,\n})", implode(",\n", $zodProperties));
@@ -79,6 +80,17 @@ class ValidationSchemaGenerator extends BaseGenerator
         }
 
         return $schema;
+    }
+
+    protected function formatPropertyKey(string $name): string
+    {
+        if (preg_match('/^[A-Za-z_$][A-Za-z0-9_$]*$/', $name) === 1) {
+            return $name;
+        }
+
+        $encoded = json_encode($name, JSON_UNESCAPED_SLASHES);
+
+        return $encoded !== false ? $encoded : '"'.addcslashes($name, "\\\"").'"';
     }
 
     /**

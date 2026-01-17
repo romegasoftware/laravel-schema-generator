@@ -68,6 +68,29 @@ class ValidationSchemaGeneratorTest extends TestCase
     }
 
     #[Test]
+    public function it_quotes_property_names_with_invalid_identifiers(): void
+    {
+        $extracted = new ExtractedSchemaData(
+            name: 'TurnstileSchema',
+            dependencies: [],
+            properties: SchemaPropertyData::collect([
+                [
+                    'name' => 'cf-turnstile-response',
+                    'type' => 'string',
+                    'isOptional' => true,
+                    'validations' => ResolvedValidationSet::make('cf-turnstile-response', [], 'string'),
+                ],
+            ]),
+            type: '',
+            className: ''
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        $this->assertStringContainsString('"cf-turnstile-response": z.string().trim().optional()', $schema);
+    }
+
+    #[Test]
     public function it_stores_processed_schemas(): void
     {
         $extracted = new ExtractedSchemaData(
