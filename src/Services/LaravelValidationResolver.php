@@ -42,8 +42,13 @@ class LaravelValidationResolver
 
         $currentData = $validator->getData();
 
+        // Pre-split rules respecting regex patterns to avoid breaking on pipe characters
+        // inside regex alternation patterns like (0[1-9]|1[0-2])
+        $preSplitRules = $this->splitRulesRespectingRegex($rules);
+
+        // Pass pre-split rules as an array to avoid Laravel's naive pipe splitting
         $explodedRules = (new ValidationRuleParser($currentData))
-            ->explode(ValidationRuleParser::filterConditionalRules([$rules], $currentData));
+            ->explode(ValidationRuleParser::filterConditionalRules([$preSplitRules], $currentData));
 
         // Convert rules to ResolvedValidation objects
         $resolvedValidations = $this->resolveValidationRules($explodedRules->rules[0], $field, $validator);
@@ -197,7 +202,7 @@ class LaravelValidationResolver
             return $data;
         }
 
-        $segments = explode('|', $rules);
+        $segments = $this->splitRulesRespectingRegex($rules);
 
         foreach ($segments as $segment) {
             if ($segment === '') {
@@ -218,5 +223,78 @@ class LaravelValidationResolver
         }
 
         return $data;
+    }
+
+    /**
+     * Split rules by pipe character while respecting regex patterns.
+     * Regex patterns may contain pipe characters for alternation (e.g., (0[1-9]|1[0-2]))
+     * which should not be treated as rule separators.
+     */
+    private function splitRulesRespectingRegex(string $rules): array
+    {
+        $result = [];
+        $current = '';
+        $inRegex = false;
+        $regexDelimiter = null;
+        $escaped = false;
+
+        $length = strlen($rules);
+        $i = 0;
+
+        while ($i < $length) {
+            $char = $rules[$i];
+
+            // Check if we're starting a regex rule
+            if (! $inRegex) {
+                $isRegex = substr($rules, $i, 6) === 'regex:';
+                $isNotRegex = substr($rules, $i, 10) === 'not_regex:';
+
+                if ($isRegex || $isNotRegex) {
+                    $colonPos = strpos($rules, ':', $i);
+                    $current .= substr($rules, $i, $colonPos - $i + 1);
+                    $i = $colonPos + 1;
+
+                    if ($i < $length) {
+                        $regexDelimiter = $rules[$i];
+                        $current .= $regexDelimiter;
+                        $inRegex = true;
+                        $i++;
+                    }
+
+                    continue;
+                }
+            }
+
+            if ($inRegex) {
+                if ($escaped) {
+                    $current .= $char;
+                    $escaped = false;
+                } elseif ($char === '\\') {
+                    $current .= $char;
+                    $escaped = true;
+                } elseif ($char === $regexDelimiter) {
+                    $current .= $char;
+                    $inRegex = false;
+                    $regexDelimiter = null;
+                } else {
+                    $current .= $char;
+                }
+            } else {
+                if ($char === '|') {
+                    $result[] = $current;
+                    $current = '';
+                } else {
+                    $current .= $char;
+                }
+            }
+
+            $i++;
+        }
+
+        if ($current !== '') {
+            $result[] = $current;
+        }
+
+        return $result;
     }
 }

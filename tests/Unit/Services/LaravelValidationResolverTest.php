@@ -734,6 +734,92 @@ class LaravelValidationResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_resolves_regex_with_pipe_alternation_characters(): void
+    {
+        $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
+        $validator = new \Illuminate\Validation\Validator(
+            $translator,
+            ['period_month' => '2024-01'],
+            ['period_month' => 'required|string|regex:/^\d{4}-(0[1-9]|1[0-2])$/']
+        );
+
+        $result = $this->resolver->resolve('period_month', 'required|string|regex:/^\d{4}-(0[1-9]|1[0-2])$/', $validator);
+
+        $this->assertInstanceOf(\RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet::class, $result);
+        $this->assertEquals('period_month', $result->fieldName);
+        $this->assertEquals('string', $result->inferredType);
+        $this->assertTrue($result->isFieldRequired());
+
+        $this->assertTrue($result->hasValidation('Required'));
+        $this->assertTrue($result->hasValidation('String'));
+        $this->assertTrue($result->hasValidation('Regex'));
+
+        // The regex pattern should be preserved in full, including the pipe for alternation
+        $regexValidation = $result->getValidation('Regex');
+        $this->assertNotNull($regexValidation);
+        $this->assertEquals('/^\d{4}-(0[1-9]|1[0-2])$/', $regexValidation->getFirstParameter());
+    }
+
+    #[Test]
+    public function it_resolves_not_regex_with_pipe_alternation_characters(): void
+    {
+        $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
+        $validator = new \Illuminate\Validation\Validator(
+            $translator,
+            ['code' => 'ABC'],
+            ['code' => 'required|not_regex:/^(bad|invalid|wrong)$/']
+        );
+
+        $result = $this->resolver->resolve('code', 'required|not_regex:/^(bad|invalid|wrong)$/', $validator);
+
+        $this->assertTrue($result->hasValidation('Required'));
+        $this->assertTrue($result->hasValidation('NotRegex'));
+
+        $notRegexValidation = $result->getValidation('NotRegex');
+        $this->assertNotNull($notRegexValidation);
+        $this->assertEquals('/^(bad|invalid|wrong)$/', $notRegexValidation->getFirstParameter());
+    }
+
+    #[Test]
+    public function it_resolves_regex_with_multiple_pipe_alternations(): void
+    {
+        $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
+        $validator = new \Illuminate\Validation\Validator(
+            $translator,
+            ['color' => 'red'],
+            ['color' => 'nullable|regex:/^(red|green|blue|yellow|orange)$/|max:20']
+        );
+
+        $result = $this->resolver->resolve('color', 'nullable|regex:/^(red|green|blue|yellow|orange)$/|max:20', $validator);
+
+        $this->assertTrue($result->isFieldNullable());
+        $this->assertTrue($result->hasValidation('Regex'));
+        $this->assertTrue($result->hasValidation('Max'));
+
+        $regexValidation = $result->getValidation('Regex');
+        $this->assertEquals('/^(red|green|blue|yellow|orange)$/', $regexValidation->getFirstParameter());
+        $this->assertEquals(20, $result->getValidationParameter('Max'));
+    }
+
+    #[Test]
+    public function it_resolves_regex_with_escaped_delimiter(): void
+    {
+        $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
+        $validator = new \Illuminate\Validation\Validator(
+            $translator,
+            ['path' => '/home/user'],
+            ['path' => 'required|regex:/^\/[a-z]+(\/[a-z]+)*$/']
+        );
+
+        $result = $this->resolver->resolve('path', 'required|regex:/^\/[a-z]+(\/[a-z]+)*$/', $validator);
+
+        $this->assertTrue($result->hasValidation('Regex'));
+
+        $regexValidation = $result->getValidation('Regex');
+        $this->assertEquals('/^\/[a-z]+(\/[a-z]+)*$/', $regexValidation->getFirstParameter());
+    }
+
+    #[Test]
     public function it_handles_rule_objects_that_normalize_to_optional_rules(): void
     {
         $translator = new \Illuminate\Translation\Translator(new \Illuminate\Translation\ArrayLoader, 'en');
