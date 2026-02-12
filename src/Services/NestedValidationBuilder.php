@@ -167,8 +167,11 @@ class NestedValidationBuilder
         $cleanPropertyKey = str_replace('.*', '', $property);
 
         if (is_array($rules) && isset($rules['nested'])) {
-            if (isset($rules['isNestedObject']) && $rules['isNestedObject']) {
-                // Nested object within array item
+            $isNestedObject = ($rules['isNestedObject'] ?? false) === true;
+            $hasNamedChildren = ! empty($rules['nested']) && ! isset($rules['nested']['*']) && empty($rules['hasWildcardItems']);
+
+            if ($isNestedObject || $hasNamedChildren) {
+                // Nested object within array item (named properties = object)
                 $nestedObjectValidation = $this->buildNestedObjectStructure(
                     $baseField.'.*.'.$property,
                     $rules['nested'],
@@ -183,7 +186,7 @@ class NestedValidationBuilder
                     objectProperties: $nestedObjectValidation->objectProperties
                 );
             } else {
-                // Nested array structure
+                // Nested array structure (has wildcard items)
                 return $this->buildArrayValidation(
                     $baseField.'.*.'.$property,
                     $rules,
@@ -270,8 +273,19 @@ class NestedValidationBuilder
      */
     protected function shouldTreatRulesAsArray(array $rules): bool
     {
+        // Has wildcard items (e.g., tags.*) → true array
         if (isset($rules['nested']['*'])) {
             return true;
+        }
+
+        // Was populated from wildcard paths (e.g., languages.*.language) → true array
+        if (! empty($rules['hasWildcardItems'])) {
+            return true;
+        }
+
+        // Has named nested properties from dot-notation (not wildcards) → object
+        if (! empty($rules['nested'])) {
+            return false;
         }
 
         return $this->ruleSetIndicatesArray($rules['rules'] ?? null);

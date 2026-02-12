@@ -233,6 +233,9 @@ class NestedRuleGrouper
             ];
         }
 
+        // Mark that this field has items accessed via wildcard paths
+        $grouped[$baseField]['hasWildcardItems'] = true;
+
         if ($remainingPath === '') {
             // Direct array items (e.g., tags.*)
             $grouped[$baseField]['nested']['*'] = $ruleSet;
@@ -330,6 +333,9 @@ class NestedRuleGrouper
                     'nested' => [],
                 ];
             }
+
+            // Mark that this field has items accessed via wildcard paths
+            $nested[$currentField]['hasWildcardItems'] = true;
 
             if ($remainingPath === '') {
                 // Direct array items at this level
