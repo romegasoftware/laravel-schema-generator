@@ -23,7 +23,6 @@ use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\EnumTypeHandler;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
 use RomegaSoftware\LaravelSchemaGenerator\Writers\ZodTypeScriptWriter;
-use Spatie\LaravelData\Resolvers\DataMorphClassResolver;
 use Spatie\LaravelData\Resolvers\DataValidationMessagesAndAttributesResolver;
 use Spatie\LaravelData\Resolvers\DataValidationRulesResolver;
 use Spatie\LaravelData\Support\DataConfig;
@@ -83,7 +82,7 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider implements D
                     $app->make(DataConfig::class),
                     $app->make(RuleNormalizer::class),
                     $app->make(RuleDenormalizer::class),
-                    $app->make(DataMorphClassResolver::class),
+                    $this->resolveDataMorphClassResolver($app),
                 );
             });
             $this->app->singleton(DataValidationMessagesAndAttributesResolver::class, function ($app) {
@@ -191,6 +190,24 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider implements D
     protected function spatieDataAvailable(): bool
     {
         return class_exists(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class);
+    }
+
+    /**
+     * Resolve the legacy morph class resolver if the installed Spatie version requires it.
+     */
+    protected function resolveDataMorphClassResolver($app): ?object
+    {
+        if (! InheritingDataValidationRulesResolver::requiresDataMorphClassResolver()) {
+            return null;
+        }
+
+        $resolverClass = 'Spatie\\LaravelData\\Resolvers\\DataMorphClassResolver';
+
+        if (! class_exists($resolverClass)) {
+            return null;
+        }
+
+        return $app->make($resolverClass);
     }
 
     /**
