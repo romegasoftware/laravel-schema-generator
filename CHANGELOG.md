@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.11] - 2026-04-24
+
+### Fixed
+
+- Compatibility with `spatie/laravel-data` 4.22.0, which added a new `DataClassFromValidationPayloadResolver` argument to `DataValidationRulesResolver` and widened `DataValidationMessagesAndAttributesResolver`'s constructor. The inheriting resolvers no longer redeclare pass-through constructors and are now registered via DI binding so they auto-resolve whichever parent signature is installed (still compatible with 3.x / earlier 4.x).
+
 ## [1.0.0] - 2025-09-XX
 
 ### Added

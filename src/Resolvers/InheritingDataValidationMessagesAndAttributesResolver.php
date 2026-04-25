@@ -5,7 +5,6 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Resolvers;
 use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\InheritValidationFrom;
 use Spatie\LaravelData\Resolvers\DataValidationMessagesAndAttributesResolver as BaseResolver;
-use Spatie\LaravelData\Support\DataConfig;
 use Spatie\LaravelData\Support\Validation\ValidationPath;
 
 use function app;
@@ -14,11 +13,6 @@ use function str_starts_with;
 
 class InheritingDataValidationMessagesAndAttributesResolver extends BaseResolver
 {
-    public function __construct(DataConfig $dataConfig)
-    {
-        parent::__construct($dataConfig);
-    }
-
     public function execute(
         string $class,
         array $fullPayload,

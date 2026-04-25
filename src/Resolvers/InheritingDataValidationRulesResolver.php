@@ -4,12 +4,8 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Resolvers;
 
 use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Attributes\InheritValidationFrom;
-use Spatie\LaravelData\Resolvers\DataMorphClassResolver;
 use Spatie\LaravelData\Resolvers\DataValidationRulesResolver as BaseResolver;
-use Spatie\LaravelData\Support\DataConfig;
 use Spatie\LaravelData\Support\Validation\DataRules;
-use Spatie\LaravelData\Support\Validation\RuleDenormalizer;
-use Spatie\LaravelData\Support\Validation\RuleNormalizer;
 use Spatie\LaravelData\Support\Validation\ValidationPath;
 
 use function in_array;
@@ -18,20 +14,6 @@ use function str_starts_with;
 
 class InheritingDataValidationRulesResolver extends BaseResolver
 {
-    public function __construct(
-        DataConfig $dataConfig,
-        RuleNormalizer $ruleAttributesResolver,
-        RuleDenormalizer $ruleDenormalizer,
-        DataMorphClassResolver $dataMorphClassResolver,
-    ) {
-        parent::__construct(
-            $dataConfig,
-            $ruleAttributesResolver,
-            $ruleDenormalizer,
-            $dataMorphClassResolver
-        );
-    }
-
     public function execute(
         string $class,
         array $fullPayload,

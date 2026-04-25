@@ -23,12 +23,8 @@ use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\EnumTypeHandler;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\TypeHandlerRegistry;
 use RomegaSoftware\LaravelSchemaGenerator\TypeHandlers\UniversalTypeHandler;
 use RomegaSoftware\LaravelSchemaGenerator\Writers\ZodTypeScriptWriter;
-use Spatie\LaravelData\Resolvers\DataMorphClassResolver;
 use Spatie\LaravelData\Resolvers\DataValidationMessagesAndAttributesResolver;
 use Spatie\LaravelData\Resolvers\DataValidationRulesResolver;
-use Spatie\LaravelData\Support\DataConfig;
-use Spatie\LaravelData\Support\Validation\RuleDenormalizer;
-use Spatie\LaravelData\Support\Validation\RuleNormalizer;
 
 class LaravelSchemaGeneratorServiceProvider extends ServiceProvider implements DeferrableProvider
 {
@@ -78,19 +74,14 @@ class LaravelSchemaGeneratorServiceProvider extends ServiceProvider implements D
         // Register Spatie Data validator resolver if available
         if ($this->spatieDataAvailable()) {
             $this->app->singleton(\Spatie\LaravelData\Resolvers\DataValidatorResolver::class);
-            $this->app->singleton(DataValidationRulesResolver::class, function ($app) {
-                return new InheritingDataValidationRulesResolver(
-                    $app->make(DataConfig::class),
-                    $app->make(RuleNormalizer::class),
-                    $app->make(RuleDenormalizer::class),
-                    $app->make(DataMorphClassResolver::class),
-                );
-            });
-            $this->app->singleton(DataValidationMessagesAndAttributesResolver::class, function ($app) {
-                return new InheritingDataValidationMessagesAndAttributesResolver(
-                    $app->make(DataConfig::class)
-                );
-            });
+            $this->app->singleton(
+                DataValidationRulesResolver::class,
+                InheritingDataValidationRulesResolver::class,
+            );
+            $this->app->singleton(
+                DataValidationMessagesAndAttributesResolver::class,
+                InheritingDataValidationMessagesAndAttributesResolver::class,
+            );
         }
     }
 
