@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.12] - 2026-04-30
+
+### Fixed
+
+- TypeScript type alias name no longer gets a spurious `Type` inserted mid-name when the schema name itself contains the substring `Schema` (e.g. `UpdateLeadFieldSchemaRequestSchema` previously emitted `UpdateLeadFieldSchemaTypeRequestSchemaType` instead of `UpdateLeadFieldSchemaRequestSchemaType`). The replacement is now anchored to the trailing `Schema` suffix.
+
 ## [1.0.11] - 2026-04-24
 
 ### Fixed

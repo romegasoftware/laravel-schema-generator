@@ -96,7 +96,7 @@ class ZodTypeScriptWriter extends BaseScriptWriter
             // Generate content for this specific schema
             // We use the already generated schema body from the loop above
             $schemaVarName = $schema->name;
-            $typeVarName = str_replace('Schema', 'SchemaType', $schema->name);
+            $typeVarName = $this->buildTypeVarName($schema->name);
             $originalClassName = $this->getOriginalClassName($schema);
             $isDataTypeClass = $this->isDataClass($schema);
             $schemaDefinition = $generatedSchemas[$schemaVarName] ?? 'z.object({})';
@@ -145,7 +145,7 @@ class ZodTypeScriptWriter extends BaseScriptWriter
         // Generate each schema using cached results
         foreach ($sortedSchemas as $schema) {
             $schemaVarName = $schema->name;
-            $typeVarName = str_replace('Schema', 'SchemaType', $schema->name);
+            $typeVarName = $this->buildTypeVarName($schema->name);
             $originalClassName = $this->getOriginalClassName($schema);
 
             $isDataTypeClass = $this->isDataClass($schema);
@@ -200,7 +200,7 @@ class ZodTypeScriptWriter extends BaseScriptWriter
         // Generate each schema using cached results
         foreach ($sortedSchemas as $schema) {
             $schemaVarName = $schema->name;
-            $typeVarName = str_replace('Schema', 'SchemaType', $schema->name);
+            $typeVarName = $this->buildTypeVarName($schema->name);
 
             // Get the cached schema definition
             $schemaDefinition = $generatedSchemas[$schemaVarName] ?? 'z.object({})';
@@ -215,5 +215,18 @@ class ZodTypeScriptWriter extends BaseScriptWriter
         $content .= "}\n";
 
         return $content;
+    }
+
+    /**
+     * Derive the TypeScript type alias name from a schema variable name.
+     *
+     * Anchored to the trailing 'Schema' so a name that already contains
+     * 'Schema' mid-name (e.g. an `UpdateLeadFieldSchemaRequest` form
+     * request producing a `UpdateLeadFieldSchemaRequestSchema` schema
+     * name) does not get a spurious 'Type' inserted at the first match.
+     */
+    protected function buildTypeVarName(string $schemaName): string
+    {
+        return preg_replace('/Schema$/', 'SchemaType', $schemaName) ?? $schemaName.'Type';
     }
 }

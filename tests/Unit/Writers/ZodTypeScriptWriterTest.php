@@ -191,6 +191,47 @@ class ZodTypeScriptWriterTest extends TestCase
     }
 
     #[Test]
+    public function it_anchors_schema_type_alias_to_trailing_schema_suffix(): void
+    {
+        // Regression: a schema name with `Schema` mid-name (such as the
+        // one generated for an `UpdateLeadFieldSchemaRequest` form
+        // request) used to produce a spurious extra `Type` because the
+        // previous implementation called str_replace on the first match.
+        config(['laravel-schema-generator.zod.output.format' => 'namespace']);
+        config(['laravel-schema-generator.zod.output.namespace' => 'Schemas']);
+
+        $schema = new ExtractedSchemaData(
+            name: 'UpdateLeadFieldSchemaRequestSchema',
+            properties: SchemaPropertyData::collect([
+                [
+                    'name' => 'template',
+                    'type' => 'string',
+                    'isOptional' => true,
+                    'validations' => ResolvedValidationSet::make('template', [], 'string'),
+                ],
+            ]),
+            className: TestNonDataClass::class,
+            type: 'request',
+            dependencies: []
+        );
+
+        $this->mockGenerator->shouldReceive('generate')
+            ->with($schema)
+            ->andReturn('z.object({ template: z.string().nullable().optional() })');
+
+        $this->mockGenerator->shouldReceive('sortSchemasByDependencies')
+            ->andReturn([$schema]);
+
+        $content = $this->writer->generateContent([$schema]);
+
+        $this->assertStringContainsString(
+            'export type UpdateLeadFieldSchemaRequestSchemaType = z.infer<typeof UpdateLeadFieldSchemaRequestSchema>;',
+            $content,
+        );
+        $this->assertStringNotContainsString('UpdateLeadFieldSchemaTypeRequestSchemaType', $content);
+    }
+
+    #[Test]
     public function it_handles_dependency_sorting_in_namespace_format(): void
     {
         config(['laravel-schema-generator.zod.output.format' => 'namespace']);
