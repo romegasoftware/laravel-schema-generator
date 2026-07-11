@@ -12,6 +12,7 @@ use RomegaSoftware\LaravelSchemaGenerator\Traits\Makeable;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\Validation\ArrayType;
 use Spatie\LaravelData\Attributes\Validation\Present;
+use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Support\DataConfig;
 use Spatie\LaravelData\Support\DataProperty;
 use Spatie\LaravelData\Support\Validation\DataRules;
@@ -230,6 +231,14 @@ class DataClassRuleProcessor
     ): void {
         foreach ($this->dataConfig->ruleInferrers as $inferrer) {
             $inferrer->handle($dataProperty, $propertyRules, $context);
+        }
+
+        // Laravel Data hydrates a missing promoted property from its
+        // constructor default. RequiredRuleInferrer does not account for
+        // defaults, so omit only that inferred rule from client schemas.
+        // An explicit #[Required] attribute remains authoritative.
+        if ($dataProperty->hasDefaultValue && ! $dataProperty->attributes->has(Required::class)) {
+            $propertyRules->removeType(Required::class);
         }
     }
 

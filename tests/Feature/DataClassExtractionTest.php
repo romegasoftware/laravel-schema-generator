@@ -5,6 +5,7 @@ namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Feature;
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
+use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\DefaultedPropertiesData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Fixtures\DataClasses\UnifiedData;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\TestCase;
 use RomegaSoftware\LaravelSchemaGenerator\Tests\Traits\InteractsWithExtractors;
@@ -49,6 +50,23 @@ class DataClassExtractionTest extends TestCase
         $this->assertTrue($notes->validations->isFieldNullable());
         $this->assertTrue($notes->validations->hasValidation('String'));
         $this->assertTrue($notes->validations->hasValidation('Max'));
+    }
+
+    #[Test]
+    public function it_treats_constructor_defaults_as_optional_unless_explicitly_required(): void
+    {
+        $extracted = $this->getDataExtractor()->extract(new ReflectionClass(DefaultedPropertiesData::class));
+        $properties = $extracted->properties->toCollection();
+
+        $enabled = $properties->firstWhere('name', 'enabled');
+        $this->assertNotNull($enabled);
+        $this->assertTrue($enabled->isOptional);
+        $this->assertFalse($enabled->validations->isFieldRequired());
+
+        $confirmed = $properties->firstWhere('name', 'confirmed');
+        $this->assertNotNull($confirmed);
+        $this->assertFalse($confirmed->isOptional);
+        $this->assertTrue($confirmed->validations->isFieldRequired());
     }
 
     #[Test]
