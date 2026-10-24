@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.14] - 2026-10-24
+
+### Fixed
+
+- Generate runtime date limits for signed relative strings such as `before:+1 week`, instead of passing them to `Date.parse()`. Supported units are seconds, minutes, hours, days, and weeks, with an optional `now` prefix.
+- Document how to keep moving date limits stable between schema generation runs.
+
 ## [1.0.12] - 2026-04-30
 
 ### Fixed

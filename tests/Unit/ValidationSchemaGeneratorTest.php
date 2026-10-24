@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RomegaSoftware\LaravelSchemaGenerator\Tests\Unit;
 
 use Illuminate\Validation\Rule;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidation;
 use RomegaSoftware\LaravelSchemaGenerator\Data\ResolvedValidationSet;
@@ -854,6 +857,40 @@ class ValidationSchemaGeneratorTest extends TestCase
 
         $this->assertStringContainsString('const referenceTimestamp = (() => { const raw = data.start_date;', $schema);
         $this->assertStringContainsString("message: 'End date must follow start date.'", $schema);
+    }
+
+    #[Test]
+    #[TestWith(['+1 week', '(Date.now() + 604800000)'])]
+    #[TestWith(['-2 weeks', '(Date.now() - 1209600000)'])]
+    #[TestWith(['+7 days', '(Date.now() + 604800000)'])]
+    #[TestWith(['now +3 hours', '(Date.now() + 10800000)'])]
+    #[TestWith(['+15 minutes', '(Date.now() + 900000)'])]
+    #[TestWith(['-30 seconds', '(Date.now() - 30000)'])]
+    #[TestWith(['+0 days', '(Date.now() + 0)'])]
+    #[TestWith(['NOW +1 WEEK', '(Date.now() + 604800000)'])]
+    #[TestWith(['2026-12-31T23:59:59+00:00', "(() => { const ts = Date.parse('2026-12-31T23:59:59+00:00'); return Number.isNaN(ts) ? NaN : ts; })()"])]
+    public function it_preserves_dynamic_date_references(string $reference, string $expression): void
+    {
+        $extracted = new ExtractedSchemaData(
+            name: 'RelativeDateSchema',
+            dependencies: [],
+            properties: SchemaPropertyData::collect([
+                [
+                    'name' => 'expires_at',
+                    'isOptional' => false,
+                    'validations' => ResolvedValidationSet::make('expires_at', [
+                        new ResolvedValidation('Before', [$reference], 'The date must be before the limit.'),
+                    ], 'string'),
+                    'validator' => null,
+                ],
+            ]),
+            type: '',
+            className: '',
+        );
+
+        $schema = $this->generator->generate($extracted);
+
+        $this->assertStringContainsString('const referenceTimestamp = '.$expression.';', $schema);
     }
 
     #[Test]

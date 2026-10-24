@@ -106,6 +106,18 @@ if (result.success) {
 }
 ```
 
+## Relative date limits
+
+Keep moving date limits as rule strings. Do not calculate a timestamp in `rules()`:
+
+```php
+'expires_at' => ['nullable', 'date', 'after:now', 'before:+1 week'],
+```
+
+The generated schema calculates the limit each time validation runs. Its output does not change with the generation date. Signed integer offsets support seconds, minutes, hours, days, and weeks, with an optional `now` prefix, such as `now -2 hours`. Days and weeks use elapsed durations of 24 hours and 7 days. Use these offsets with a UTC server timezone to keep PHP and browser limits equal across daylight saving changes. Calendar expressions such as `next Friday` and `+1 month` are not supported.
+
+Fixed date strings and references to other fields remain supported. For a clear validation message, set a message such as `expires_at.before` to `The date must be within the next 7 days.`
+
 ## Documentation
 
 For complete documentation, configuration options, advanced features, and examples, visit:

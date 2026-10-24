@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RomegaSoftware\LaravelSchemaGenerator\Generators;
 
 use RomegaSoftware\LaravelSchemaGenerator\Data\ExtractedSchemaData;
@@ -90,7 +92,7 @@ class ValidationSchemaGenerator extends BaseGenerator
 
         $encoded = json_encode($name, JSON_UNESCAPED_SLASHES);
 
-        return $encoded !== false ? $encoded : '"'.addcslashes($name, "\\\"").'"';
+        return $encoded !== false ? $encoded : '"'.addcslashes($name, '\\"').'"';
     }
 
     /**
@@ -741,6 +743,20 @@ class ValidationSchemaGenerator extends BaseGenerator
 
         if ($reference === 'yesterday') {
             return '(() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - 1); return d.getTime(); })()';
+        }
+
+        if (preg_match('/^(?:now\s+)?([+-])\s*(\d+)\s*(second|minute|hour|day|week)s?$/i', $reference, $matches) === 1) {
+            $milliseconds = match (strtolower($matches[3])) {
+                'second' => 1000,
+                'minute' => 60000,
+                'hour' => 3600000,
+                'day' => 86400000,
+                'week' => 604800000,
+                default => throw new \LogicException('Unsupported relative date unit.'),
+            };
+            $offset = (int) $matches[2] * $milliseconds;
+
+            return sprintf('(Date.now() %s %d)', $matches[1], $offset);
         }
 
         if ($this->looksLikeDateString($reference)) {
